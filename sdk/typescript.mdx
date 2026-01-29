@@ -4,7 +4,7 @@ description: "Client setup, decisions, policies, and alerts"
 ---
 
 <Warning>
-  The MeshQu SDK is currently in early access and not yet published to npm. To discuss SDK access, contact [contact@meshqu.com](mailto:contact@meshqu.com).
+  The MeshQu SDK is in early access and not yet publicly distributed. Contact [contact@meshqu.com](mailto:contact@meshqu.com) for access.
 </Warning>
 
 ## Client setup
@@ -96,7 +96,7 @@ const policy = await client.createPolicy({
   name: 'Max Order Size',
   description: 'Rejects orders above threshold.',
   decision_type: 'trade_execution',
-  shadow_mode: false,
+  advisory_mode: false,
   rules: [],
 });
 
@@ -104,7 +104,7 @@ const policy = await client.createPolicy({
 const fetched = await client.getPolicy(policy.id);
 
 // Update metadata
-await client.updatePolicy(policy.id, { shadow_mode: true });
+await client.updatePolicy(policy.id, { advisory_mode: true });
 
 // Deactivate
 await client.deletePolicy(policy.id);

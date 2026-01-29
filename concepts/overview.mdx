@@ -18,7 +18,7 @@ A **decision context** is the payload you send to MeshQu describing what is abou
 | `decision_type` | A string identifying the kind of operation (e.g. `trade_execution`, `withdrawal`). |
 | `fields` | Domain-agnostic values the policies evaluate (account, amount, instrument, etc.). |
 | `metadata` | Optional key-value pairs for traceability (source system, request ID, etc.). |
-| `evidence` | Optional supporting data that policies may reference during evaluation. |
+| `evidence` | Optional supporting data that policies may reference during evaluation (e.g. `credit_report_id`, `sanctions_list_version`). Evidence supports the audit trail but does not drive policy logic. |
 | `source_artifact` | Optional cryptographic binding to a source document (hash + metadata). |
 
 ## Policy
@@ -26,7 +26,7 @@ A **decision context** is the payload you send to MeshQu describing what is abou
 A **policy** is a named, versioned governance configuration that MeshQu evaluates against incoming decision contexts. Policies have:
 
 - A unique `code` (human-readable identifier).
-- A `shadow_mode` flag: when enabled, `DENY` decisions are downgraded to `ALERT` for observation.
+- An `advisory_mode` flag: when enabled, `DENY` decisions are downgraded to `ALERT` for observation.
 - One or more **versions**. Only the active version is used during evaluation.
 
 You manage policies via the API or the MeshQu Console.
@@ -44,7 +44,7 @@ Every evaluation returns a **decision**:
 | `ALLOW` | All evaluated policies passed. Proceed normally. |
 | `REVIEW` | One or more policies flagged the context for manual review. |
 | `DENY` | One or more policies rejected the context. |
-| `ALERT` | A shadow-mode policy would have denied; logged for observation. |
+| `ALERT` | An advisory-mode policy would have denied; logged for observation. |
 
 The decision is **advisory**. Your application decides what to do with it — MeshQu does not block or allow operations on its own.
 
@@ -107,7 +107,7 @@ These are contractual properties of the platform.
 - **Not a scoring or risk engine.** MeshQu evaluates decisions against policy. It does not generate risk scores or predictions.
 - **Not an explainability tool.** MeshQu proves policy compliance. Model explainability is a separate concern.
 
-### Non-goals
+### Explicit non-goals
 
 MeshQu intentionally does not:
 

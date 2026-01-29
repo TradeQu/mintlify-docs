@@ -5,11 +5,11 @@ description: "Endpoints, scopes, and request/response examples"
 
 Base path: `/v1`
 
-**Determinism guarantee:** Given the same decision context and the same policy snapshot, MeshQu will always return the same verdict. The `policy_snapshot_hash` and `integrity_hash` in each response let you verify this independently. Determinism applies strictly to MeshQu's policy evaluation logic. It does not extend to the contents of `fields`, `metadata`, or `evidence` — those are supplied by your application and outside MeshQu's control.
+**Determinism guarantee:** Given the same decision context and the same policy snapshot, MeshQu will always return the same verdict. The `policy_snapshot_hash` and `integrity_hash` in each response let you verify this independently. Determinism applies strictly to MeshQu's policy evaluation logic and snapshot resolution. Client-supplied data and external evidence are outside this guarantee.
 
 > **Example:** Replaying a decision six months later will produce the same verdict as long as the same policy snapshot is used, even if current policies have changed.
 
-Evaluations are designed for the hot path. Typical response times are single-digit milliseconds for policy evaluation, excluding network latency.
+Evaluations are designed for synchronous use at decision boundaries. Typical response times are single-digit milliseconds for policy evaluation, excluding network latency. Clients should still implement timeouts and fallback strategies.
 
 All authenticated endpoints require `Authorization: Bearer <API_KEY>` and `X-MeshQu-Tenant-Id` headers. See [Authentication](../getting-started/authentication).
 
@@ -94,7 +94,7 @@ Evaluates a decision context against active policies. Nothing is persisted.
     "cached": true
   },
   "duration_ms": 12.7,
-  "shadow_mode": {
+  "advisory_mode": {
     "enabled": false
   },
   "governance_source": {
@@ -219,7 +219,7 @@ POST /v1/policies
   "name": "Max Order Size",
   "description": "Rejects orders exceeding configured thresholds.",
   "decision_type": "trade_execution",
-  "shadow_mode": false,
+  "advisory_mode": false,
   "rules": []
 }
 ```
@@ -242,7 +242,7 @@ PATCH /v1/policies/:id
 
 **Scope**: `policies:write`
 
-Updates name, description, shadow mode, group assignment, or status. Does not change rules — create a new version for that.
+Updates name, description, advisory mode, group assignment, or status. Does not change rules — create a new version for that.
 
 ### Deactivate policy
 

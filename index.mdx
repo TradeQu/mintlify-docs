@@ -9,6 +9,8 @@ description: "Governance infrastructure for automated decisions"
 
 **Audience:** These docs are for engineers integrating MeshQu into regulated or audit-sensitive systems, and for security, risk, and audit teams validating its behaviour.
 
+MeshQu is not intended for feature flagging, application permissions, or consumer-facing rule evaluation.
+
 MeshQu provides governance infrastructure for automated and AI-assisted decisions that must follow explicit policy. Integrate MeshQu into your application to evaluate transactions, operations, or events against configurable policies and receive structured decisions.
 
 > **Mental model:** MeshQu sits at the decision boundary. You send context, it returns a governed verdict and a verifiable receipt. You own enforcement.
@@ -17,7 +19,7 @@ MeshQu provides governance infrastructure for automated and AI-assisted decision
 
 Automated and AI-assisted systems make decisions constantly. Few can prove those decisions followed policy at the moment they mattered.
 
-Logs show what happened. They do not prove what _should_ have happened.
+Logs show what happened. They do not prove policy compliance.
 
 MeshQu closes that gap. It makes decisions governable, replayable, and independently verifiable — at the decision boundary.
 
@@ -38,6 +40,8 @@ flowchart LR
 ```
 
 > If you remember one thing: MeshQu is called **at the decision boundary**, not after.
+
+**Advisory by design:** MeshQu returns a governed verdict and receipt. Enforcement always remains in your system.
 
 ```bash
 curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
@@ -87,6 +91,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
 | **Alert webhooks** | Receive real-time notifications when alerts are raised. |
 | **Multi-tenant** | Every request is scoped to a tenant via the `X-MeshQu-Tenant-Id` header. |
 | **Scoped API keys** | Fine-grained access control with per-key scopes. |
+| **Advisory mode** | Safely test new policies in production; violations generate alerts but do not block traffic. |
 
 ## Quick links
 
@@ -115,3 +120,9 @@ GET /openapi.json
 ```
 
 Interactive Swagger UI is available at `/docs` when enabled.
+
+---
+
+<Info>
+  This Mintlify documentation is the canonical, up-to-date reference. GitBook mirrors public-facing content.
+</Info>

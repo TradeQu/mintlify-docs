@@ -122,30 +122,30 @@ async function executeOrder(order: Order): Promise<OrderResult> {
 }
 ```
 
-**When to use:** Low-latency paths where governance is advisory, or when ramping up MeshQu (shadow mode) before enforcing.
+**When to use:** Low-latency paths where governance is advisory, or when ramping up MeshQu (advisory mode) before enforcing.
 
 ---
 
-## Pattern 4: Shadow mode rollout
+## Pattern 4: Advisory mode rollout
 
-When introducing a new policy, start in **shadow** mode. Shadow policies are evaluated but their `DENY` decisions are downgraded to `ALERT`. This lets you observe what the policy _would_ do without affecting production.
+When introducing a new policy, start in **advisory** mode. Advisory policies are evaluated but their `DENY` decisions are downgraded to `ALERT`. This lets you observe what the policy _would_ do without affecting production.
 
-1. Create the policy with `shadow_mode: true`.
+1. Create the policy with `advisory_mode: true`.
 2. Monitor decisions and alerts.
-3. When confident, switch to `shadow_mode: false`.
+3. When confident, switch to `advisory_mode: false`.
 
 ```typescript
-// Create in shadow mode
+// Create in advisory mode
 await meshqu.createPolicy({
   code: 'concentration-limit-v2',
   name: 'New Concentration Limit',
   decision_type: 'trade_execution',
-  shadow_mode: true,
+  advisory_mode: true,
   rules: [ /* ... */ ],
 });
 
 // Later, promote to enforcing
-await meshqu.updatePolicy(policyId, { shadow_mode: false });
+await meshqu.updatePolicy(policyId, { advisory_mode: false });
 ```
 
 ---
@@ -181,7 +181,7 @@ const client = new MeshQuClient({
 
 ## Fail-open vs. fail-closed
 
-Choose a failure strategy before going live:
+Choose a failure strategy before going live. For compliance-critical workflows, default to **fail-closed**.
 
 | Strategy | Behaviour when MeshQu is unreachable | Best for |
 | --- | --- | --- |
@@ -204,3 +204,11 @@ async function evaluateWithFallback(context: DecisionContext): Promise<string> {
   }
 }
 ```
+
+---
+
+## Anti-patterns to avoid
+
+- **Calling MeshQu after irreversible execution** when auditability is required.
+- **Treating MeshQu decisions as implicit enforcement.** Your application must act on the verdict explicitly.
+- **Sending sensitive personal data** when opaque identifiers are sufficient.
