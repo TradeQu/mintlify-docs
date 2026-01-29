@@ -94,6 +94,7 @@ All data is isolated per **tenant**. Every API request includes a `X-MeshQu-Tena
 - **Not an execution layer.** MeshQu returns a verdict — it never blocks, allows, or modifies operations on its own.
 - **Not a permissions system.** It does not manage who can log in or what resources they can access. Use it alongside your existing IAM.
 - **Not a real-time data feed.** It evaluates the context you send. It does not subscribe to market data or external sources.
+- **Not a scoring or risk engine.** MeshQu evaluates decisions against policy; it does not generate risk scores or predictions.
 - **Not an explainability tool.** MeshQu proves that a decision followed policy, not why a model produced a score.
 
 ## How auditors use MeshQu
@@ -104,6 +105,22 @@ All data is isolated per **tenant**. Every API request includes a `X-MeshQu-Tena
 4. Confirm the policy snapshot and timestamp match expectations.
 
 No access to application code or models is required.
+
+## Decision lifecycle
+
+1. **Build context** — your application assembles a decision context (type, fields, metadata, evidence).
+2. **Evaluate** — MeshQu evaluates the context against active policies at the decision boundary.
+3. **Receive verdict** — MeshQu returns `ALLOW`, `REVIEW`, `DENY`, or `ALERT` with a cryptographic receipt.
+4. **Act** — your application enforces the verdict (proceed, queue, or block).
+5. **Record** (optional) — persist the evaluation for audit by calling `/v1/decisions/record`.
+
+## Evaluate vs Record
+
+| | **Evaluate** (`/v1/decisions/evaluate`) | **Record** (`/v1/decisions/record`) |
+| --- | --- | --- |
+| **Persisted** | No — stateless, nothing stored | Yes — context, verdict, and metadata stored |
+| **Idempotency key** | Not required | Required |
+| **Typical use** | Real-time gating, dry-run testing | Audit trail, compliance evidence |
 
 ## How these fit together
 

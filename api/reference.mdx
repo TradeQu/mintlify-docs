@@ -5,7 +5,9 @@ description: "Endpoints, scopes, and request/response examples"
 
 Base path: `/v1`
 
-**Determinism guarantee:** Given the same decision context and the same policy snapshot, MeshQu will always return the same verdict. The `policy_snapshot_hash` and `integrity_hash` in each response let you verify this independently. Determinism applies to policy evaluation, not to external data sources supplied by the client.
+**Determinism guarantee:** Given the same decision context and the same policy snapshot, MeshQu will always return the same verdict. The `policy_snapshot_hash` and `integrity_hash` in each response let you verify this independently. Determinism applies to policy evaluation at the decision boundary, not to external data sources supplied by the client.
+
+> **Example:** Replaying a decision six months later will produce the same verdict as long as the same policy snapshot is used, even if current policies have changed.
 
 All authenticated endpoints require `Authorization: Bearer <API_KEY>` and `X-MeshQu-Tenant-Id` headers. See [Authentication](../getting-started/authentication).
 

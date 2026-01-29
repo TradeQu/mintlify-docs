@@ -7,6 +7,8 @@ description: "Governance infrastructure for automated decisions"
   MeshQu is not yet publicly available. The API and SDK are in **early access**. To request access, contact [contact@meshqu.com](mailto:contact@meshqu.com).
 </Info>
 
+**Audience:** These docs are for engineers integrating MeshQu, and for security, risk, and audit teams validating its behaviour.
+
 MeshQu provides governance infrastructure for automated and AI-assisted decisions that must follow explicit policy. Integrate MeshQu into your application to evaluate transactions, operations, or events against configurable policies and receive structured decisions.
 
 > **Mental model:** MeshQu sits at the decision boundary. You send context, it returns a governed verdict and a verifiable receipt. You own enforcement.
@@ -44,7 +46,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
 
 ## What happens after you integrate
 
-1. Your system calls MeshQu before or after a decision point.
+1. Your system calls MeshQu before or after the **decision boundary** — the moment an outcome becomes irreversible.
 2. MeshQu evaluates the context against your active policies and returns a verdict and a cryptographic receipt.
 3. Your code decides how to act — proceed, queue for review, or block.
 4. Auditors can independently replay and verify any recorded decision later.
