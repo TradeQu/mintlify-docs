@@ -107,6 +107,17 @@ These are contractual properties of the platform.
 - **Not a scoring or risk engine.** MeshQu evaluates decisions against policy. It does not generate risk scores or predictions.
 - **Not an explainability tool.** MeshQu proves policy compliance. Model explainability is a separate concern.
 
+### Non-goals
+
+MeshQu intentionally does not:
+
+- Generate risk scores or predictions.
+- Subscribe to external data feeds.
+- Manage user authentication or authorization.
+- Explain upstream model behaviour.
+
+These are out of scope by design, not missing features.
+
 ## How auditors use MeshQu
 
 1. Request a decision by ID.
@@ -154,3 +165,7 @@ sequenceDiagram
     MQ-->>App: { result, snapshot, ... }
     App->>App: Act on decision
 ```
+
+---
+
+**Next:** [API Reference](../api/reference) — full endpoint listing.

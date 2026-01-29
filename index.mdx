@@ -7,7 +7,7 @@ description: "Governance infrastructure for automated decisions"
   MeshQu is not yet publicly available. The API and SDK are in **early access**. To request access, contact [contact@meshqu.com](mailto:contact@meshqu.com).
 </Info>
 
-**Audience:** These docs are for engineers integrating MeshQu, and for security, risk, and audit teams validating its behaviour.
+**Audience:** These docs are for engineers integrating MeshQu into regulated or audit-sensitive systems, and for security, risk, and audit teams validating its behaviour.
 
 MeshQu provides governance infrastructure for automated and AI-assisted decisions that must follow explicit policy. Integrate MeshQu into your application to evaluate transactions, operations, or events against configurable policies and receive structured decisions.
 
@@ -15,11 +15,11 @@ MeshQu provides governance infrastructure for automated and AI-assisted decision
 
 ## Why MeshQu exists
 
-Modern systems increasingly make automated or AI-assisted decisions, but cannot prove that those decisions followed policy at the moment they mattered.
+Automated and AI-assisted systems make decisions constantly. Few can prove those decisions followed policy at the moment they mattered.
 
 Logs show what happened. They do not prove what _should_ have happened.
 
-MeshQu exists to make decisions governable, replayable, and independently verifiable — at the decision boundary.
+MeshQu closes that gap. It makes decisions governable, replayable, and independently verifiable — at the decision boundary.
 
 **Key concepts:** [Decision context](concepts/overview#decision-context) · [Policy](concepts/overview#policy) · [Decision](concepts/overview#decision) · [Alert](concepts/overview#alert)
 
@@ -61,6 +61,10 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
   }
 }
 ```
+
+<Warning>
+  **MeshQu is advisory by design.** It returns a verdict — your application decides whether to proceed, queue, or block. MeshQu never enforces outcomes on its own.
+</Warning>
 
 <Info>
   **Evaluate vs Record** — `evaluate` is fast, stateless, nothing stored. `record` persists the result for audit. Most production systems use `evaluate` on the hot path and `record` for compliance-critical actions. See [Evaluate vs Record](concepts/overview#evaluate-vs-record).
