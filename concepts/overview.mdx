@@ -93,19 +93,12 @@ All data is isolated per **tenant**. Every API request includes a `X-MeshQu-Tena
 
 ## How these fit together
 
-```
-Your App                         MeshQu
-────────                         ──────
-   │                                │
-   │  POST /v1/decisions/evaluate   │
-   │  { decision_type, fields,      │
-   │    metadata }                  │
-   │ ─────────────────────────────► │
-   │                                │  Evaluates context
-   │                                │  against active policies
-   │  { result, snapshot, ... }     │
-   │ ◄───────────────────────────── │
-   │                                │
-   │  Your code acts on decision    │
-   │                                │
+```mermaid
+sequenceDiagram
+    participant App as Your App
+    participant MQ as MeshQu
+    App->>MQ: POST /v1/decisions/evaluate<br/>{ decision_type, fields, metadata }
+    MQ->>MQ: Evaluate context against active policies
+    MQ-->>App: { result, snapshot, ... }
+    App->>App: Act on decision
 ```
