@@ -1,21 +1,23 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "aspen",
+  "theme": "almond",
   "name": "MeshQu Developer Docs",
   "colors": {
     "primary": "#0891B2",
     "light": "#22D3EE",
     "dark": "#0E7490"
   },
-  "font": {
+  "fonts": {
     "body": {
       "family": "Inter"
-    },
-    "code": {
-      "family": "JetBrains Mono"
     }
   },
-  "rounded": "default",
+  "background": {
+    "color": {
+      "dark": "#0F1117",
+      "light": "#FAFAFA"
+    }
+  },
   "favicon": "/favicon.svg",
   "navigation": {
     "tabs": [
