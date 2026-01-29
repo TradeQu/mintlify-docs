@@ -5,7 +5,7 @@ description: "Endpoints, scopes, and request/response examples"
 
 Base path: `/v1`
 
-**Determinism guarantee:** Given the same decision context and the same policy snapshot, MeshQu will always return the same verdict. The `policy_snapshot_hash` and `integrity_hash` in each response let you verify this independently.
+**Determinism guarantee:** Given the same decision context and the same policy snapshot, MeshQu will always return the same verdict. The `policy_snapshot_hash` and `integrity_hash` in each response let you verify this independently. Determinism applies to policy evaluation, not to external data sources supplied by the client.
 
 All authenticated endpoints require `Authorization: Bearer <API_KEY>` and `X-MeshQu-Tenant-Id` headers. See [Authentication](../getting-started/authentication).
 
@@ -258,7 +258,7 @@ POST /v1/policies/validate
 
 **Scope**: `policies:read`
 
-Validates policy rules without creating or modifying any policy.
+Validates policy configuration without creating or modifying any policy.
 
 ### Create policy version
 

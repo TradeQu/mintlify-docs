@@ -5,6 +5,10 @@ description: "Decision contexts, policies, and alerts"
 
 This page introduces the key abstractions you will work with when integrating MeshQu.
 
+## Decision boundary
+
+The **decision boundary** is the moment a system outcome becomes irreversible — execution, settlement, release, or approval. MeshQu is designed to sit at the decision boundary: your application calls it before (or after) that moment and receives a governed verdict.
+
 ## Decision context
 
 A **decision context** is the payload you send to MeshQu describing what is about to happen. It contains:
@@ -90,6 +94,16 @@ All data is isolated per **tenant**. Every API request includes a `X-MeshQu-Tena
 - **Not an execution layer.** MeshQu returns a verdict — it never blocks, allows, or modifies operations on its own.
 - **Not a permissions system.** It does not manage who can log in or what resources they can access. Use it alongside your existing IAM.
 - **Not a real-time data feed.** It evaluates the context you send. It does not subscribe to market data or external sources.
+- **Not an explainability tool.** MeshQu proves that a decision followed policy, not why a model produced a score.
+
+## How auditors use MeshQu
+
+1. Request a decision by ID.
+2. Replay the decision against the original policy snapshot.
+3. Verify integrity hashes to confirm the verdict has not been altered.
+4. Confirm the policy snapshot and timestamp match expectations.
+
+No access to application code or models is required.
 
 ## How these fit together
 
