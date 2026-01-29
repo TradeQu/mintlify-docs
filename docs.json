@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "quill",
+  "theme": "aspen",
   "name": "MeshQu Developer Docs",
   "colors": {
     "primary": "#0891B2",
