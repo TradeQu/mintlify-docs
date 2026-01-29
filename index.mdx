@@ -1,87 +1,51 @@
 ---
 title: "MeshQu Developer Docs"
-description: "Governance infrastructure for policy-aware decisions"
-mode: "custom"
+description: "Policy-aware decisions, APIs, and SDKs"
 ---
 
-<div className="max-w-4xl mx-auto px-6 py-16 lg:py-32">
-  <div className="text-center">
-    <h1 className="text-4xl lg:text-5xl font-semibold tracking-tight text-gray-900 dark:text-zinc-50">
-      MeshQu Developer Docs
-    </h1>
-    <p className="mt-4 text-lg text-gray-500 dark:text-zinc-400 max-w-2xl mx-auto">
-      Governance infrastructure for policy-aware decisions. Evaluate transactions against configurable policies and receive structured decisions — <code>ALLOW</code>, <code>REVIEW</code>, <code>DENY</code>, or <code>ALERT</code>.
-    </p>
-  </div>
+MeshQu provides governance infrastructure for policy-aware decisions. Integrate MeshQu into your application to evaluate transactions, operations, or events against configurable policies and receive structured decisions.
 
-  <div className="mt-16 grid sm:grid-cols-2 gap-6">
-    <a className="group block rounded-lg border border-gray-200 dark:border-zinc-800 p-6 hover:border-cyan-500 dark:hover:border-cyan-500 transition-colors" href="/getting-started/quickstart">
-      <h3 className="font-medium text-gray-900 dark:text-zinc-50">Quickstart</h3>
-      <p className="mt-2 text-sm text-gray-500 dark:text-zinc-400">Make your first policy evaluation call in minutes.</p>
-    </a>
+## What MeshQu does
 
-    <a className="group block rounded-lg border border-gray-200 dark:border-zinc-800 p-6 hover:border-cyan-500 dark:hover:border-cyan-500 transition-colors" href="/getting-started/authentication">
-      <h3 className="font-medium text-gray-900 dark:text-zinc-50">Authentication</h3>
-      <p className="mt-2 text-sm text-gray-500 dark:text-zinc-400">API keys, scopes, and tenant headers.</p>
-    </a>
+You send a **decision context** (the data describing what is about to happen). MeshQu evaluates it against your active **policies** and returns a **decision**: `ALLOW`, `REVIEW`, `DENY`, or `ALERT`, along with any violations.
 
-    <a className="group block rounded-lg border border-gray-200 dark:border-zinc-800 p-6 hover:border-cyan-500 dark:hover:border-cyan-500 transition-colors" href="/api/reference">
-      <h3 className="font-medium text-gray-900 dark:text-zinc-50">API Reference</h3>
-      <p className="mt-2 text-sm text-gray-500 dark:text-zinc-400">Full endpoint listing for decisions, policies, alerts, and webhooks.</p>
-    </a>
+Your application decides what to do with the decision. MeshQu does not block or allow anything on its own — it provides the verdict and your code acts on it.
 
-    <a className="group block rounded-lg border border-gray-200 dark:border-zinc-800 p-6 hover:border-cyan-500 dark:hover:border-cyan-500 transition-colors" href="/sdk/typescript">
-      <h3 className="font-medium text-gray-900 dark:text-zinc-50">TypeScript SDK</h3>
-      <p className="mt-2 text-sm text-gray-500 dark:text-zinc-400">Typed client library for Node.js and TypeScript environments.</p>
-    </a>
-  </div>
+## Key capabilities
 
-  <div className="mt-16">
-    <h2 className="text-xl font-medium text-gray-900 dark:text-zinc-50">Key capabilities</h2>
-    <div className="mt-6 grid sm:grid-cols-2 gap-4 text-sm">
-      <div className="p-4 rounded-lg bg-gray-50 dark:bg-zinc-900">
-        <span className="font-medium text-gray-900 dark:text-zinc-50">Policy evaluation</span>
-        <p className="mt-1 text-gray-500 dark:text-zinc-400">Evaluate a context against one or many policies in a single call.</p>
-      </div>
-      <div className="p-4 rounded-lg bg-gray-50 dark:bg-zinc-900">
-        <span className="font-medium text-gray-900 dark:text-zinc-50">Decision recording</span>
-        <p className="mt-1 text-gray-500 dark:text-zinc-400">Persist evaluation results for audit and compliance.</p>
-      </div>
-      <div className="p-4 rounded-lg bg-gray-50 dark:bg-zinc-900">
-        <span className="font-medium text-gray-900 dark:text-zinc-50">Alert webhooks</span>
-        <p className="mt-1 text-gray-500 dark:text-zinc-400">Receive real-time HMAC-signed notifications when alerts are raised.</p>
-      </div>
-      <div className="p-4 rounded-lg bg-gray-50 dark:bg-zinc-900">
-        <span className="font-medium text-gray-900 dark:text-zinc-50">Multi-tenant</span>
-        <p className="mt-1 text-gray-500 dark:text-zinc-400">Every request is scoped to a tenant via the X-MeshQu-Tenant-Id header.</p>
-      </div>
-    </div>
-  </div>
+| Capability | Description |
+| --- | --- |
+| **Policy evaluation** | Evaluate a context against one or many policies in a single call. |
+| **Decision recording** | Persist evaluation results for audit and compliance. |
+| **Idempotent recording** | Supply an `idempotency_key` to safely retry without duplicate records. |
+| **Alert webhooks** | Receive real-time notifications when alerts are raised. |
+| **Multi-tenant** | Every request is scoped to a tenant via the `X-MeshQu-Tenant-Id` header. |
+| **Scoped API keys** | Fine-grained access control with per-key scopes. |
 
-  <div className="mt-16 text-sm text-gray-500 dark:text-zinc-400">
-    <h2 className="text-xl font-medium text-gray-900 dark:text-zinc-50 mb-4">Base URLs</h2>
-    <table className="w-full text-left">
-      <thead>
-        <tr className="border-b border-gray-200 dark:border-zinc-800">
-          <th className="pb-2 font-medium text-gray-900 dark:text-zinc-50">Environment</th>
-          <th className="pb-2 font-medium text-gray-900 dark:text-zinc-50">URL</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr className="border-b border-gray-100 dark:border-zinc-800/50">
-          <td className="py-2">Production</td>
-          <td className="py-2"><code>https://api.meshqu.io</code></td>
-        </tr>
-        <tr className="border-b border-gray-100 dark:border-zinc-800/50">
-          <td className="py-2">Staging</td>
-          <td className="py-2"><code>https://api-staging.meshqu.io</code></td>
-        </tr>
-        <tr>
-          <td className="py-2">Local dev</td>
-          <td className="py-2"><code>http://localhost:3010</code></td>
-        </tr>
-      </tbody>
-    </table>
-    <p className="mt-4">All endpoints are prefixed with <code>/v1</code>. A machine-readable OpenAPI 3.0 spec is available at <code>GET /openapi.json</code>.</p>
-  </div>
-</div>
+## Quick links
+
+- [Quickstart](getting-started/quickstart) — make your first API call in minutes.
+- [Authentication](getting-started/authentication) — how API keys and scopes work.
+- [API Reference](api/reference) — full endpoint listing.
+- [TypeScript SDK](sdk/typescript) — install and use the client library.
+- [Integration Patterns](guides/integration-patterns) — common ways to wire MeshQu into your stack.
+
+## Base URLs
+
+| Environment | URL |
+| --- | --- |
+| Production | `https://api.meshqu.io` |
+| Staging | `https://api-staging.meshqu.io` |
+| Local dev | `http://localhost:3010` |
+
+All endpoints are prefixed with `/v1`.
+
+## OpenAPI
+
+A machine-readable OpenAPI 3.0 spec is available at:
+
+```
+GET /openapi.json
+```
+
+Interactive Swagger UI is available at `/docs` when enabled.
