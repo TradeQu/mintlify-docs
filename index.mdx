@@ -1,97 +1,51 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "MeshQu Developer Docs"
+description: "Policy-aware decisions, APIs, and SDKs"
 ---
 
-## Setting up
+MeshQu provides governance infrastructure for policy-aware decisions. Integrate MeshQu into your application to evaluate transactions, operations, or events against configurable policies and receive structured decisions.
 
-Get your documentation site up and running in minutes.
+## What MeshQu does
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+You send a **decision context** (the data describing what is about to happen). MeshQu evaluates it against your active **policies** and returns a **decision**: `ALLOW`, `REVIEW`, `DENY`, or `ALERT`, along with any violations.
 
-## Make it yours
+Your application decides what to do with the decision. MeshQu does not block or allow anything on its own — it provides the verdict and your code acts on it.
 
-Design a docs site that looks great and empowers your users.
+## Key capabilities
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
+| Capability | Description |
+| --- | --- |
+| **Policy evaluation** | Evaluate a context against one or many policies in a single call. |
+| **Decision recording** | Persist evaluation results for audit and compliance. |
+| **Idempotent recording** | Supply an `idempotency_key` to safely retry without duplicate records. |
+| **Alert webhooks** | Receive real-time notifications when alerts are raised. |
+| **Multi-tenant** | Every request is scoped to a tenant via the `X-MeshQu-Tenant-Id` header. |
+| **Scoped API keys** | Fine-grained access control with per-key scopes. |
 
-## Create beautiful pages
+## Quick links
 
-Everything you need to create world-class documentation.
+- [Quickstart](getting-started/quickstart) — make your first API call in minutes.
+- [Authentication](getting-started/authentication) — how API keys and scopes work.
+- [API Reference](api/reference) — full endpoint listing.
+- [TypeScript SDK](sdk/typescript) — install and use the client library.
+- [Integration Patterns](guides/integration-patterns) — common ways to wire MeshQu into your stack.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## Base URLs
 
-## Need inspiration?
+| Environment | URL |
+| --- | --- |
+| Production | `https://api.meshqu.io` |
+| Staging | `https://api-staging.meshqu.io` |
+| Local dev | `http://localhost:3010` |
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+All endpoints are prefixed with `/v1`.
+
+## OpenAPI
+
+A machine-readable OpenAPI 3.0 spec is available at:
+
+```
+GET /openapi.json
+```
+
+Interactive Swagger UI is available at `/docs` when enabled.

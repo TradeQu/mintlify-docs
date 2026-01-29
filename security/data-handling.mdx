@@ -1,0 +1,58 @@
+---
+title: "Security & Data Handling"
+description: "Transport security, webhooks, and audit trail"
+---
+
+## Transport security
+
+All production traffic must use HTTPS (TLS 1.2+). The API rejects plain HTTP in production environments.
+
+## Authentication
+
+- API keys are transmitted via the `Authorization: Bearer` header.
+- Keys are hashed before storage — MeshQu never stores plaintext keys.
+- Keys support expiry and revocation. Revoked keys are rejected immediately.
+- See [Authentication](../getting-started/authentication) for details.
+
+## Multi-tenant isolation
+
+Every API request is scoped to a tenant via the `X-MeshQu-Tenant-Id` header. Data from one tenant is never accessible to another. The API key must belong to the specified tenant.
+
+## Scoped access
+
+API keys carry explicit scopes that limit what operations they can perform. Follow the principle of least privilege: issue keys with only the scopes each service needs.
+
+## Webhook security
+
+- Webhook payloads are signed with HMAC-SHA256.
+- Signatures include a timestamp for replay protection (5-minute window).
+- Webhook delivery follows redirects cautiously to mitigate SSRF risks.
+- See [Webhooks](../guides/webhooks) for verification details.
+
+## Audit trail
+
+All significant actions (policy changes, decision recordings, key operations) are logged to an append-only audit trail. Audit events can be verified for integrity via the API.
+
+## Rate limiting
+
+Two-tier rate limiting protects against abuse:
+
+- **Pre-authentication**: IP-based limits prevent brute-force attempts.
+- **Post-authentication**: Per-tenant limits ensure fair usage.
+
+## Correlation IDs
+
+Every request is assigned a `correlation_id` returned in the response body and as the `x-correlation-id` header. Use this for tracing and when contacting support.
+
+## Data you send to MeshQu
+
+Decision contexts (`fields`, `metadata`, `evidence`) are sent by your application. You control what data is included. Avoid sending sensitive personally identifiable information unless required by your policies. Use opaque identifiers (account IDs, order IDs) rather than raw personal data where possible.
+
+## What MeshQu stores
+
+- **Evaluate** (`/v1/decisions/evaluate`): Nothing is persisted. The evaluation is stateless.
+- **Record** (`/v1/decisions/record`): The decision context, decision, violations, and metadata are stored for audit.
+
+## Responsible disclosure
+
+If you discover a security vulnerability, contact security@meshqu.io. Do not disclose publicly until a fix is available.

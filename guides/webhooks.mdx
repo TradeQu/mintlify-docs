@@ -1,0 +1,150 @@
+---
+title: "Webhooks"
+description: "Alert notifications and signature verification"
+---
+
+MeshQu can send real-time HTTP notifications when alerts are created. You subscribe to events by registering a webhook URL.
+
+## Supported events
+
+| Event | Trigger |
+| --- | --- |
+| `alert.created` | A new alert is raised (e.g. critical policy failure). |
+
+## Creating a subscription
+
+```bash
+curl -X POST https://api.meshqu.io/v1/alerts/subscriptions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-service.com/webhooks/meshqu",
+    "decision_types": ["trade_execution"],
+    "severity_min": "high"
+  }'
+```
+
+Or with the SDK:
+
+```typescript
+const sub = await client.createSubscription(
+  'https://your-service.com/webhooks/meshqu',
+  { decision_types: ['trade_execution'], severity_min: 'high' },
+);
+```
+
+The create response includes a `secret` field that is shown **only once**. Store it securely for signature verification.
+
+## Payload format
+
+When an event fires, MeshQu sends a `POST` request to your URL:
+
+```json
+{
+  "event": "alert.created",
+  "timestamp": "2025-01-15T10:30:00.000Z",
+  "alert": {
+    "id": "alert-uuid",
+    "alert_type": "policy_violation",
+    "severity": "critical",
+    "message": "Policy max-order-size returned DENY for decision dec-uuid.",
+    "decision_id": "dec-uuid",
+    "created_at": "2025-01-15T10:30:00.000Z"
+  }
+}
+```
+
+## Request headers
+
+Every webhook request includes these headers:
+
+| Header | Description |
+| --- | --- |
+| `X-MeshQu-Event` | Event type (e.g. `alert.created`). |
+| `X-MeshQu-Delivery-Id` | Unique delivery UUID. |
+| `X-MeshQu-Tenant-Id` | Tenant UUID. |
+| `X-MeshQu-Timestamp` | Unix timestamp in milliseconds. |
+| `X-MeshQu-Attempt` | Delivery attempt number (starts at 1). |
+| `X-MeshQu-Signature` | HMAC signature for verification. |
+| `Content-Type` | `application/json` |
+
+## Verifying signatures
+
+Each delivery is signed with HMAC-SHA256. The signature header has the format:
+
+```
+X-MeshQu-Signature: sha256=<hex_digest>
+```
+
+To verify:
+
+1. Concatenate the timestamp and payload: `{timestamp}.{json_body}`
+2. Compute HMAC-SHA256 using your webhook secret.
+3. Compare with the signature in the header.
+4. Reject requests where the timestamp is more than 5 minutes old (replay protection).
+
+```typescript
+import { createHmac, timingSafeEqual } from 'crypto';
+
+function verifyWebhook(
+  body: string,
+  signature: string,
+  timestamp: string,
+  secret: string,
+): boolean {
+  const signatureBase = `${timestamp}.${body}`;
+  const expected = createHmac('sha256', secret)
+    .update(signatureBase)
+    .digest('hex');
+
+  const received = signature.replace('sha256=', '');
+
+  // Timing-safe comparison
+  return timingSafeEqual(
+    Buffer.from(expected, 'hex'),
+    Buffer.from(received, 'hex'),
+  );
+}
+```
+
+## Retry behaviour
+
+If your endpoint returns a non-2xx status or times out, MeshQu retries with exponential backoff:
+
+| Attempt | Delay |
+| --- | --- |
+| 1 | Immediate |
+| 2 | ~1 second |
+| 3 | ~2 seconds |
+| 4 | ~4 seconds |
+| 5 | ~8 seconds |
+| 6 | ~16 seconds |
+
+After the maximum attempts are exhausted the delivery is moved to a dead-letter queue. You can inspect delivery history via the API:
+
+```
+GET /v1/alerts/deliveries
+GET /v1/alerts/deliveries/stats
+```
+
+## Timeout
+
+Your endpoint must respond within **10 seconds**. Longer processing should be handled asynchronously (accept the webhook, enqueue, process later).
+
+## Managing subscriptions
+
+```bash
+# List
+GET /v1/alerts/subscriptions
+
+# Delete
+DELETE /v1/alerts/subscriptions/:id
+```
+
+## Best practices
+
+- **Return 200 quickly.** Acknowledge receipt and process asynchronously.
+- **Verify signatures.** Always validate `X-MeshQu-Signature` before trusting the payload.
+- **Handle duplicates.** Use `X-MeshQu-Delivery-Id` to deduplicate if your handler is not idempotent.
+- **Monitor delivery stats.** Check the `/deliveries/stats` endpoint periodically to catch failures early.

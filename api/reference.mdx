@@ -1,0 +1,505 @@
+---
+title: "API Reference"
+description: "Endpoints, scopes, and request/response examples"
+---
+
+Base path: `/v1`
+
+All authenticated endpoints require `Authorization: Bearer <API_KEY>` and `X-MeshQu-Tenant-Id` headers. See [Authentication](../getting-started/authentication).
+
+---
+
+## Operations (public, no auth)
+
+### Health check
+
+```
+GET /v1/health
+```
+
+Returns `200` with `{ status: "healthy", timestamp, version }`.
+
+### Readiness check
+
+```
+GET /v1/ready
+```
+
+Returns `200` when the service and its dependencies are ready, or `503` otherwise.
+
+### OpenAPI spec
+
+```
+GET /openapi.json
+```
+
+Returns the OpenAPI 3.0 specification.
+
+---
+
+## Decisions
+
+### Evaluate (dry-run)
+
+```
+POST /v1/decisions/evaluate
+```
+
+**Scope**: `decisions:evaluate`
+
+Evaluates a decision context against active policies. Nothing is persisted.
+
+**What you send:**
+
+```json
+{
+  "context": {
+    "decision_type": "trade_execution",
+    "fields": {
+      "account_id": "ACC-001",
+      "instrument": "AAPL",
+      "quantity": 100
+    },
+    "metadata": { "source": "order-service" },
+    "evidence": []
+  }
+}
+```
+
+**What you get back:**
+
+```json
+{
+  "result": {
+    "decision": "ALLOW",
+    "violations": [],
+    "rules_evaluated": 3,
+    "evaluation_time_ms": 8.4,
+    "timestamp": "2025-01-15T10:30:00.000Z",
+    "policy_snapshot_id": "11111111-1111-1111-1111-111111111111",
+    "policy_snapshot_hash": "2c26b46b68ffc68ff99b453c1d30413413422...sha256",
+    "integrity_hash": "6f1ed002ab5595859014ebf0951522...sha256"
+  },
+  "snapshot": {
+    "id": "11111111-1111-1111-1111-111111111111",
+    "hash": "2c26b46b68ffc68ff99b453c1d30413413422...sha256",
+    "rules_count": 3,
+    "policies_count": 1,
+    "cached": true
+  },
+  "duration_ms": 12.7,
+  "shadow_mode": {
+    "enabled": false
+  },
+  "governance_source": {
+    "tenant_id": "tenant-uuid",
+    "tenant_name": "Acme Trading",
+    "level": 0
+  }
+}
+```
+
+### Record a decision
+
+```
+POST /v1/decisions/record
+```
+
+**Scope**: `decisions:write`
+
+Evaluates and persists the result. Requires an `idempotency_key`.
+
+Request body shape:
+```
+{
+  "context": { ... },
+  "options": { "idempotency_key": "..." }
+}
+```
+
+**Additional request fields (under `options`):**
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `idempotency_key` | `string` | Yes | Client-supplied unique key for safe retries. |
+
+**Additional response fields:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `decision.id` | `string` | UUID of the persisted decision. |
+| `is_new` | `boolean` | `true` on first submission, `false` on duplicate idempotency key. |
+| `decision.recorded_at` | `string` | ISO 8601 timestamp. |
+
+### List decisions
+
+```
+GET /v1/decisions
+```
+
+**Scope**: `decisions:read`
+
+**Query parameters:**
+
+| Param | Type | Description |
+| --- | --- | --- |
+| `decision_type` | `string` | Filter by type. |
+| `decision` | `string` | Filter by decision (`ALLOW`, `REVIEW`, `DENY`, `ALERT`). |
+| `from_date` | `string` | ISO 8601 start date. |
+| `to_date` | `string` | ISO 8601 end date. |
+| `policy_id` | `string` | Filter by policy ID. |
+| `policy_code` | `string` | Filter by policy code. |
+| `policy_group_id` | `string` | Filter by policy group ID. |
+| `policy_group_code` | `string` | Filter by policy group code. |
+| `source_artifact_hash` | `string` | Filter by source artifact SHA-256 hash. |
+| `limit` | `number` | Page size (default 50). |
+| `offset` | `number` | Pagination offset. |
+
+### Get decision by ID
+
+```
+GET /v1/decisions/:id
+```
+
+**Scope**: `decisions:read`
+
+### Replay decision
+
+```
+POST /v1/decisions/:id/replay
+```
+
+**Scope**: `decisions:read`
+
+Re-evaluates a recorded decision for audit verification. Returns the replayed result alongside the original for comparison.
+
+### Decision stream (SSE)
+
+```
+GET /v1/decisions/stream
+```
+
+**Scope**: `decisions:read`
+
+Opens a Server-Sent Events stream for real-time decision notifications.
+
+---
+
+## Policies
+
+### List policies
+
+```
+GET /v1/policies
+```
+
+**Scope**: `policies:read`
+
+Supports pagination (`limit`, `offset`) and filtering.
+
+### Create policy
+
+```
+POST /v1/policies
+```
+
+**Scope**: `policies:write`
+
+**What you send:**
+
+```json
+{
+  "code": "max-order-size",
+  "name": "Max Order Size",
+  "description": "Rejects orders exceeding configured thresholds.",
+  "decision_type": "trade_execution",
+  "shadow_mode": false,
+  "rules": []
+}
+```
+
+> The `rules` field structure is defined in your policy configuration. Refer to the MeshQu Console for assisted policy authoring.
+
+### Get policy
+
+```
+GET /v1/policies/:id
+```
+
+**Scope**: `policies:read`
+
+### Update policy metadata
+
+```
+PATCH /v1/policies/:id
+```
+
+**Scope**: `policies:write`
+
+Updates name, description, shadow mode, group assignment, or status. Does not change rules — create a new version for that.
+
+### Deactivate policy
+
+```
+DELETE /v1/policies/:id
+```
+
+**Scope**: `policies:write`
+
+Soft-deletes (deactivates) the policy. It will no longer be evaluated.
+
+### Validate policy (dry-run)
+
+```
+POST /v1/policies/validate
+```
+
+**Scope**: `policies:read`
+
+Validates policy rules without creating or modifying any policy.
+
+### Create policy version
+
+```
+POST /v1/policies/:id/versions
+```
+
+**Scope**: `policies:write`
+
+Creates a new immutable version of the policy's rules.
+
+**What you send:**
+
+```json
+{
+  "rules": [],
+  "change_reason": "Increased threshold from 500 to 1000"
+}
+```
+
+### List policy versions
+
+```
+GET /v1/policies/:id/versions
+```
+
+**Scope**: `policies:read`
+
+### Get policy version
+
+```
+GET /v1/policies/:id/versions/:version
+```
+
+**Scope**: `policies:read`
+
+---
+
+## Policy Groups
+
+### List groups
+
+```
+GET /v1/policy-groups
+```
+
+**Scope**: `policies:read`
+
+### Create group
+
+```
+POST /v1/policy-groups
+```
+
+**Scope**: `policies:write`
+
+### Get group
+
+```
+GET /v1/policy-groups/:id
+```
+
+**Scope**: `policies:read`
+
+### Update group
+
+```
+PATCH /v1/policy-groups/:id
+```
+
+**Scope**: `policies:write`
+
+### Delete group
+
+```
+DELETE /v1/policy-groups/:id
+```
+
+**Scope**: `policies:write`
+
+### List policies in group
+
+```
+GET /v1/policy-groups/:id/policies
+```
+
+**Scope**: `policies:read`
+
+---
+
+## Alerts
+
+### List alerts
+
+```
+GET /v1/alerts
+```
+
+**Scope**: `alerts:read`
+
+**Query parameters:**
+
+| Param | Type | Description |
+| --- | --- | --- |
+| `severity` | `string` | `low`, `medium`, `high`, `critical` |
+| `acknowledged` | `boolean` | Filter by acknowledgement status. |
+
+### Get alert
+
+```
+GET /v1/alerts/:id
+```
+
+**Scope**: `alerts:read`
+
+### Acknowledge alert
+
+```
+POST /v1/alerts/:id/acknowledge
+```
+
+**Scope**: `alerts:write`
+
+**What you send:**
+
+```json
+{
+  "acknowledged_by": "ops-team",
+  "notes": "Reviewed and escalated to compliance."
+}
+```
+
+---
+
+## Webhook Subscriptions
+
+See [Webhooks guide](../guides/webhooks) for full details.
+
+### Create subscription
+
+```
+POST /v1/alerts/subscriptions
+```
+
+**Scope**: `alerts:write`
+
+The response includes a `secret` value for HMAC verification. It is shown **only once**.
+
+### List subscriptions
+
+```
+GET /v1/alerts/subscriptions
+```
+
+**Scope**: `alerts:read`
+
+### Delete subscription
+
+```
+DELETE /v1/alerts/subscriptions/:id
+```
+
+**Scope**: `alerts:write`
+
+### Webhook deliveries
+
+```
+GET /v1/alerts/deliveries
+GET /v1/alerts/deliveries/stats
+GET /v1/alerts/deliveries/:id
+POST /v1/alerts/deliveries/:id/retry
+```
+
+**Scope**: `alerts:read` (list/stats/get), `alerts:write` (retry)
+
+---
+
+## API Keys
+
+### List keys
+
+```
+GET /v1/api-keys
+```
+
+**Scope**: `api-keys:admin`
+
+### Create key
+
+```
+POST /v1/api-keys
+```
+
+**Scope**: `api-keys:admin`
+
+See [Authentication](../getting-started/authentication) for a full example.
+
+### Get key
+
+```
+GET /v1/api-keys/:id
+```
+
+**Scope**: `api-keys:admin`
+
+### Revoke key
+
+```
+DELETE /v1/api-keys/:id
+```
+
+**Scope**: `api-keys:admin`
+
+---
+
+## Audit
+
+### List audit events
+
+```
+GET /v1/audit-log
+```
+
+**Scope**: `audit:read`
+
+Paginated listing of audit events with filtering support.
+
+### Get entity history
+
+```
+GET /v1/audit-log/entity/:type/:id
+```
+
+**Scope**: `audit:read`
+
+Returns all audit events for a specific entity in chronological order.
+
+### Verify audit log integrity
+
+```
+POST /v1/audit-log/verify
+```
+
+**Scope**: `audit:admin`
+
+Verifies the integrity of an audit event.

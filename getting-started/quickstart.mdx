@@ -1,0 +1,156 @@
+---
+title: "Quickstart"
+description: "Make your first policy evaluation call"
+---
+
+This guide walks you through making your first policy evaluation call. You will need an API key and a tenant ID.
+
+## Prerequisites
+
+- A MeshQu account with at least one tenant.
+- An API key with the `decisions:evaluate` scope.
+- Node.js 18+ (for the SDK path) or any HTTP client (for the raw API path).
+
+---
+
+## Option A: Using the TypeScript SDK
+
+### 1. Install
+
+```bash
+npm install @tradequ/meshqu-client
+```
+
+### 2. Initialise the client
+
+```typescript
+import { MeshQuClient } from '@tradequ/meshqu-client';
+
+const client = new MeshQuClient({
+  baseUrl: 'https://api.meshqu.io',
+  tenantId: 'your-tenant-id',
+  apiKey: 'your-api-key',
+});
+```
+
+### 3. Evaluate a decision
+
+```typescript
+const result = await client.evaluate({
+  decision_type: 'trade_execution',
+  fields: {
+    account_id: 'ACC-001',
+    instrument: 'AAPL',
+    quantity: 100,
+  },
+  metadata: { source: 'quickstart-example' },
+});
+
+console.log(result.result.decision); // 'ALLOW' | 'REVIEW' | 'DENY' | 'ALERT'
+console.log(result.result.violations); // [] if ALLOW
+```
+
+### 4. Act on the decision
+
+```typescript
+if (result.result.decision === 'ALLOW') {
+  // Proceed with the operation
+} else if (result.result.decision === 'REVIEW') {
+  // Queue for manual review
+} else {
+  // Block the operation and surface violations
+  console.error('Blocked:', result.result.violations);
+}
+```
+
+---
+
+## Option B: Using the REST API directly
+
+### 1. Evaluate (dry-run, not persisted)
+
+```bash
+curl -X POST https://api.meshqu.io/v1/decisions/evaluate \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "context": {
+      "decision_type": "trade_execution",
+      "fields": {
+        "account_id": "ACC-001",
+        "instrument": "AAPL",
+        "quantity": 100
+      },
+      "metadata": { "source": "quickstart-example" }
+    }
+  }'
+```
+
+### 2. Response
+
+```json
+{
+  "result": {
+    "decision": "ALLOW",
+    "violations": [],
+    "rules_evaluated": 3,
+    "evaluation_time_ms": 8.4,
+    "timestamp": "2025-01-15T10:30:00.000Z",
+    "policy_snapshot_id": "11111111-1111-1111-1111-111111111111",
+    "policy_snapshot_hash": "2c26b46b68ffc68ff99b453c1d30413413422...sha256",
+    "integrity_hash": "6f1ed002ab5595859014ebf0951522...sha256"
+  },
+  "snapshot": {
+    "id": "11111111-1111-1111-1111-111111111111",
+    "hash": "2c26b46b68ffc68ff99b453c1d30413413422...sha256",
+    "rules_count": 3,
+    "policies_count": 1,
+    "cached": true
+  },
+  "duration_ms": 12.7,
+  "shadow_mode": {
+    "enabled": false
+  },
+  "governance_source": {
+    "tenant_id": "tenant-uuid",
+    "tenant_name": "Acme Trading",
+    "level": 0
+  }
+}
+```
+
+### 3. Record a decision (persisted for audit)
+
+If you want the decision stored, use `/v1/decisions/record` with an idempotency key:
+
+```bash
+curl -X POST https://api.meshqu.io/v1/decisions/record \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "context": {
+      "decision_type": "trade_execution",
+      "fields": {
+        "account_id": "ACC-001",
+        "instrument": "AAPL",
+        "quantity": 100
+      },
+      "metadata": { "source": "quickstart-example" }
+    },
+    "options": {
+      "idempotency_key": "order-12345"
+    }
+  }'
+```
+
+The response includes `decision.id` for the persisted decision and `is_new: true` on first submission (or `is_new: false` if the idempotency key was already used).
+
+---
+
+## Next steps
+
+- [Authentication](authentication) — understand API key scopes.
+- [API Reference](../api/reference) — explore all endpoints.
+- [Integration Patterns](../guides/integration-patterns) — common architectures.

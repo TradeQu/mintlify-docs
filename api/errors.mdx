@@ -1,0 +1,97 @@
+---
+title: "Errors & Status Codes"
+description: "Error shape, codes, and retry guidance"
+---
+
+All error responses follow a consistent structure:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Human-readable description of what went wrong.",
+    "details": {}
+  },
+  "correlation_id": "uuid-for-support"
+}
+```
+
+The `correlation_id` is included on every response and can be provided to MeshQu support for troubleshooting.
+
+## HTTP status codes
+
+| Status | Code constant | Meaning |
+| --- | --- | --- |
+| `200` | — | Success. |
+| `201` | — | Resource created. |
+| `400` | `VALIDATION_ERROR` | Request body or query parameters failed validation. Check `details` for field-level errors. |
+| `401` | `UNAUTHORIZED` | Missing or invalid API key. |
+| `403` | `FORBIDDEN` | API key lacks the required scope, or tenant ID does not match the key. |
+| `404` | `NOT_FOUND` | Resource does not exist or is not accessible to this tenant. |
+| `408` | `REQUEST_TIMEOUT` | Server-side processing exceeded the timeout. |
+| `409` | `DUPLICATE_CODE` | A policy or group with this code already exists. |
+| `429` | `TOO_MANY_REQUESTS` | Rate limit exceeded. See `rate-limit-*` headers and `retryAfter` in the body. |
+| `500` | `INTERNAL_ERROR` | Unexpected server error. |
+| `503` | `SERVICE_UNAVAILABLE` | A downstream dependency (e.g. database) is unreachable. |
+
+## Domain-specific errors
+
+These may appear in the `code` field for specific operations:
+
+| Code | Context | Meaning |
+| --- | --- | --- |
+| `NO_ACTIVE_POLICIES` | Decision evaluation | No active policies matched the `decision_type`. |
+| `NO_ACTIVE_RULES` | Decision evaluation | Policies exist but have no active rules. |
+| `SNAPSHOT_NOT_FOUND` | Decision replay | The policy snapshot for this decision could not be located. |
+| `ALREADY_DELIVERED` | Webhook retry | Delivery was already successful; cannot retry. |
+| `STILL_PENDING` | Webhook retry | Delivery is still pending; no retry needed. |
+
+## Handling errors in the SDK
+
+The TypeScript SDK throws typed error classes:
+
+```typescript
+import {
+  MeshQuError,
+  MeshQuValidationError,
+  MeshQuAuthError,
+  MeshQuForbiddenError,
+  MeshQuNotFoundError,
+  MeshQuConflictError,
+  MeshQuRateLimitError,
+  MeshQuNetworkError,
+  MeshQuTimeoutError,
+} from '@tradequ/meshqu-client';
+
+try {
+  const result = await client.evaluate(context);
+} catch (err) {
+  if (err instanceof MeshQuRateLimitError) {
+    // Back off and retry
+  } else if (err instanceof MeshQuValidationError) {
+    // Fix request payload
+    console.error(err.message, err.details);
+  } else if (err instanceof MeshQuAuthError) {
+    // Check API key
+  } else if (err instanceof MeshQuNetworkError) {
+    // Network issue — retry with backoff
+  }
+}
+```
+
+## Correlation IDs
+
+Every response includes a `correlation_id` (also available as the `x-correlation-id` response header). Include this when contacting support.
+
+## Retry guidance
+
+| Error | Retry? | Strategy |
+| --- | --- | --- |
+| `400` | No | Fix the request. |
+| `401` / `403` | No | Check credentials and scopes. |
+| `404` | No | Verify the resource ID. |
+| `408` | Yes | Retry with same request. |
+| `409` | No | Use a different code or check existing resources. |
+| `429` | Yes | Wait for `Retry-After` seconds, then retry. |
+| `500` | Yes | Retry with exponential backoff. |
+| `503` | Yes | Retry with exponential backoff. |

@@ -1,0 +1,199 @@
+---
+title: "TypeScript SDK"
+description: "Client setup, decisions, policies, and alerts"
+---
+
+## Installation
+
+```bash
+npm install @tradequ/meshqu-client
+```
+
+## Client setup
+
+```typescript
+import { MeshQuClient } from '@tradequ/meshqu-client';
+
+const client = new MeshQuClient({
+  baseUrl: 'https://api.meshqu.io',
+  tenantId: 'your-tenant-id',
+  apiKey: 'your-api-key',
+  timeout: 5000,   // optional, milliseconds (default varies)
+  retries: 3,      // optional, automatic retries on transient errors
+});
+```
+
+## Decisions
+
+### Evaluate (dry-run)
+
+```typescript
+const result = await client.evaluate({
+  decision_type: 'trade_execution',
+  fields: {
+    account_id: 'ACC-001',
+    instrument: 'AAPL',
+    quantity: 100,
+  },
+  metadata: { source: 'order-service' },
+});
+
+// result.result.decision: 'ALLOW' | 'REVIEW' | 'DENY' | 'ALERT'
+// result.result.violations: Violation[]
+```
+
+`client.dryRun()` is an alias for `client.evaluate()`.
+
+### Record (evaluate + persist)
+
+```typescript
+const decision = await client.record(
+  {
+    decision_type: 'trade_execution',
+    fields: {
+      account_id: 'ACC-001',
+      instrument: 'AAPL',
+      quantity: 100,
+    },
+    metadata: { source: 'order-service' },
+  },
+  {
+    idempotency_key: 'order-12345',
+  },
+);
+
+// decision.decision.id: string (UUID)
+// decision.is_new: boolean
+// decision.decision.decision: 'ALLOW' | 'REVIEW' | 'DENY' | 'ALERT'
+```
+
+### List and get decisions
+
+```typescript
+const list = await client.listDecisions({
+  decision_type: 'trade_execution',
+  decision: 'DENY',
+  limit: 20,
+});
+
+const single = await client.getDecision('decision-uuid');
+```
+
+### Replay for audit
+
+```typescript
+const replay = await client.replay('decision-uuid');
+// Compare replay.replay.decision with replay.original.decision
+```
+
+## Policies
+
+```typescript
+// List
+const policies = await client.listPolicies({ limit: 50 });
+
+// Create
+const policy = await client.createPolicy({
+  code: 'max-order-size',
+  name: 'Max Order Size',
+  description: 'Rejects orders above threshold.',
+  decision_type: 'trade_execution',
+  shadow_mode: false,
+  rules: [],
+});
+
+// Get
+const fetched = await client.getPolicy(policy.id);
+
+// Update metadata
+await client.updatePolicy(policy.id, { shadow_mode: true });
+
+// Deactivate
+await client.deletePolicy(policy.id);
+
+// Validate rules (dry-run)
+await client.validatePolicy({ rules: [], decision_type: 'trade_execution' });
+
+// Versions
+await client.createPolicyVersion(policy.id, newRules, 'Increased threshold');
+const versions = await client.listPolicyVersions(policy.id);
+const v2 = await client.getPolicyVersion(policy.id, 2);
+```
+
+## Alerts
+
+```typescript
+// List
+const alerts = await client.listAlerts({ severity: 'critical' });
+
+// Get
+const alert = await client.getAlert('alert-uuid');
+
+// Acknowledge
+await client.acknowledgeAlert('alert-uuid', 'ops-team', 'Reviewed.');
+```
+
+## Webhook subscriptions
+
+```typescript
+// Create
+const sub = await client.createSubscription(
+  'https://your-service.com/webhooks/meshqu',
+  { decision_types: ['trade_execution'], severity_min: 'high' },
+);
+
+// List
+const subs = await client.listSubscriptions();
+
+// Delete
+await client.deleteSubscription(sub.id);
+```
+
+## Error handling
+
+All SDK errors extend `MeshQuError`:
+
+```typescript
+import {
+  MeshQuError,
+  MeshQuValidationError,
+  MeshQuAuthError,
+  MeshQuRateLimitError,
+  MeshQuNetworkError,
+  MeshQuTimeoutError,
+} from '@tradequ/meshqu-client';
+
+try {
+  await client.evaluate(context);
+} catch (err) {
+  if (err instanceof MeshQuRateLimitError) {
+    // Wait and retry
+  } else if (err instanceof MeshQuTimeoutError) {
+    // Retry or circuit-break
+  } else if (err instanceof MeshQuNetworkError) {
+    // Connection failure
+  }
+}
+```
+
+See [Errors & Status Codes](../api/errors) for the full error taxonomy.
+
+## Types
+
+The SDK re-exports key types from `@tradequ/meshqu-types`:
+
+```typescript
+import type {
+  DecisionContext,
+  Decision,
+  EvaluationResult,
+  Violation,
+  Policy,
+  PolicyVersion,
+  Alert,
+  AlertSubscription,
+  Evidence,
+  DecisionMetadata,
+  SourceArtifact,
+} from '@tradequ/meshqu-client';
+```

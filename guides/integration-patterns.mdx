@@ -1,0 +1,199 @@
+---
+title: "Integration Patterns"
+description: "Common ways to wire MeshQu into your stack"
+---
+
+This guide covers common ways to integrate MeshQu into your application.
+
+## Key principle: you own enforcement
+
+MeshQu evaluates and returns a decision. **Your application decides what to do with it.** MeshQu does not block, allow, or modify operations — it provides the verdict and your code acts on it.
+
+---
+
+## Pattern 1: Synchronous pre-execution check
+
+The most common pattern. Before executing an operation, call MeshQu and gate on the decision.
+
+```typescript
+import { MeshQuClient } from '@tradequ/meshqu-client';
+
+const meshqu = new MeshQuClient({
+  baseUrl: process.env.MESHQU_URL!,
+  tenantId: process.env.MESHQU_TENANT_ID!,
+  apiKey: process.env.MESHQU_API_KEY!,
+});
+
+async function executeOrder(order: Order): Promise<OrderResult> {
+  // 1. Evaluate
+  const result = await meshqu.evaluate({
+    decision_type: 'trade_execution',
+    fields: {
+      account_id: order.accountId,
+      instrument: order.instrument,
+      quantity: order.quantity,
+      side: order.side,
+    },
+  });
+
+  // 2. Act on decision
+  switch (result.result.decision) {
+    case 'ALLOW':
+      return await submitToExchange(order);
+
+    case 'REVIEW':
+      return await queueForManualReview(order, result.result.violations);
+
+    case 'DENY':
+      throw new OrderRejectedError(
+        `Order blocked by policy: ${result.result.violations.map(v => v.reason).join(', ')}`,
+      );
+  }
+}
+```
+
+**When to use:** Any operation where you want a governance check before proceeding.
+
+---
+
+## Pattern 2: Record for audit
+
+When you need a persisted audit trail of every decision, use `record` instead of `evaluate`. This stores the evaluation result with an idempotency key.
+
+```typescript
+async function executeAndRecord(order: Order): Promise<OrderResult> {
+  const decision = await meshqu.record(
+    {
+      decision_type: 'trade_execution',
+      fields: {
+        account_id: order.accountId,
+        instrument: order.instrument,
+        quantity: order.quantity,
+      },
+      metadata: { order_id: order.id, source: 'order-service' },
+    },
+    {
+      idempotency_key: `order-${order.id}`,
+    },
+  );
+
+  if (decision.decision.decision === 'ALLOW') {
+    return await submitToExchange(order);
+  }
+
+  // Log the decision ID for traceability
+  logger.warn({ decisionId: decision.decision.id, decision: decision.decision.decision });
+  throw new OrderRejectedError(decision.decision.result.violations);
+}
+```
+
+**When to use:** Compliance-sensitive workflows where you must prove what was checked and when.
+
+---
+
+## Pattern 3: Asynchronous monitoring
+
+If you do not want to block the hot path, evaluate asynchronously after the operation completes. This is useful for monitoring and alerting rather than gating.
+
+```typescript
+async function executeOrder(order: Order): Promise<OrderResult> {
+  // Execute immediately
+  const result = await submitToExchange(order);
+
+  // Evaluate in the background (fire-and-forget)
+  meshqu
+    .record(
+      {
+        decision_type: 'trade_execution',
+        fields: {
+          account_id: order.accountId,
+          instrument: order.instrument,
+          quantity: order.quantity,
+        },
+        metadata: { order_id: order.id, executed: true },
+      },
+      {
+        idempotency_key: `order-${order.id}`,
+      },
+    )
+    .catch((err) => logger.error({ err }, 'MeshQu evaluation failed'));
+
+  return result;
+}
+```
+
+**When to use:** Low-latency paths where governance is advisory, or when ramping up MeshQu (shadow mode) before enforcing.
+
+---
+
+## Pattern 4: Shadow mode rollout
+
+When introducing a new policy, start in **shadow** mode. Shadow policies are evaluated but their `DENY` decisions are downgraded to `ALERT`. This lets you observe what the policy _would_ do without affecting production.
+
+1. Create the policy with `shadow_mode: true`.
+2. Monitor decisions and alerts.
+3. When confident, switch to `shadow_mode: false`.
+
+```typescript
+// Create in shadow mode
+await meshqu.createPolicy({
+  code: 'concentration-limit-v2',
+  name: 'New Concentration Limit',
+  decision_type: 'trade_execution',
+  shadow_mode: true,
+  rules: [ /* ... */ ],
+});
+
+// Later, promote to enforcing
+await meshqu.updatePolicy(policyId, { shadow_mode: false });
+```
+
+---
+
+## Handling decisions: summary
+
+| Decision | Typical action |
+| --- | --- |
+| `ALLOW` | Proceed with the operation. |
+| `REVIEW` | Queue for manual review, notify compliance, or proceed with a flag. |
+| `DENY` | Block the operation and surface violations to the caller. |
+| `ALERT` | Log and review; no enforcement by MeshQu. |
+
+The mapping from decision to action is entirely up to you. MeshQu provides the signal; your application provides the behaviour.
+
+---
+
+## Resilience considerations
+
+- **Timeouts**: Configure the SDK `timeout` to match your SLA. If MeshQu is unreachable, decide whether to fail open (allow) or fail closed (block).
+- **Retries**: The SDK supports automatic retries on transient errors (5xx, network failures). Configure `retries` in the client constructor.
+- **Idempotency**: Always supply an `idempotency_key` when recording decisions. This makes retries safe.
+
+```typescript
+const client = new MeshQuClient({
+  baseUrl: 'https://api.meshqu.io',
+  tenantId: 'tenant-id',
+  apiKey: 'api-key',
+  timeout: 3000,
+  retries: 2,
+});
+```
+
+## Fail-open vs. fail-closed
+
+```typescript
+async function evaluateWithFallback(context: DecisionContext): Promise<string> {
+  try {
+    const result = await meshqu.evaluate(context);
+    return result.result.decision;
+  } catch (err) {
+    logger.error({ err }, 'MeshQu unavailable');
+
+    // Fail-open: allow operation but log for review
+    return 'ALLOW';
+
+    // Or fail-closed:
+    // throw new Error('Governance check unavailable — operation blocked');
+  }
+}
+```

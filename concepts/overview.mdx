@@ -1,0 +1,88 @@
+---
+title: "Core Concepts"
+description: "Decision contexts, policies, and alerts"
+---
+
+This page introduces the key abstractions you will work with when integrating MeshQu.
+
+## Decision context
+
+A **decision context** is the payload you send to MeshQu describing what is about to happen. It contains:
+
+| Field | Description |
+| --- | --- |
+| `decision_type` | A string identifying the kind of operation (e.g. `trade_execution`, `withdrawal`). |
+| `fields` | Domain-agnostic values the policies evaluate (account, amount, instrument, etc.). |
+| `metadata` | Optional key-value pairs for traceability (source system, request ID, etc.). |
+| `evidence` | Optional supporting data that policies may reference during evaluation. |
+| `source_artifact` | Optional cryptographic binding to a source document (hash + metadata). |
+
+## Policy
+
+A **policy** is a named, versioned governance rule that MeshQu evaluates against incoming decision contexts. Policies have:
+
+- A unique `code` (human-readable identifier).
+- A `shadow_mode` flag: when enabled, `DENY` decisions are downgraded to `ALERT` for observation.
+- One or more **versions**. Only the active version is used during evaluation.
+
+You manage policies via the API or the MeshQu Console.
+
+### Policy groups
+
+Policies can be organised into **policy groups** for batch management. A decision context may be evaluated against all policies in a group.
+
+## Decision
+
+Every evaluation returns a **decision**:
+
+| Decision | Meaning |
+| --- | --- |
+| `ALLOW` | All evaluated policies passed. Proceed normally. |
+| `REVIEW` | One or more policies flagged the context for manual review. |
+| `DENY` | One or more policies rejected the context. |
+| `ALERT` | A shadow-mode policy would have denied; logged for observation. |
+
+The decision is **advisory**. Your application decides what to do with it — MeshQu does not block or allow operations on its own.
+
+## Violation
+
+When a policy does not pass, it produces one or more **violations**. Each violation includes:
+
+- `rule_code` — which rule raised it.
+- `reason` — a human-readable explanation.
+- `severity` — how serious the violation is.
+
+## Decision (recorded)
+
+A **decision** is a persisted evaluation result. You create one by calling `/v1/decisions/record` with an `idempotency_key`. Recorded decisions support:
+
+- Retrieval by ID or listing with filters.
+- Replay for audit verification.
+- Linking to alerts.
+
+## Alert
+
+An **alert** is raised when notable conditions are detected (e.g. a critical policy failure). Alerts have a `severity` (`low`, `medium`, `high`, `critical`) and can be acknowledged. You can subscribe to alert webhooks for real-time notification.
+
+## Tenant
+
+All data is isolated per **tenant**. Every API request includes a `X-MeshQu-Tenant-Id` header, and the API key must belong to that tenant.
+
+## How these fit together
+
+```
+Your App                         MeshQu
+────────                         ──────
+   │                                │
+   │  POST /v1/decisions/evaluate   │
+   │  { decision_type, fields,      │
+   │    metadata }                  │
+   │ ─────────────────────────────► │
+   │                                │  Evaluates context
+   │                                │  against active policies
+   │  { result, snapshot, ... }     │
+   │ ◄───────────────────────────── │
+   │                                │
+   │  Your code acts on decision    │
+   │                                │
+```

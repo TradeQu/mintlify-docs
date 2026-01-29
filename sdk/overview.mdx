@@ -1,0 +1,28 @@
+---
+title: "SDK Overview"
+description: "Official TypeScript/JavaScript SDK"
+---
+
+MeshQu provides an official TypeScript/JavaScript SDK for integrating with the API.
+
+| Package | Language | Install |
+| --- | --- | --- |
+| `@tradequ/meshqu-client` | TypeScript / JavaScript | `npm install @tradequ/meshqu-client` |
+
+The SDK handles:
+
+- Authentication header injection.
+- Tenant header injection.
+- Typed request and response objects.
+- Automatic error mapping to typed exception classes.
+- Configurable timeouts and retries.
+
+## When to use the SDK vs. raw HTTP
+
+Use the **SDK** when you are working in a Node.js or TypeScript environment. It removes boilerplate and provides compile-time type safety.
+
+Use **raw HTTP** when you are calling from a language without an official SDK, or from infrastructure tooling (CI pipelines, shell scripts, etc.).
+
+## No Python SDK
+
+There is currently no official Python SDK. Use the REST API directly from Python with `httpx` or `requests`. See the [API Reference](../api/reference) for endpoint details.

@@ -1,0 +1,40 @@
+---
+title: "Changelog"
+description: "API version history"
+---
+
+MeshQu follows [Semantic Versioning](https://semver.org/). The current API version is **v1.1.0**.
+
+## Versioning policy
+
+- **Major** (`v2.x`): Breaking changes to request/response contracts or authentication. Announced with a migration guide and deprecation period.
+- **Minor** (`v1.2`): New endpoints, fields, or features. Backwards-compatible.
+- **Patch** (`v1.1.1`): Bug fixes and performance improvements. No contract changes.
+
+## API version header
+
+All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
+
+---
+
+## v1.1.0
+
+- Added policy groups (CRUD + listing policies within a group).
+- Added alert webhook subscriptions with HMAC-signed delivery.
+- Added webhook delivery history and statistics endpoints.
+- Added decision SSE stream (`GET /v1/decisions/stream`).
+- Added audit log verification (`POST /v1/audit-log/verify`).
+- Added API key naming (`key_name`) for audit attribution.
+- Added shadow mode for policies.
+- Added two-tier rate limiting (pre-auth + post-auth).
+
+## v1.0.0
+
+- Initial release.
+- Policy CRUD with immutable versioning.
+- Decision evaluation (dry-run) and recording (persisted).
+- Decision replay for audit verification.
+- Alert listing and acknowledgement.
+- API key management with scoped access.
+- Audit event listing.
+- OpenAPI 3.0 spec and Swagger UI.

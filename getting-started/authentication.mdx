@@ -1,0 +1,111 @@
+---
+title: "Authentication"
+description: "API keys, scopes, and tenant isolation"
+---
+
+Every request to the MeshQu API (except health and readiness checks) requires two headers:
+
+| Header | Description |
+| --- | --- |
+| `Authorization` | `Bearer <API_KEY>` |
+| `X-MeshQu-Tenant-Id` | Your tenant UUID |
+
+## API keys
+
+API keys are created via the `/v1/api-keys` endpoint (requires the `api-keys:admin` scope) or through the MeshQu Console.
+
+When you create a key, the **plaintext value is returned exactly once**. Store it securely — it cannot be retrieved again. The API stores only a hashed representation.
+
+Each key has:
+
+- **Name** — a human-readable label for audit trails.
+- **Scopes** — the set of permissions the key grants (see below).
+- **Expiry** (optional) — an `expires_at` timestamp after which the key is rejected.
+- **Prefix/suffix** — a safe fragment (e.g. `mqk_abc...xyz`) shown in dashboards for identification.
+
+### Revoking a key
+
+```
+DELETE /v1/api-keys/:id
+```
+
+Revoked keys are rejected immediately. Revocation is permanent.
+
+## Scopes
+
+Each API key carries one or more scopes that control what it can access:
+
+| Scope | Grants access to |
+| --- | --- |
+| `policies:read` | List and read policies, versions, groups |
+| `policies:write` | Create, update, deactivate policies and groups |
+| `decisions:evaluate` | Evaluate decisions (dry-run) |
+| `decisions:read` | List and read recorded decisions |
+| `decisions:write` | Record decisions (evaluate + persist) |
+| `alerts:read` | List and read alerts |
+| `alerts:write` | Acknowledge alerts, manage webhook subscriptions |
+| `audit:read` | Read audit events |
+| `audit:admin` | Verify audit log integrity |
+| `api-keys:admin` | Create, list, and revoke API keys |
+
+**Principle of least privilege**: create separate keys for different services. A service that only evaluates decisions needs `decisions:evaluate` — not `api-keys:admin`.
+
+## Multi-tenancy
+
+All data in MeshQu is isolated per tenant. The `X-MeshQu-Tenant-Id` header determines which tenant's data is accessed. The API key must belong to the specified tenant; a mismatch returns `403 Forbidden`.
+
+## Rate limits
+
+MeshQu applies two tiers of rate limiting:
+
+| Tier | Scope | Default limit |
+| --- | --- | --- |
+| Pre-authentication | Per IP address | 10,000 requests/minute |
+| Post-authentication | Per tenant + API key | 1,000 requests/minute |
+
+When a limit is exceeded the API returns `429 Too Many Requests` with a `Retry-After` header.
+
+Standard rate-limit headers are included on every response:
+
+```
+rate-limit-limit: 1000
+rate-limit-remaining: 997
+rate-limit-reset: 1700000060
+```
+
+## Example: creating an API key
+
+```bash
+curl -X POST https://api.meshqu.io/v1/api-keys \
+  -H "Authorization: Bearer ADMIN_KEY" \
+  -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "trade-service-prod",
+    "scopes": ["decisions:evaluate", "decisions:write"]
+  }'
+```
+
+Response (key shown once):
+
+```json
+{
+  "key": {
+    "id": "key_uuid",
+    "tenant_id": "tenant_uuid",
+    "name": "trade-service-prod",
+    "key_preview": "mqu_live_...x7Kf",
+    "scopes": ["decisions:evaluate", "decisions:write"],
+    "expires_at": null,
+    "last_used_at": null,
+    "is_active": true,
+    "created_at": "2025-01-15T10:00:00Z",
+    "created_by": null,
+    "revoked_at": null,
+    "revoked_by": null
+  },
+  "plaintext_key": "mqu_live_abc123...full_plaintext_key"
+}
+```
+
+Store the `key` value immediately — it will not be returned again.
