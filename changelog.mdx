@@ -28,6 +28,17 @@ All endpoints are prefixed with `/v1`. When a new major version is released, the
 - Added shadow mode for policies.
 - Added two-tier rate limiting (pre-auth + post-auth).
 
+## v1.0.1
+
+Production hardening release. All fixes are backwards-compatible at the HTTP layer.
+
+- SDK `apiKey` configuration is now required (throws a clear error if missing).
+- `idempotency_key` is now required when recording decisions (no longer auto-generated).
+- Added `dryRun()` as a semantic alias for `evaluate()`.
+- Recorded decisions now capture audit attribution (`api_key_id`, `api_key_name`).
+- Infrastructure failures (database, pool exhaustion) now return `503 Service Unavailable` with `retry_after` instead of `500`.
+- `SKIP_AUTH` environment variable is ignored in production with a security warning.
+
 ## v1.0.0
 
 - Initial release.
