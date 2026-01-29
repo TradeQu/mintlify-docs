@@ -44,6 +44,14 @@ Two-tier rate limiting protects against abuse:
 
 Every request is assigned a `correlation_id` returned in the response body and as the `x-correlation-id` header. Use this for tracing and when contacting support.
 
+## Trust model
+
+- MeshQu assumes the caller controls the decision context payload.
+- MeshQu guarantees deterministic evaluation against an immutable policy snapshot.
+- MeshQu does not attest to the correctness of upstream data — only that evaluation followed policy as defined.
+
+This separation allows independent verification without access to application code or models.
+
 ## Data you send to MeshQu
 
 Decision contexts (`fields`, `metadata`, `evidence`) are sent by your application. You control what data is included. Follow the principle of **data minimisation**: send only the fields your policies need to make a decision. Avoid sending sensitive personally identifiable information unless required by your policies. Use opaque identifiers (account IDs, order IDs) rather than raw personal data where possible.

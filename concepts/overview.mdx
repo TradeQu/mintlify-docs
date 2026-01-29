@@ -88,14 +88,24 @@ An **alert** is raised when notable conditions are detected (e.g. a critical pol
 
 All data is isolated per **tenant**. Every API request includes a `X-MeshQu-Tenant-Id` header, and the API key must belong to that tenant.
 
+## Operational guarantees
+
+- Deterministic policy evaluation
+- Immutable policy snapshots
+- Idempotent decision recording
+- Tenant-isolated data
+- Replayable audit trail
+
+These are contractual properties of the platform.
+
 ## What MeshQu is not
 
-- **Not a rules engine you embed.** MeshQu runs as a standalone service. Your application calls it over HTTP.
-- **Not an execution layer.** MeshQu returns a verdict — it never blocks, allows, or modifies operations on its own.
-- **Not a permissions system.** It does not manage who can log in or what resources they can access. Use it alongside your existing IAM.
-- **Not a real-time data feed.** It evaluates the context you send. It does not subscribe to market data or external sources.
-- **Not a scoring or risk engine.** MeshQu evaluates decisions against policy; it does not generate risk scores or predictions.
-- **Not an explainability tool.** MeshQu proves that a decision followed policy, not why a model produced a score.
+- **Not a rules engine you embed.** MeshQu is a standalone service. Your application calls it over HTTP.
+- **Not an execution layer.** MeshQu returns a verdict. It never blocks, allows, or modifies operations on its own.
+- **Not a permissions system.** MeshQu does not manage authentication or resource access. Use it alongside your existing IAM.
+- **Not a real-time data feed.** MeshQu evaluates the context you send. It does not subscribe to market data or external sources.
+- **Not a scoring or risk engine.** MeshQu evaluates decisions against policy. It does not generate risk scores or predictions.
+- **Not an explainability tool.** MeshQu proves policy compliance. Model explainability is a separate concern.
 
 ## How auditors use MeshQu
 
@@ -121,6 +131,17 @@ No access to application code or models is required.
 | **Persisted** | No — stateless, nothing stored | Yes — context, verdict, and metadata stored |
 | **Idempotency key** | Not required | Required |
 | **Typical use** | Real-time gating, dry-run testing | Audit trail, compliance evidence |
+
+## Example: blocking a trade and proving it later
+
+1. Order service reaches the **decision boundary**.
+2. Application calls `evaluate` with the trade context.
+3. MeshQu returns `DENY` with a policy snapshot hash.
+4. Application blocks execution and surfaces violations.
+5. Decision is recorded with an idempotency key.
+6. Six months later, an auditor replays the decision and verifies integrity hashes match.
+
+No application code or model access is required.
 
 ## How these fit together
 

@@ -13,6 +13,14 @@ MeshQu provides governance infrastructure for automated and AI-assisted decision
 
 > **Mental model:** MeshQu sits at the decision boundary. You send context, it returns a governed verdict and a verifiable receipt. You own enforcement.
 
+## Why MeshQu exists
+
+Modern systems increasingly make automated or AI-assisted decisions, but cannot prove that those decisions followed policy at the moment they mattered.
+
+Logs show what happened. They do not prove what _should_ have happened.
+
+MeshQu exists to make decisions governable, replayable, and independently verifiable — at the decision boundary.
+
 **Key concepts:** [Decision context](concepts/overview#decision-context) · [Policy](concepts/overview#policy) · [Decision](concepts/overview#decision) · [Alert](concepts/overview#alert)
 
 ## What MeshQu does
@@ -20,6 +28,16 @@ MeshQu provides governance infrastructure for automated and AI-assisted decision
 You send a **decision context** (the data describing what is about to happen). MeshQu evaluates it against your active **policies** and returns a **decision**: `ALLOW`, `REVIEW`, `DENY`, or `ALERT`, along with any violations.
 
 Your application decides what to do with the decision. MeshQu does not block or allow anything on its own — it provides the verdict and your code acts on it.
+
+```mermaid
+flowchart LR
+  A[Intent Created] --> B[Decision Boundary]
+  B -->|Evaluate| MQ[MeshQu]
+  MQ --> C[Verdict + Receipt]
+  C --> D[Enforcement]
+```
+
+> If you remember one thing: MeshQu is called **at the decision boundary**, not after.
 
 ```bash
 curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
@@ -43,6 +61,10 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
   }
 }
 ```
+
+<Info>
+  **Evaluate vs Record** — `evaluate` is fast, stateless, nothing stored. `record` persists the result for audit. Most production systems use `evaluate` on the hot path and `record` for compliance-critical actions. See [Evaluate vs Record](concepts/overview#evaluate-vs-record).
+</Info>
 
 ## What happens after you integrate
 
