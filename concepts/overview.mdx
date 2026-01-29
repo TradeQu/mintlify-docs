@@ -19,7 +19,7 @@ A **decision context** is the payload you send to MeshQu describing what is abou
 
 ## Policy
 
-A **policy** is a named, versioned governance rule that MeshQu evaluates against incoming decision contexts. Policies have:
+A **policy** is a named, versioned governance configuration that MeshQu evaluates against incoming decision contexts. Policies have:
 
 - A unique `code` (human-readable identifier).
 - A `shadow_mode` flag: when enabled, `DENY` decisions are downgraded to `ALERT` for observation.
@@ -44,6 +44,22 @@ Every evaluation returns a **decision**:
 
 The decision is **advisory**. Your application decides what to do with it — MeshQu does not block or allow operations on its own.
 
+### Decision receipt
+
+Every evaluation returns a cryptographic receipt that binds the verdict to the exact policy snapshot used:
+
+```json
+{
+  "decision": "ALLOW",
+  "policy_snapshot_id": "11111111-1111-1111-1111-111111111111",
+  "policy_snapshot_hash": "2c26b46b68ffc68ff99b453c1d...sha256",
+  "integrity_hash": "6f1ed002ab5595859014ebf09...sha256",
+  "timestamp": "2025-01-15T10:30:00.000Z"
+}
+```
+
+The `integrity_hash` covers the context, decision, and snapshot, making the result independently verifiable.
+
 ## Violation
 
 When a policy does not pass, it produces one or more **violations**. Each violation includes:
@@ -67,6 +83,13 @@ An **alert** is raised when notable conditions are detected (e.g. a critical pol
 ## Tenant
 
 All data is isolated per **tenant**. Every API request includes a `X-MeshQu-Tenant-Id` header, and the API key must belong to that tenant.
+
+## What MeshQu is not
+
+- **Not a rules engine you embed.** MeshQu runs as a standalone service. Your application calls it over HTTP.
+- **Not an execution layer.** MeshQu returns a verdict — it never blocks, allows, or modifies operations on its own.
+- **Not a permissions system.** It does not manage who can log in or what resources they can access. Use it alongside your existing IAM.
+- **Not a real-time data feed.** It evaluates the context you send. It does not subscribe to market data or external sources.
 
 ## How these fit together
 

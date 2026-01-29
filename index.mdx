@@ -36,6 +36,13 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
 }
 ```
 
+## What happens after you integrate
+
+1. Your system calls MeshQu before or after a decision point.
+2. MeshQu evaluates the context against your active policies and returns a verdict and a cryptographic receipt.
+3. Your code decides how to act — proceed, queue for review, or block.
+4. Auditors can independently replay and verify any recorded decision later.
+
 ## Key capabilities
 
 | Capability | Description |

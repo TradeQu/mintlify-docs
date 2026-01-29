@@ -46,7 +46,7 @@ Every request is assigned a `correlation_id` returned in the response body and a
 
 ## Data you send to MeshQu
 
-Decision contexts (`fields`, `metadata`, `evidence`) are sent by your application. You control what data is included. Avoid sending sensitive personally identifiable information unless required by your policies. Use opaque identifiers (account IDs, order IDs) rather than raw personal data where possible.
+Decision contexts (`fields`, `metadata`, `evidence`) are sent by your application. You control what data is included. Follow the principle of **data minimisation**: send only the fields your policies need to make a decision. Avoid sending sensitive personally identifiable information unless required by your policies. Use opaque identifiers (account IDs, order IDs) rather than raw personal data where possible.
 
 ## What MeshQu stores
 

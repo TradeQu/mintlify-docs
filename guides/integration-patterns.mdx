@@ -181,6 +181,13 @@ const client = new MeshQuClient({
 
 ## Fail-open vs. fail-closed
 
+Choose a failure strategy before going live:
+
+| Strategy | Behaviour when MeshQu is unreachable | Best for |
+| --- | --- | --- |
+| **Fail-open** | Allow the operation and log for later review. | Low-latency paths, advisory governance, early rollout. |
+| **Fail-closed** | Block the operation until governance is available. | Compliance-critical workflows, regulated environments. |
+
 ```typescript
 async function evaluateWithFallback(context: DecisionContext): Promise<string> {
   try {

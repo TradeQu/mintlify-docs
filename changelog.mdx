@@ -11,6 +11,12 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The current API versi
 - **Minor** (`v1.2`): New endpoints, fields, or features. Backwards-compatible.
 - **Patch** (`v1.1.1`): Bug fixes and performance improvements. No contract changes.
 
+## Stability guarantees
+
+- Existing response fields are never removed or renamed within a major version.
+- New optional fields may be added to responses at any time — clients should ignore unknown fields.
+- Webhook payload schemas follow the same policy.
+
 ## API version header
 
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
