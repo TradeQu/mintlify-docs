@@ -8,15 +8,7 @@
     "dark": "#0E7490"
   },
   "fonts": {
-    "body": {
-      "family": "Inter"
-    }
-  },
-  "background": {
-    "color": {
-      "dark": "#0F1117",
-      "light": "#FAFAFA"
-    }
+    "family": "Inter"
   },
   "favicon": "/favicon.svg",
   "navigation": {
