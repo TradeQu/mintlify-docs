@@ -1,15 +1,40 @@
 ---
 title: "MeshQu Developer Docs"
-description: "Policy-aware decisions, APIs, and SDKs"
+description: "Governance infrastructure for automated decisions"
 ---
 
-MeshQu provides governance infrastructure for policy-aware decisions. Integrate MeshQu into your application to evaluate transactions, operations, or events against configurable policies and receive structured decisions.
+MeshQu provides governance infrastructure for automated and AI-assisted decisions that must follow explicit policy. Integrate MeshQu into your application to evaluate transactions, operations, or events against configurable policies and receive structured decisions.
+
+**Key concepts:** [Decision context](concepts/overview#decision-context) · [Policy](concepts/overview#policy) · [Decision](concepts/overview#decision) · [Alert](concepts/overview#alert)
 
 ## What MeshQu does
 
 You send a **decision context** (the data describing what is about to happen). MeshQu evaluates it against your active **policies** and returns a **decision**: `ALLOW`, `REVIEW`, `DENY`, or `ALERT`, along with any violations.
 
 Your application decides what to do with the decision. MeshQu does not block or allow anything on its own — it provides the verdict and your code acts on it.
+
+```bash
+curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "context": {
+      "decision_type": "trade_execution",
+      "fields": { "account_id": "ACC-001", "instrument": "AAPL", "quantity": 100 }
+    }
+  }'
+```
+
+```json
+{
+  "result": {
+    "decision": "ALLOW",
+    "violations": [],
+    "rules_evaluated": 3
+  }
+}
+```
 
 ## Key capabilities
 
@@ -34,8 +59,8 @@ Your application decides what to do with the decision. MeshQu does not block or 
 
 | Environment | URL |
 | --- | --- |
-| Production | `https://api.meshqu.io` |
-| Staging | `https://api-staging.meshqu.io` |
+| Production | `https://api.meshqu.com` |
+| Staging | `https://api-staging.meshqu.com` |
 | Local dev | `http://localhost:3010` |
 
 All endpoints are prefixed with `/v1`.

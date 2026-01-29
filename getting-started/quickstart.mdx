@@ -25,13 +25,13 @@ This guide walks you through making your first policy evaluation call. You will 
 import { MeshQuClient } from '@tradequ/meshqu-client';
 
 const client = new MeshQuClient({
-  baseUrl: 'https://api.meshqu.io',
+  baseUrl: 'https://api.meshqu.com',
   tenantId: 'your-tenant-id',
   apiKey: 'your-api-key',
 });
 ```
 
-### 3. Evaluate a decision
+### 2. Evaluate a decision
 
 ```typescript
 const result = await client.evaluate({
@@ -48,7 +48,7 @@ console.log(result.result.decision); // 'ALLOW' | 'REVIEW' | 'DENY' | 'ALERT'
 console.log(result.result.violations); // [] if ALLOW
 ```
 
-### 4. Act on the decision
+### 3. Act on the decision
 
 ```typescript
 if (result.result.decision === 'ALLOW') {
@@ -68,7 +68,7 @@ if (result.result.decision === 'ALLOW') {
 ### 1. Evaluate (dry-run, not persisted)
 
 ```bash
-curl -X POST https://api.meshqu.io/v1/decisions/evaluate \
+curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID" \
   -H "Content-Type: application/json" \
@@ -123,7 +123,7 @@ curl -X POST https://api.meshqu.io/v1/decisions/evaluate \
 If you want the decision stored, use `/v1/decisions/record` with an idempotency key:
 
 ```bash
-curl -X POST https://api.meshqu.io/v1/decisions/record \
+curl -X POST https://api.meshqu.com/v1/decisions/record \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID" \
   -H "Content-Type: application/json" \
