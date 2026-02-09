@@ -64,6 +64,10 @@ Every evaluation returns a cryptographic receipt that binds the verdict to the e
 
 The `integrity_hash` covers the context, decision, and snapshot, making the result independently verifiable.
 
+## Conditional rules
+
+Rules can include an optional `when` clause for conditional applicability. A rule with `when` is only evaluated when the clause matches the decision context — otherwise it returns NA (not applicable) and does not affect the outcome. NA rules still appear on the decision receipt, proving the system considered the rule and explaining why it didn't apply. See the [Policy type reference](/docs/gitbook/meshqu-api/types/policy.md#when-clause-conditional-applicability) for supported operators.
+
 ## Violation
 
 When a policy does not pass, it produces one or more **violations**. Each violation includes:

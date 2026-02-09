@@ -23,6 +23,14 @@ All endpoints are prefixed with `/v1`. When a new major version is released, the
 
 ---
 
+## v1.2.0
+
+- Added conditional rule applicability (`when` clause on policy rules).
+- Rules with a `when` clause are only evaluated when the clause matches the decision context. Non-matching rules return NA (not applicable) with a human-readable reason on the decision receipt.
+- New optional fields on `EvaluationResult`: `rules_na` (count) and `na_rules` (details).
+- Supported `when` operators: `equals`, `in`, `exists`, with `all`/`any` combinators for nested logic.
+- Snapshot hash includes `when` clauses (backward compatible — existing hashes unchanged).
+
 ## v1.1.0
 
 - Added policy groups (CRUD + listing policies within a group).
