@@ -3,7 +3,7 @@ title: "Changelog"
 description: "API version history"
 ---
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The current API version is **v1.1.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The current API version is **v1.2.0**.
 
 ## Versioning policy
 
@@ -25,11 +25,30 @@ All endpoints are prefixed with `/v1`. When a new major version is released, the
 
 ## v1.2.0
 
-- Added conditional rule applicability (`when` clause on policy rules).
-- Rules with a `when` clause are only evaluated when the clause matches the decision context. Non-matching rules return NA (not applicable) with a human-readable reason on the decision receipt.
+**When Gating — Conditional Rule Applicability**
+- Added `when` clause on policy rules — rules are only evaluated when the clause matches the decision context.
+- Non-matching rules return NA (not applicable) with a human-readable reason on the decision receipt.
 - New optional fields on `EvaluationResult`: `rules_na` (count) and `na_rules` (details).
 - Supported `when` operators: `equals`, `in`, `exists`, with `all`/`any` combinators for nested logic.
 - Snapshot hash includes `when` clauses (backward compatible — existing hashes unchanged).
+- Console: visual when clause editor with natural language display.
+
+**Smart Rule Builder**
+- Natural language rule builder — type plain-English rules and get structured policy rules via LLM parsing.
+- Field registry with type-aware autocomplete and combobox selection.
+
+**Policy Studio**
+- Full inline policy editor MVP with rule management.
+
+**Agentic Live Demo**
+- Real-time animated decision pipeline with Payment Agent simulation.
+- Interactive MeshQu gate toggles, receipt inspector, human-in-the-loop review.
+
+**Security Hardening (SA-001–013)**
+- Ed25519 receipt signing for non-repudiation — public key via `GET /v1/.well-known/signing-keys`.
+- Encryption key versioning with rotation support.
+- Redis-backed rate limiting for multi-replica consistency.
+- CSP report-only header, Dependabot, Docker image digest pinning.
 
 ## v1.1.0
 

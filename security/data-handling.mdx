@@ -29,6 +29,12 @@ API keys carry explicit scopes that limit what operations they can perform. Foll
 - Webhook delivery follows redirects cautiously to mitigate SSRF risks.
 - See [Webhooks](../guides/webhooks) for verification details.
 
+## Decision receipt integrity
+
+Every evaluation returns a cryptographic receipt binding the verdict to the exact policy snapshot. The `integrity_hash` (SHA-256 over canonical JSON) covers the context, decision, and snapshot.
+
+When a signing key is configured, MeshQu signs the integrity hash with **Ed25519**. Auditors verify receipts using the public key alone — no shared secret exchange is needed. Key IDs (`msk_v1` format) identify which key signed a receipt, and key rotation is supported via a previous-key grace period.
+
 ## Audit trail
 
 All significant actions (policy changes, decision recordings, key operations) are logged to an append-only audit trail. Audit events can be verified for integrity via the API.

@@ -58,11 +58,14 @@ Every evaluation returns a cryptographic receipt that binds the verdict to the e
   "policy_snapshot_id": "11111111-1111-1111-1111-111111111111",
   "policy_snapshot_hash": "2c26b46b68ffc68ff99b453c1d...sha256",
   "integrity_hash": "6f1ed002ab5595859014ebf09...sha256",
+  "signature": "base64url-encoded-ed25519-signature",
+  "signature_kid": "msk_v1",
+  "signature_algorithm": "ed25519",
   "timestamp": "2025-01-15T10:30:00.000Z"
 }
 ```
 
-The `integrity_hash` covers the context, decision, and snapshot, making the result independently verifiable.
+The `integrity_hash` (SHA-256) covers the context, decision, and snapshot in canonical JSON, making the result independently verifiable. When a signing key is configured, MeshQu signs the integrity hash with **Ed25519**. Auditors can verify receipts using the public key alone — no shared secret is needed. The `signature_kid` identifies which key signed the receipt, supporting key rotation.
 
 ## Conditional rules
 
@@ -127,7 +130,8 @@ These are out of scope by design, not missing features.
 1. Request a decision by ID.
 2. Replay the decision against the original policy snapshot.
 3. Verify integrity hashes to confirm the verdict has not been altered.
-4. Confirm the policy snapshot and timestamp match expectations.
+4. If the receipt is signed, verify the Ed25519 signature using the public key.
+5. Confirm the policy snapshot and timestamp match expectations.
 
 No access to application code or models is required.
 
