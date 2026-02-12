@@ -35,6 +35,43 @@ Every evaluation returns a cryptographic receipt binding the verdict to the exac
 
 When a signing key is configured, MeshQu signs the integrity hash with **Ed25519**. Auditors verify receipts using the public key alone — no shared secret exchange is needed. Key IDs (`msk_v1` format) identify which key signed a receipt, and key rotation is supported via a previous-key grace period.
 
+### Verifying a receipt signature
+
+Receipts include three signature fields when signing is enabled:
+
+| Field | Description |
+| --- | --- |
+| `signature` | Base64url-encoded Ed25519 signature over the `integrity_hash`. |
+| `signature_kid` | Key ID (e.g. `msk_v1`) identifying which key signed. |
+| `signature_algorithm` | Always `ed25519`. |
+
+To verify:
+
+1. Obtain the Ed25519 public key corresponding to `signature_kid` (provided during onboarding).
+2. Base64url-decode the `signature` field.
+3. Verify the signature over the hex-encoded `integrity_hash` using the public key.
+
+```typescript
+import { verify, createPublicKey } from 'node:crypto';
+
+function verifyReceipt(
+  integrityHash: string,
+  signatureBase64url: string,
+  publicKeyBase64: string,
+): boolean {
+  const publicKey = createPublicKey({
+    key: Buffer.from(publicKeyBase64, 'base64'),
+    format: 'der',
+    type: 'spki',
+  });
+  const data = Buffer.from(integrityHash, 'hex');
+  const sig = Buffer.from(signatureBase64url, 'base64url');
+  return verify(null, data, publicKey, sig);
+}
+```
+
+Unsigned receipts (`signature: null`) remain valid — the `integrity_hash` can still be verified by recomputing it from the context, decision, and snapshot.
+
 ## Audit trail
 
 All significant actions (policy changes, decision recordings, key operations) are logged to an append-only audit trail. Audit events can be verified for integrity via the API.

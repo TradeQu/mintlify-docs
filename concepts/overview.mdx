@@ -69,7 +69,21 @@ The `integrity_hash` (SHA-256) covers the context, decision, and snapshot in can
 
 ## Conditional rules
 
-Rules can include an optional `when` clause for conditional applicability. A rule with `when` is only evaluated when the clause matches the decision context — otherwise it returns NA (not applicable) and does not affect the outcome. NA rules still appear on the decision receipt, proving the system considered the rule and explaining why it didn't apply. See the [Policy type reference](/docs/gitbook/meshqu-api/types/policy.md#when-clause-conditional-applicability) for supported operators.
+Rules can include an optional `when` clause for conditional applicability. A rule with `when` is only evaluated when the clause matches the decision context — otherwise it returns NA (not applicable) and does not affect the outcome. NA rules still appear on the decision receipt with a human-readable reason, proving the system considered the rule and explaining why it didn't apply.
+
+**Supported operators:**
+
+| Form | Example | Matches when |
+| --- | --- | --- |
+| `equals` | `{ "field": "currency", "equals": "USD" }` | Field value is exactly `"USD"`. |
+| `in` | `{ "field": "currency", "in": ["USD", "EUR"] }` | Field value is one of the listed values. |
+| `exists` | `{ "field": "credit_score", "exists": true }` | Field is present (or absent if `false`). |
+| `all` | `{ "all": [clause, clause] }` | All nested clauses match (AND). |
+| `any` | `{ "any": [clause, clause] }` | At least one nested clause matches (OR). |
+
+Combinators nest arbitrarily: `{ "all": [{ "field": "region", "in": ["EU", "UK"] }, { "field": "amount", "exists": true }] }`.
+
+See the [API Reference](../api/reference) for the full `when` syntax in policy creation.
 
 ## Violation
 

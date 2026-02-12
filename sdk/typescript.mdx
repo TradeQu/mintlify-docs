@@ -38,6 +38,10 @@ const result = await client.evaluate({
 
 // result.result.decision: 'ALLOW' | 'REVIEW' | 'DENY' | 'ALERT'
 // result.result.violations: Violation[]
+// result.result.rules_na: number (rules skipped due to when clause)
+// result.result.na_rules: NaRule[] (details of skipped rules)
+// result.result.signature: string | null (Ed25519, if signing enabled)
+// result.result.signature_kid: string | null (e.g. 'msk_v1')
 ```
 
 `client.dryRun()` is an alias for `client.evaluate()`.
@@ -90,14 +94,24 @@ const replay = await client.replay('decision-uuid');
 // List
 const policies = await client.listPolicies({ limit: 50 });
 
-// Create
+// Create (with conditional when clause)
 const policy = await client.createPolicy({
   code: 'max-order-size',
   name: 'Max Order Size',
   description: 'Rejects orders above threshold.',
   decision_type: 'trade_execution',
   advisory_mode: false,
-  rules: [],
+  rules: [
+    {
+      rule_code: 'SIZE-001',
+      type: 'threshold',
+      field: 'quantity',
+      operator: '<=',
+      value: 10000,
+      severity: 'high',
+      when: { field: 'instrument_type', equals: 'equity' }, // only applies to equities
+    },
+  ],
 });
 
 // Get
@@ -185,6 +199,7 @@ import type {
   DecisionContext,
   Decision,
   EvaluationResult,
+  NaRule,
   Violation,
   Policy,
   PolicyVersion,
@@ -193,5 +208,6 @@ import type {
   Evidence,
   DecisionMetadata,
   SourceArtifact,
+  When,
 } from '@tradequ/meshqu-client';
 ```

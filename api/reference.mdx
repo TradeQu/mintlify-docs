@@ -80,11 +80,22 @@ Evaluates a decision context against active policies. Nothing is persisted.
     "decision": "ALLOW",
     "violations": [],
     "rules_evaluated": 3,
+    "rules_na": 1,
+    "na_rules": [
+      {
+        "rule_code": "JURISDICTION-001",
+        "when": { "field": "currency", "in": ["GBP", "CHF"] },
+        "reason": "currency is \"USD\", not one of [\"GBP\", \"CHF\"]"
+      }
+    ],
     "evaluation_time_ms": 8.4,
     "timestamp": "2025-01-15T10:30:00.000Z",
     "policy_snapshot_id": "11111111-1111-1111-1111-111111111111",
     "policy_snapshot_hash": "2c26b46b68ffc68ff99b453c1d30413413422...sha256",
-    "integrity_hash": "6f1ed002ab5595859014ebf0951522...sha256"
+    "integrity_hash": "6f1ed002ab5595859014ebf0951522...sha256",
+    "signature": "base64url-encoded-ed25519-signature",
+    "signature_kid": "msk_v1",
+    "signature_algorithm": "ed25519"
   },
   "snapshot": {
     "id": "11111111-1111-1111-1111-111111111111",
@@ -103,6 +114,17 @@ Evaluates a decision context against active policies. Nothing is persisted.
     "level": 0
   }
 }
+```
+
+**Receipt fields:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `rules_na` | `number` | Count of rules skipped due to `when` clause not matching. Absent or `0` if all rules applied. |
+| `na_rules` | `NaRule[]` | Details of each skipped rule — code, `when` clause, and human-readable reason. |
+| `signature` | `string \| null` | Ed25519 signature over the `integrity_hash`. Null if signing is not configured. |
+| `signature_kid` | `string \| null` | Key ID that produced the signature (e.g. `msk_v1`). |
+| `signature_algorithm` | `string \| null` | Always `ed25519` when present. |
 ```
 
 ### Record a decision
@@ -220,11 +242,31 @@ POST /v1/policies
   "description": "Rejects orders exceeding configured thresholds.",
   "decision_type": "trade_execution",
   "advisory_mode": false,
-  "rules": []
+  "rules": [
+    {
+      "rule_code": "SIZE-001",
+      "type": "threshold",
+      "field": "quantity",
+      "operator": "<=",
+      "value": 10000,
+      "severity": "high",
+      "when": { "field": "instrument_type", "equals": "equity" }
+    }
+  ]
 }
 ```
 
-> The `rules` field structure is defined in your policy configuration. Refer to the MeshQu Console for assisted policy authoring.
+Rules support an optional `when` clause for conditional applicability. A rule with `when` is only evaluated when the clause matches the decision context — otherwise it returns NA (not applicable) and does not affect the outcome.
+
+**Supported `when` operators:**
+
+| Form | Example | Matches when |
+| --- | --- | --- |
+| `equals` | `{ "field": "currency", "equals": "USD" }` | Field value is exactly `"USD"`. |
+| `in` | `{ "field": "currency", "in": ["USD", "EUR"] }` | Field value is one of the listed values. |
+| `exists` | `{ "field": "credit_score", "exists": true }` | Field is present (or absent if `false`). |
+| `all` | `{ "all": [clause, clause] }` | All nested clauses match. |
+| `any` | `{ "any": [clause, clause] }` | At least one nested clause matches. |
 
 ### Get policy
 
