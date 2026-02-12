@@ -25,30 +25,21 @@ All endpoints are prefixed with `/v1`. When a new major version is released, the
 
 ## v1.2.0
 
-**When Gating — Conditional Rule Applicability**
-- Added `when` clause on policy rules — rules are only evaluated when the clause matches the decision context.
+**Conditional Rule Applicability (When Gating)**
+- Added optional `when` clause on policy rules — rules are only evaluated when the clause matches the decision context.
 - Non-matching rules return NA (not applicable) with a human-readable reason on the decision receipt.
 - New optional fields on `EvaluationResult`: `rules_na` (count) and `na_rules` (details).
 - Supported `when` operators: `equals`, `in`, `exists`, with `all`/`any` combinators for nested logic.
 - Snapshot hash includes `when` clauses (backward compatible — existing hashes unchanged).
-- Console: visual when clause editor with natural language display.
 
-**Smart Rule Builder**
-- Natural language rule builder — type plain-English rules and get structured policy rules via LLM parsing.
-- Field registry with type-aware autocomplete and combobox selection.
+**Receipt Signing**
+- Decision receipts are now signed with Ed25519 when a signing key is configured.
+- Receipts include `signature`, `signature_kid`, and `signature_algorithm` fields.
+- Auditors can verify receipts using the public key alone — no shared secret needed.
 
-**Policy Studio**
-- Full inline policy editor MVP with rule management.
-
-**Agentic Live Demo**
-- Real-time animated decision pipeline with Payment Agent simulation.
-- Interactive MeshQu gate toggles, receipt inspector, human-in-the-loop review.
-
-**Security Hardening (SA-001–013)**
-- Ed25519 receipt signing for non-repudiation — public key via `GET /v1/.well-known/signing-keys`.
-- Encryption key versioning with rotation support.
-- Redis-backed rate limiting for multi-replica consistency.
-- CSP report-only header, Dependabot, Docker image digest pinning.
+**Security & Infrastructure**
+- Encryption key versioning with rotation support and legacy fallback.
+- Rate limiting upgraded to shared state across API replicas.
 
 ## v1.1.0
 
