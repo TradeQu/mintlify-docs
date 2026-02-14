@@ -54,6 +54,7 @@
           {
             "group": "Security",
             "pages": [
+              "security/trust-model",
               "security/data-handling"
             ]
           },

@@ -1,0 +1,115 @@
+---
+title: "Trust Model"
+description: "How MeshQu cryptographically guarantees the integrity, authenticity, and transparency of every governed decision."
+---
+
+MeshQu implements a four-level trust maturity model. Each level builds on the previous, adding stronger cryptographic guarantees. The current deployment operates at **Level 2**.
+
+## Level 0 — Deterministic Integrity
+
+<Info>Status: **Active**</Info>
+
+Every decision produces an identical hash when replayed with the same inputs.
+
+**Capabilities:**
+- SHA-256 integrity hashing of all decision inputs, outputs, and policy snapshots
+- Canonical JSON serialisation for reproducible computation
+- Replay verification — recompute and compare at any time
+- Frozen policy snapshots bound to each decision
+
+| Property | Value |
+|----------|-------|
+| Hash algorithm | SHA-256 |
+| Canonicalisation | Recursive key-sort + JSON.stringify |
+| Replay endpoint | `GET /v1/decisions/{id}/replay` |
+
+**What this proves:** The decision record has not been altered since it was created.
+
+---
+
+## Level 1 — Cryptographic Signatures
+
+<Info>Status: **Active**</Info>
+
+Decisions are signed — tampering is detectable without any API call.
+
+**Capabilities:**
+- Ed25519 digital signature on every decision receipt
+- Key versioning (`msk_v1`) with documented rotation runbook
+- Offline verification — no network call required to validate
+- Current + previous key support for graceful rotation
+
+| Property | Value |
+|----------|-------|
+| Signature algorithm | Ed25519 (RFC 8032) |
+| Key format | SPKI DER, base64-encoded |
+| Key ID | `msk_v1` |
+| Verification | Web Crypto API / Node.js crypto |
+
+**What this proves:** The decision was issued by MeshQu and has not been modified.
+
+---
+
+## Level 2 — Transparency Anchoring
+
+<Tip>This is the **current** deployment level.</Tip>
+
+Even if MeshQu disappears, receipts remain independently verifiable.
+
+**Capabilities:**
+- Anchored to [Sigstore Rekor](https://rekor.sigstore.dev) — a public, immutable transparency log
+- DSSE envelope with in-toto attestation statement
+- Merkle tree inclusion proofs for tamper-evident ordering
+- Graceful degradation — signing is never blocked by log availability
+
+| Property | Value |
+|----------|-------|
+| Transparency log | Sigstore Rekor (`rekor.sigstore.dev`) |
+| Entry format | DSSE envelope + in-toto statement |
+| Proof type | Merkle tree inclusion proof |
+| Degradation | Signed but unanchored if Rekor unreachable |
+
+<Note>
+**Why DSSE, not hashedrekord?** Ed25519 is incompatible with Rekor's `hashedrekord` entry type ([sigstore/rekor#851](https://github.com/sigstore/rekor/issues/851)). MeshQu uses DSSE envelopes with in-toto attestation statements instead.
+</Note>
+
+**What this proves:** The decision existed at a specific point in time, anchored in a public, append-only log that MeshQu cannot retroactively alter.
+
+---
+
+## Level 3 — Hardware-Bound Identity
+
+<Warning>Status: **Planned** — available on engagement basis.</Warning>
+
+Signing keys never leave secure hardware.
+
+**Capabilities:**
+- Hardware security modules (HSM) or Cloud KMS for key storage
+- Agent-level identity binding — each agent gets its own attested key
+- Attestation chains linking decisions to specific hardware enclaves
+- FIPS 140-2 Level 3+ compliance path
+
+**What this proves:** Cryptographic operations are performed within tamper-resistant hardware, providing the highest assurance that keys have not been extracted or cloned.
+
+---
+
+## How to Verify
+
+<CardGroup cols={2}>
+  <Card title="Web Verifier" icon="shield-check" href="https://verify.meshqu.com">
+    Paste any decision receipt JSON. Integrity hash, signature, and transparency anchor are validated in your browser — no API call, no authentication.
+  </Card>
+  <Card title="Verification CLI" icon="terminal">
+    Open-source command-line tool for independent receipt verification. **Coming soon.**
+
+    ```bash
+    npx meshqu-verify receipt.json
+    ```
+  </Card>
+</CardGroup>
+
+## Why Sigstore Rekor?
+
+Rekor is a free, public, immutable transparency log operated by the [Sigstore project](https://www.sigstore.dev) under the Linux Foundation. It uses the same Merkle tree technology behind Certificate Transparency — the system that secures billions of HTTPS connections.
+
+By anchoring decision receipts to Rekor, MeshQu creates a tamper-evident record that exists independently of our infrastructure.
