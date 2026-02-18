@@ -126,10 +126,16 @@ await client.deletePolicy(policy.id);
 // Validate rules (dry-run)
 await client.validatePolicy({ rules: [], decision_type: 'trade_execution' });
 
-// Versions
+// Versions (new versions are created as draft)
 await client.createPolicyVersion(policy.id, newRules, 'Increased threshold');
 const versions = await client.listPolicyVersions(policy.id);
 const v2 = await client.getPolicyVersion(policy.id, 2);
+
+// Ratify a draft version (promotes to active)
+const ratified = await client.ratifyVersion(policy.id, 2);
+// ratified.status: 'ratified'
+// ratified.ratified_by: string
+// ratified.ratified_at: string (ISO 8601)
 ```
 
 ## Alerts
