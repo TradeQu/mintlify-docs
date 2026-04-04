@@ -318,11 +318,20 @@ Verifies all decisions in a chain. For each step, recomputes the integrity hash 
   "steps_checked": 3,
   "receipts_verified": 3,
   "receipts_failed": 0,
+  "chain_proof": "full",
+  "chain_sealed": true,
+  "seal": {
+    "id": "seal-uuid",
+    "steps_count": 3,
+    "seal_hash": "sha256-hex...",
+    "seal_verified": true,
+    "sealed_at": "2026-04-04T15:00:00.000Z"
+  },
   "warnings": [],
   "sequence": [
-    { "step": 1, "decision_id": "aaa-...", "decision": "REVIEW", "integrity_verified": true },
-    { "step": 2, "decision_id": "bbb-...", "decision": "ALLOW", "integrity_verified": true },
-    { "step": 3, "decision_id": "ccc-...", "decision": "ALLOW", "integrity_verified": true }
+    { "step": 1, "decision_id": "aaa-...", "decision": "REVIEW", "integrity_verified": true, "chain_linkage": "verified" },
+    { "step": 2, "decision_id": "bbb-...", "decision": "ALLOW", "integrity_verified": true, "chain_linkage": "verified" },
+    { "step": 3, "decision_id": "ccc-...", "decision": "ALLOW", "integrity_verified": true, "chain_linkage": "verified" }
   ],
   "verified_at": "2026-04-04T12:00:00.000Z"
 }
@@ -333,14 +342,73 @@ Verifies all decisions in a chain. For each step, recomputes the integrity hash 
 | Check | Method | Confidence |
 | --- | --- | --- |
 | Individual receipt integrity | SHA-256 hash recomputation | Cryptographic proof |
+| Chain ordering | Per-step chain hash linkage | Cryptographic proof |
+| Interior deletion | Chain hash chain breaks if step removed | Cryptographic proof |
+| Chain completeness | Seal hash over all receipt hashes | Cryptographic proof (if sealed) |
 | Step continuity | Gap detection in `chain_step` sequence | Database trust |
 | Parent linkage | Parent exists in chain with lower step | Database trust |
 
 Returns `404` if no decisions exist for the given chain ID.
 
-<Note>
-Phase 1 chain verification proves each individual receipt is cryptographically sound. Chain structure (grouping, ordering) relies on database constraints and immutability triggers. Cryptographic proof of the chain as a unit is planned for Phase 2.
-</Note>
+**Per-step `chain_linkage` values:**
+
+| Value | Meaning |
+| --- | --- |
+| `verified` | Chain integrity hash recomputed and matches, signature valid |
+| `failed` | Chain hash mismatch or signature invalid |
+| `not_available` | Step predates chain proof or signing was disabled |
+
+**Overall `chain_proof` values:**
+
+| Value | Meaning |
+| --- | --- |
+| `full` | All steps have chain proof and verify |
+| `partial` | Mix of legacy and proven steps; all proven steps verify |
+| `none` | No steps have chain proof |
+| `failed` | At least one chain proof failed |
+
+### Seal a chain
+
+```
+POST /v1/decisions/chain/:chainId/seal
+```
+
+**Scope**: `decisions:write`
+
+Seals a chain, proving completeness. No more steps can be added after sealing. Requires signing to be configured.
+
+**What you get back (201):**
+
+```json
+{
+  "id": "seal-uuid",
+  "chain_id": "7f3a2b1c-...",
+  "steps_count": 3,
+  "seal_hash": "sha256-hex-64-chars",
+  "seal_signature": "base64url-ed25519-sig",
+  "seal_signature_kid": "msk_v1",
+  "seal_signature_algorithm": "ed25519",
+  "transparency_anchor": null,
+  "sealed_at": "2026-04-04T15:00:00.000Z",
+  "created_at": "2026-04-04T15:00:00.000Z"
+}
+```
+
+Returns `409` if already sealed, `400` if chain is empty or signing not configured, `404` if chain not found.
+
+<Warning>
+Sealing is **irreversible**. Once sealed, no more steps can be added to the chain. If a chain is sealed prematurely, start a new chain.
+</Warning>
+
+### Get chain seal
+
+```
+GET /v1/decisions/chain/:chainId/seal
+```
+
+**Scope**: `decisions:read`
+
+Returns the seal for a chain, or `404` if not sealed.
 
 ### Decision stream (SSE)
 
