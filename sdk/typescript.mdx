@@ -88,6 +88,17 @@ const replay = await client.replay('decision-uuid');
 // Compare replay.replay.decision with replay.original.decision
 ```
 
+### Record outcome
+
+```typescript
+const outcome = await client.recordOutcome('decision-uuid', {
+  status: 'accepted',
+  source_type: 'human',
+  reported_by: 'ops-team',
+});
+// outcome.status: 'accepted' | 'overridden' | 'escalated' | 'expired' | 'abandoned'
+```
+
 ## Policies
 
 ```typescript

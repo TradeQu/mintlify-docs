@@ -102,6 +102,20 @@ A **decision** is a persisted evaluation result. You create one by calling `/v1/
 - Replay for audit verification.
 - Linking to alerts.
 
+## Decision outcome
+
+A **decision outcome** captures what happened after a verdict. For example, a `REVIEW` decision might be `accepted` or `overridden` by a human reviewer.
+
+| Status | Meaning |
+| --- | --- |
+| `accepted` | Verdict was accepted as-is. |
+| `overridden` | Verdict was overridden (includes `final_action`). |
+| `escalated` | Referred to a higher authority. |
+| `expired` | No action taken within the required window. |
+| `abandoned` | Process was abandoned. |
+
+One outcome per decision. Immutable once recorded. Included on individual decision retrieval.
+
 ## Alert
 
 An **alert** is raised when notable conditions are detected (e.g. a critical policy failure). Alerts have a `severity` (`low`, `medium`, `high`, `critical`) and can be acknowledged. You can subscribe to alert webhooks for real-time notification.

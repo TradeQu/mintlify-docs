@@ -236,6 +236,47 @@ POST /v1/decisions/:id/replay
 
 Re-evaluates a recorded decision for audit verification. Returns the replayed result alongside the original for comparison.
 
+### Record decision outcome
+
+```
+POST /v1/decisions/:id/outcome
+```
+
+**Scope**: `decisions:write`
+
+Records what happened after a verdict. One outcome per decision (409 on duplicate).
+
+**What you send:**
+
+```json
+{
+  "status": "overridden",
+  "final_action": "ALLOW",
+  "source_type": "human",
+  "reported_by": "compliance-officer@acme.com",
+  "resolution_reason": "Manual evidence confirmed the document is valid"
+}
+```
+
+**What you get back (201):**
+
+```json
+{
+  "id": "22222222-2222-4222-8222-222222222222",
+  "decision_id": "11111111-1111-4111-8111-111111111111",
+  "tenant_id": "00000000-0000-4000-8000-000000000001",
+  "status": "overridden",
+  "final_action": "ALLOW",
+  "source_type": "human",
+  "reported_by": "compliance-officer@acme.com",
+  "reported_at": "2025-01-15T14:00:00.000Z",
+  "resolution_reason": "Manual evidence confirmed the document is valid",
+  "notes": null,
+  "external_reference": null,
+  "created_at": "2025-01-15T14:00:00.000Z"
+}
+```
+
 ### Decision stream (SSE)
 
 ```

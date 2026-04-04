@@ -32,6 +32,13 @@ All endpoints are prefixed with `/v1`. When a new major version is released, the
 - Backwards compatible: `reason_code` is a new required field on violations. Existing `reason` strings are unchanged.
 - **Replay note:** New receipts have different integrity hashes than pre-`reason_code` receipts due to the additional field. Pre-migration receipts remain verifiable against their stored hash.
 
+**Decision Outcomes**
+- New `POST /v1/decisions/:id/outcome` endpoint to capture what happened after a verdict.
+- Five outcome statuses: `accepted`, `overridden`, `escalated`, `expired`, `abandoned`.
+- One outcome per decision (409 on duplicate). Immutable after insert.
+- Outcomes included on `GET /v1/decisions/:id` response.
+- New `recordOutcome()` method in the TypeScript SDK.
+
 ## v1.2.0
 
 **Conditional Rule Applicability (When Gating)**
