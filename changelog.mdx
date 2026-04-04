@@ -39,6 +39,11 @@ All endpoints are prefixed with `/v1`. When a new major version is released, the
 - Outcomes included on `GET /v1/decisions/:id` response.
 - New `recordOutcome()` method in the TypeScript SDK.
 
+**Violation Analytics & Identifier Stability**
+- Violations denormalized into queryable table at write time (analytics projection, not source of truth).
+- `GET /v1/decisions` now accepts `correlation_id` query parameter.
+- Policy rules accept optional `replaces_rule_code` for advisory lineage tracking.
+
 ## v1.2.0
 
 **Conditional Rule Applicability (When Gating)**
