@@ -48,6 +48,8 @@
             "group": "Guides",
             "pages": [
               "guides/integration-patterns",
+              "guides/decision-chains",
+              "guides/manual-checks",
               "guides/webhooks"
             ]
           },

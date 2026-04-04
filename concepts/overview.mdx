@@ -101,6 +101,7 @@ A **decision** is a persisted evaluation result. You create one by calling `/v1/
 - Retrieval by ID or listing with filters.
 - Replay for audit verification.
 - Linking to alerts.
+- Grouping into [decision chains](#decision-chain).
 
 ## Decision outcome
 
@@ -115,6 +116,32 @@ A **decision outcome** captures what happened after a verdict. For example, a `R
 | `abandoned` | Process was abandoned. |
 
 One outcome per decision. Immutable once recorded. Included on individual decision retrieval.
+
+## Decision chain
+
+A **decision chain** is an ordered group of decision receipts that together prove a governed outcome across multiple steps. Chains enable workflow traceability — instead of a bag of individual receipts, a regulator or auditor sees an ordered, parent-linked structure from trigger to outcome.
+
+Each step in a chain is a full cryptographic receipt (integrity hash + Ed25519 signature + optional Rekor anchor). The chain provides queryable grouping and ordering — it does not weaken the proof.
+
+**Key properties:**
+
+- Steps are ordered by `chain_step` (1-based, unique per chain).
+- Each step may reference a `parent_decision_id` for causal lineage.
+- Chain membership is declared at record time and is immutable.
+- Steps can come from automated evaluation or manual form review.
+- The verification endpoint checks each receipt's integrity and reports structural warnings (gaps, parent linkage).
+
+**Example: AML workflow**
+
+| Step | Decision type | Verdict | Source |
+| --- | --- | --- | --- |
+| 1 | Transaction screening | `REVIEW` | Automated |
+| 2 | Analyst review | `ALLOW` | Manual form |
+| 3 | Final disposition | `ALLOW` | Automated |
+
+Query `GET /v1/decisions?chain_id=...` returns all three steps in order. The verification endpoint confirms each receipt is individually sound.
+
+See the [Decision Chains guide](../guides/decision-chains) for integration patterns and the [API Reference](../api/reference) for endpoint details.
 
 ## Alert
 

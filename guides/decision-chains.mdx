@@ -1,0 +1,151 @@
+---
+title: "Decision Chains"
+description: "Group related decisions into ordered, verifiable sequences"
+---
+
+A **decision chain** groups related decisions into an ordered sequence that proves a governed outcome across multiple steps. Instead of individual receipts that must be manually correlated, a chain tells the full story from trigger to outcome.
+
+## When to use chains
+
+Use chains when a workflow involves multiple governed steps that together prove an outcome:
+
+- **AML/KYC workflows** — screening, analyst review, final disposition
+- **Trade approval pipelines** — pre-trade check, compliance review, execution authorisation
+- **Document verification** — automated scan, human review, approval
+- **Multi-stage approvals** — request, review, escalation, sign-off
+
+If your workflow is a single decision, you do not need chains.
+
+## How it works
+
+### 1. Start a chain
+
+Generate a `chain_id` (UUID) in your orchestrating system and include it when recording the first decision:
+
+```json
+POST /v1/decisions/record
+{
+  "context": {
+    "decision_type": "aml_screening",
+    "fields": { "transaction.amount": 150000, "transaction.country": "IR" }
+  },
+  "options": {
+    "idempotency_key": "case-42-screening",
+    "chain": {
+      "chain_id": "7f3a2b1c-e5f6-7890-abcd-ef1234567890"
+    }
+  }
+}
+```
+
+The response includes `chain_step: 1` (auto-assigned).
+
+### 2. Add steps
+
+Subsequent steps use the same `chain_id`. Optionally reference the previous step as `parent_decision_id`:
+
+```json
+POST /v1/decisions/record
+{
+  "context": {
+    "decision_type": "aml_analyst_review",
+    "fields": { "analyst_finding": "legitimate_trade" }
+  },
+  "options": {
+    "idempotency_key": "case-42-review",
+    "chain": {
+      "chain_id": "7f3a2b1c-e5f6-7890-abcd-ef1234567890",
+      "parent_decision_id": "<step-1-decision-id>"
+    }
+  }
+}
+```
+
+The `chain_step` is auto-assigned (2, 3, ...) unless you provide one explicitly.
+
+### 3. Query the chain
+
+```
+GET /v1/decisions?chain_id=7f3a2b1c-e5f6-7890-abcd-ef1234567890
+```
+
+Returns all decisions in `chain_step` order (ascending), not `recorded_at` order.
+
+### 4. Verify the chain
+
+```
+POST /v1/decisions/chain/7f3a2b1c-e5f6-7890-abcd-ef1234567890/verify
+```
+
+Returns per-step integrity verification and structural checks:
+
+```json
+{
+  "valid": true,
+  "chain_id": "7f3a2b1c-...",
+  "steps_checked": 3,
+  "receipts_verified": 3,
+  "receipts_failed": 0,
+  "warnings": [],
+  "sequence": [
+    { "step": 1, "decision_id": "...", "decision": "REVIEW", "integrity_verified": true },
+    { "step": 2, "decision_id": "...", "decision": "ALLOW", "integrity_verified": true },
+    { "step": 3, "decision_id": "...", "decision": "ALLOW", "integrity_verified": true }
+  ]
+}
+```
+
+## Chain rules
+
+| Rule | Detail |
+| --- | --- |
+| **Declared at record time** | Chain membership cannot be added retroactively. |
+| **Immutable** | `chain_id`, `chain_step`, and `parent_decision_id` cannot be changed once set. |
+| **Unique steps** | `chain_step` is unique per chain per tenant. Duplicates return `409`. |
+| **Parent must be in same chain** | `parent_decision_id` must reference a decision with the same `chain_id`. |
+| **Auto-assigned steps** | If `chain_step` is omitted, MeshQu assigns the next sequential number. |
+| **Gaps allowed** | Steps 1, 3 (skipping 2) is allowed at write time. Gaps are flagged as warnings during verification. |
+
+## Step auto-assignment
+
+When `chain_step` is omitted, MeshQu auto-assigns the next number (`MAX(chain_step) + 1`). This is serialised per chain using an advisory lock to prevent race conditions.
+
+If you need explicit control over step ordering — for example, to match an external workflow definition — provide `chain_step` in the request.
+
+## Parent linkage
+
+`parent_decision_id` is optional and records **why** a step was created (causal lineage), not structural branching. Multiple steps can reference the same parent:
+
+```
+Step 1: Alert        (parent: null)
+Step 2: Review       (parent: step 1)  — "review was prompted by the alert"
+Step 3: Compliance   (parent: step 2)  — "compliance escalation from review"
+Step 4: Legal review (parent: step 2)  — "legal review also from the review"
+Step 5: Disposition  (parent: step 3)  — "final outcome"
+```
+
+Steps 3 and 4 both reference step 2 as parent. This is valid — it means step 2 prompted two follow-up actions.
+
+## Verification scope
+
+Each decision in a chain produces the same cryptographic receipt as standalone decisions (integrity hash + Ed25519 signature + optional Rekor anchor). The chain verification endpoint checks:
+
+- **Individual receipt integrity** — recomputes SHA-256 hash and compares (cryptographic proof)
+- **Step continuity** — detects gaps in the step sequence (warning, not error)
+- **Parent linkage** — confirms parents exist in the chain with lower step numbers
+
+<Note>
+Chain structure (grouping, ordering, parent linkage) relies on database constraints and immutability triggers. Cryptographic proof of the chain as a unit (provable completeness and ordering without trusting the database) is planned for Phase 2.
+</Note>
+
+## Mixed automated and manual steps
+
+MeshQu treats form-submitted (manual) decisions identically to API-submitted (automated) decisions — same evaluation engine, same signed receipt. A chain can contain both:
+
+| Step | Source | Verdict |
+| --- | --- | --- |
+| 1 | API (automated screening) | `REVIEW` |
+| 2 | Form (analyst review) | `ALLOW` |
+| 3 | API (final disposition) | `ALLOW` |
+
+The orchestrating system manages chain membership. After a form submission creates a decision, the orchestrating system records the next chain step referencing the form decision as parent.

@@ -69,6 +69,43 @@ const decision = await client.record(
 // decision.decision.decision: 'ALLOW' | 'REVIEW' | 'DENY' | 'ALERT'
 ```
 
+### Record with chain linkage
+
+```typescript
+import { randomUUID } from 'crypto';
+
+const chainId = randomUUID();
+
+// Step 1: Automated screening
+const step1 = await client.record(
+  {
+    decision_type: 'aml_screening',
+    fields: { transaction_amount: 150000, country: 'IR' },
+  },
+  {
+    idempotency_key: 'case-42-screening',
+    chain: { chain_id: chainId },
+  },
+);
+// step1.decision.chain_step === 1 (auto-assigned)
+
+// Step 2: Analyst review (references step 1 as parent)
+const step2 = await client.record(
+  {
+    decision_type: 'aml_review',
+    fields: { analyst_finding: 'legitimate_trade' },
+  },
+  {
+    idempotency_key: 'case-42-review',
+    chain: {
+      chain_id: chainId,
+      parent_decision_id: step1.decision.id,
+    },
+  },
+);
+// step2.decision.chain_step === 2 (auto-assigned)
+```
+
 ### List and get decisions
 
 ```typescript
@@ -76,6 +113,11 @@ const list = await client.listDecisions({
   decision_type: 'trade_execution',
   decision: 'DENY',
   limit: 20,
+});
+
+// List by chain (returns steps in chain_step order)
+const chainSteps = await client.listDecisions({
+  chain_id: chainId,
 });
 
 const single = await client.getDecision('decision-uuid');

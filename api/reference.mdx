@@ -173,26 +173,46 @@ POST /v1/decisions/record
 Evaluates and persists the result. Requires an `idempotency_key`.
 
 Request body shape:
-```
+```json
 {
   "context": { ... },
-  "options": { "idempotency_key": "..." }
+  "options": {
+    "idempotency_key": "...",
+    "chain": {
+      "chain_id": "uuid",
+      "chain_step": 1,
+      "parent_decision_id": "uuid"
+    }
+  }
 }
 ```
 
-**Additional request fields (under `options`):**
+**Request fields (under `options`):**
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `idempotency_key` | `string` | Yes | Client-supplied unique key for safe retries. |
+| `chain.chain_id` | `string (UUID)` | No | Chain ID to group this decision into an ordered sequence. |
+| `chain.chain_step` | `integer (>= 1)` | No | Step number within the chain. Auto-assigned if omitted. |
+| `chain.parent_decision_id` | `string (UUID)` | No | Parent decision within the same chain (causal lineage). |
 
-**Additional response fields:**
+**Response fields:**
 
 | Field | Type | Description |
 | --- | --- | --- |
 | `decision.id` | `string` | UUID of the persisted decision. |
 | `is_new` | `boolean` | `true` on first submission, `false` on duplicate idempotency key. |
 | `decision.recorded_at` | `string` | ISO 8601 timestamp. |
+| `decision.chain_id` | `string \| null` | Chain ID if part of a chain. |
+| `decision.chain_step` | `integer \| null` | Step number within the chain. |
+| `decision.parent_decision_id` | `string \| null` | Parent decision ID within the chain. |
+
+**Chain errors:**
+
+| Code | Status | Description |
+| --- | --- | --- |
+| `CONFLICT` | 409 | Duplicate `chain_step` within the chain. |
+| `VALIDATION_ERROR` | 400 | Parent decision not found or not in the specified chain. |
 
 ### List decisions
 
@@ -216,6 +236,7 @@ GET /v1/decisions
 | `policy_group_code` | `string` | Filter by policy group code. |
 | `source_artifact_hash` | `string` | Filter by source artifact SHA-256 hash. |
 | `correlation_id` | `string` | Filter by correlation ID. |
+| `chain_id` | `string (UUID)` | Filter by decision chain. When set, results are sorted by `chain_step ASC` instead of `recorded_at DESC`. |
 | `limit` | `number` | Page size (default 50). |
 | `offset` | `number` | Pagination offset. |
 
@@ -277,6 +298,49 @@ Records what happened after a verdict. One outcome per decision (409 on duplicat
   "created_at": "2025-01-15T14:00:00.000Z"
 }
 ```
+
+### Verify decision chain
+
+```
+POST /v1/decisions/chain/:chainId/verify
+```
+
+**Scope**: `decisions:read`
+
+Verifies all decisions in a chain. For each step, recomputes the integrity hash and checks structural consistency (step continuity, parent linkage).
+
+**What you get back (200):**
+
+```json
+{
+  "valid": true,
+  "chain_id": "7f3a2b1c-...",
+  "steps_checked": 3,
+  "receipts_verified": 3,
+  "receipts_failed": 0,
+  "warnings": [],
+  "sequence": [
+    { "step": 1, "decision_id": "aaa-...", "decision": "REVIEW", "integrity_verified": true },
+    { "step": 2, "decision_id": "bbb-...", "decision": "ALLOW", "integrity_verified": true },
+    { "step": 3, "decision_id": "ccc-...", "decision": "ALLOW", "integrity_verified": true }
+  ],
+  "verified_at": "2026-04-04T12:00:00.000Z"
+}
+```
+
+**Verification scope:**
+
+| Check | Method | Confidence |
+| --- | --- | --- |
+| Individual receipt integrity | SHA-256 hash recomputation | Cryptographic proof |
+| Step continuity | Gap detection in `chain_step` sequence | Database trust |
+| Parent linkage | Parent exists in chain with lower step | Database trust |
+
+Returns `404` if no decisions exist for the given chain ID.
+
+<Note>
+Phase 1 chain verification proves each individual receipt is cryptographically sound. Chain structure (grouping, ordering) relies on database constraints and immutability triggers. Cryptographic proof of the chain as a unit is planned for Phase 2.
+</Note>
 
 ### Decision stream (SSE)
 
