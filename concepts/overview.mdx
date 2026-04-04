@@ -90,6 +90,7 @@ See the [API Reference](../api/reference) for the full `when` syntax in policy c
 When a policy does not pass, it produces one or more **violations**. Each violation includes:
 
 - `rule_code` — which rule raised it.
+- `reason_code` — a structured code for programmatic aggregation (e.g., `FIELD_MISSING`, `VALUE_ABOVE_MAX`).
 - `reason` — a human-readable explanation.
 - `severity` — how serious the violation is.
 

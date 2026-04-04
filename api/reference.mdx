@@ -127,6 +127,41 @@ Evaluates a decision context against active policies. Nothing is persisted.
 | `signature_algorithm` | `string \| null` | Always `ed25519` when present. |
 ```
 
+**Example response (DENY):**
+
+```json
+{
+  "result": {
+    "decision": "DENY",
+    "violations": [
+      {
+        "rule_code": "THRESHOLD-001",
+        "severity": "critical",
+        "reason_code": "VALUE_ABOVE_MAX",
+        "reason": "Field 'quantity' value 15000 exceeds maximum 10000",
+        "field": "quantity",
+        "actual_value": 15000,
+        "expected_value": "<= 10000"
+      }
+    ],
+    "rules_evaluated": 3,
+    "evaluation_time_ms": 1.2,
+    "timestamp": "2025-01-15T10:30:00.000Z",
+    "policy_snapshot_id": "11111111-1111-1111-1111-111111111111",
+    "evaluated_rules_hash": "2c26b46b68ffc68ff99b453c1d...sha256",
+    "integrity_hash": "6f1ed002ab5595859014ebf09...sha256"
+  },
+  "snapshot": {
+    "id": "11111111-1111-1111-1111-111111111111",
+    "hash": "2c26b46b68ffc68ff99b453c1d...sha256",
+    "rules_count": 3,
+    "policies_count": 1,
+    "cached": true
+  },
+  "duration_ms": 8.3
+}
+```
+
 ### Record a decision
 
 ```

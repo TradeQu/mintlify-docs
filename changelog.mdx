@@ -3,7 +3,7 @@ title: "Changelog"
 description: "API version history"
 ---
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The current API version is **v1.2.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The current API version is **v1.3.0**.
 
 ## Versioning policy
 
@@ -22,6 +22,15 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The current API versi
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
 
 ---
+
+## v1.3.0
+
+**Structured Violation Reason Codes**
+- Every violation now includes a `reason_code` field — a structured code for programmatic aggregation without text parsing.
+- 17 reason codes across all rule types: presence (`FIELD_MISSING`, `FIELD_FORBIDDEN`, `FIELD_TOO_SHORT`), temporal (`DATE_EXPIRED`, `DATE_INVALID`, etc.), threshold (`VALUE_ABOVE_MAX`, `VALUE_BELOW_MIN`, etc.), and list (`VALUE_NOT_ALLOWED`, `VALUE_FORBIDDEN`).
+- New `ReasonCode` type exported from `@tradequ/meshqu-types` and re-exported from `@tradequ/meshqu-client`.
+- Backwards compatible: `reason_code` is a new required field on violations. Existing `reason` strings are unchanged.
+- **Replay note:** New receipts have different integrity hashes than pre-`reason_code` receipts due to the additional field. Pre-migration receipts remain verifiable against their stored hash.
 
 ## v1.2.0
 
@@ -60,8 +69,8 @@ Production hardening release. All fixes are backwards-compatible at the HTTP lay
 - `idempotency_key` is now required when recording decisions (no longer auto-generated).
 - Added `dryRun()` as a semantic alias for `evaluate()`.
 - Recorded decisions now capture audit attribution (`api_key_id`, `api_key_name`).
-- Infrastructure failures (database, pool exhaustion) now return `503 Service Unavailable` with `retry_after` instead of `500`.
-- `SKIP_AUTH` environment variable is ignored in production with a security warning.
+- Backend infrastructure failures now return `503 Service Unavailable` with `retry_after` instead of `500`.
+- Production authentication hardening improvements.
 
 ## v1.0.0
 
