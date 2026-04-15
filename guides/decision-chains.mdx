@@ -138,6 +138,87 @@ Each decision in a chain produces the same cryptographic receipt as standalone d
 Chain structure (grouping, ordering, parent linkage) relies on database constraints and immutability triggers. Cryptographic proof of the chain as a unit (provable completeness and ordering without trusting the database) is planned for Phase 2.
 </Note>
 
+## Multi-actor chains
+
+In AML and compliance workflows, different actors are responsible for different steps. Include an `actor` object on each `POST /v1/decisions/record` call to record who performed each step:
+
+**Step 1 — Automated screening:**
+
+```json
+POST /v1/decisions/record
+{
+  "context": {
+    "decision_type": "aml_screening",
+    "fields": { "transaction.amount": 150000, "transaction.country": "IR" }
+  },
+  "actor": {
+    "id": "screening-service",
+    "type": "system",
+    "role": "screening_service",
+    "display_name": "AML Screening Service"
+  },
+  "options": {
+    "idempotency_key": "case-42-screening",
+    "chain": { "chain_id": "7f3a2b1c-e5f6-7890-abcd-ef1234567890" }
+  }
+}
+```
+
+**Step 2 — Analyst review:**
+
+```json
+POST /v1/decisions/record
+{
+  "context": {
+    "decision_type": "aml_analyst_review",
+    "fields": { "analyst_finding": "legitimate_trade" }
+  },
+  "actor": {
+    "id": "user-uuid-analyst",
+    "type": "human",
+    "role": "analyst",
+    "display_name": "Alex Johnson"
+  },
+  "options": {
+    "idempotency_key": "case-42-review",
+    "chain": {
+      "chain_id": "7f3a2b1c-e5f6-7890-abcd-ef1234567890",
+      "parent_decision_id": "<step-1-decision-id>"
+    }
+  }
+}
+```
+
+**Step 3 — MLRO final disposition:**
+
+```json
+POST /v1/decisions/record
+{
+  "context": {
+    "decision_type": "aml_final_disposition",
+    "fields": { "disposition": "cleared" }
+  },
+  "actor": {
+    "id": "user-uuid-mlro",
+    "type": "human",
+    "role": "compliance_officer",
+    "authority": "MLRO",
+    "display_name": "Sarah Chen"
+  },
+  "options": {
+    "idempotency_key": "case-42-disposition",
+    "chain": {
+      "chain_id": "7f3a2b1c-e5f6-7890-abcd-ef1234567890",
+      "parent_decision_id": "<step-2-decision-id>"
+    }
+  }
+}
+```
+
+Each `actor.id` is cryptographically bound to its step's integrity hash. Auditors querying the chain can see exactly who acted at each step.
+
+See the [Actor Attribution guide](../guides/actor-attribution) for schema details and trust model considerations.
+
 ## Mixed automated and manual steps
 
 MeshQu treats form-submitted (manual) decisions identically to API-submitted (automated) decisions — same evaluation engine, same signed receipt. A chain can contain both:

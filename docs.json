@@ -49,6 +49,7 @@
             "pages": [
               "guides/integration-patterns",
               "guides/decision-chains",
+              "guides/actor-attribution",
               "guides/manual-checks",
               "guides/webhooks"
             ]

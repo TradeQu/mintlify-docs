@@ -23,6 +23,18 @@ All endpoints are prefixed with `/v1`. When a new major version is released, the
 
 ---
 
+## v1.4.0
+
+**Actor Attribution**
+- `POST /v1/decisions/record` now accepts an optional top-level `actor` object: `id`, `type`, `role`, `authority`, `display_name`.
+- `actor.id` is included in the integrity hash and cryptographically bound to every receipt.
+- Other actor fields are stored for audit display.
+- Backward compatible: `actor` is optional. If omitted and `context.metadata.actor_id` is present, the API falls back to that value. When `actor.id` is supplied, it takes precedence.
+- New `actor` optional parameter on `client.record()` in the TypeScript SDK.
+- Decision chain steps can now carry per-step actor attribution, enabling multi-actor chain audit trails.
+
+---
+
 ## v1.3.0
 
 **Structured Violation Reason Codes**

@@ -106,6 +106,54 @@ const step2 = await client.record(
 // step2.decision.chain_step === 2 (auto-assigned)
 ```
 
+### Recording with actor attribution
+
+Pass an `actor` object as the third argument to `client.record()` to attribute the decision to a specific person or system:
+
+```typescript
+// Human actor — compliance officer approving a case
+const decision = await client.record(
+  {
+    decision_type: 'aml_analyst_review',
+    fields: { analyst_finding: 'legitimate_trade' },
+    metadata: { case_id: 'case-42' },
+  },
+  {
+    idempotency_key: 'case-42-review',
+    chain: {
+      chain_id: chainId,
+      parent_decision_id: step1.decision.id,
+    },
+  },
+  {
+    actor: {
+      id: 'user-uuid-analyst',
+      type: 'human',
+      role: 'analyst',
+      display_name: 'Alex Johnson',
+    },
+  },
+);
+
+// System actor — automated screening service
+const screening = await client.record(
+  {
+    decision_type: 'aml_screening',
+    fields: { transaction_amount: 150000, country: 'IR' },
+  },
+  { idempotency_key: 'case-42-screening', chain: { chain_id: chainId } },
+  {
+    actor: {
+      id: 'screening-service',
+      type: 'system',
+      role: 'screening_service',
+    },
+  },
+);
+```
+
+`actor.id` is cryptographically bound to the integrity hash. Other fields are stored for audit display.
+
 ### List and get decisions
 
 ```typescript

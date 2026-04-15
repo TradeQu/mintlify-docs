@@ -67,6 +67,24 @@ Every evaluation returns a cryptographic receipt that binds the verdict to the e
 
 The `integrity_hash` (SHA-256) covers the context, decision, and snapshot in canonical JSON, making the result independently verifiable. When a signing key is configured, MeshQu signs the integrity hash with **Ed25519**. Auditors can verify receipts using the public key alone — no shared secret is needed. The `signature_kid` identifies which key signed the receipt, supporting key rotation.
 
+## Actor
+
+An **actor** identifies who or what triggered a decision — a human reviewer, an automated system, or a service account. Actors are optional but strongly recommended for workflows where audit trails must name a responsible party.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | `string` | Stable identifier for the actor (e.g. user ID, service name). Included in the integrity hash. |
+| `type` | `string` | `human` or `system`. |
+| `role` | `string` | Functional role (e.g. `analyst`, `compliance_officer`, `screening_service`). |
+| `authority` | `string` | Optional. The authority or organisation the actor acts under. |
+| `display_name` | `string` | Optional. Human-readable name for audit display. |
+
+<Note>
+`actor.id` is the only actor field included in the integrity hash and therefore cryptographically bound to the receipt. Other fields (`type`, `role`, `authority`, `display_name`) are stored for audit display but are not part of the cryptographic proof.
+</Note>
+
+See the [Actor Attribution guide](../guides/actor-attribution) for patterns, PII considerations, and trust model details.
+
 ## Conditional rules
 
 Rules can include an optional `when` clause for conditional applicability. A rule with `when` is only evaluated when the clause matches the decision context — otherwise it returns NA (not applicable) and does not affect the outcome. NA rules still appear on the decision receipt with a human-readable reason, proving the system considered the rule and explaining why it didn't apply.

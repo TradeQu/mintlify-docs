@@ -1,0 +1,157 @@
+---
+title: "Actor Attribution"
+description: "Record who or what triggered each governed decision"
+---
+
+Actor attribution lets you record the responsible party — a human reviewer, an automated system, or a service account — alongside the decision context. The actor identity is cryptographically bound to the receipt, so auditors can verify both *what was decided* and *who decided it* from the same proof.
+
+## When to use
+
+Use actor attribution whenever your audit trail must identify a responsible party:
+
+- **Human workflows** — analyst reviews, MLRO sign-offs, compliance approvals.
+- **Automated pipelines** — name the service or model version that triggered the evaluation.
+- **Multi-step chains** — attribute each step to a different actor (see [Multi-actor chains](./decision-chains#multi-actor-chains)).
+
+If decisions are fully automated and actor identity is not a compliance requirement, actor attribution is optional.
+
+## Schema reference
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `actor.id` | `string` | Yes (if actor present) | Stable, unique identifier. **Included in the integrity hash.** |
+| `actor.type` | `string` | No | `human` or `system`. |
+| `actor.role` | `string` | No | Functional role: `analyst`, `compliance_officer`, `screening_service`, etc. |
+| `actor.authority` | `string` | No | Authority or organisation the actor acts under (e.g. `MLRO`). |
+| `actor.display_name` | `string` | No | Human-readable name for audit display. |
+
+Pass the `actor` object at the top level of a `POST /v1/decisions/record` request body:
+
+```json
+{
+  "context": { ... },
+  "actor": {
+    "id": "user-uuid",
+    "type": "human",
+    "role": "compliance_officer",
+    "authority": "MLRO",
+    "display_name": "Jane Smith"
+  },
+  "options": { "idempotency_key": "..." }
+}
+```
+
+## Trust model
+
+<Warning>
+MeshQu records and cryptographically binds whatever `actor.id` value you supply. It does **not** authenticate actor identities against an identity provider. Your application is responsible for ensuring the actor is accurate at call time.
+</Warning>
+
+The authenticated API key identifies the **calling system**. The `actor` field identifies the **responsible party** within that system. Both are captured on every recorded decision.
+
+**What is cryptographically bound:**
+
+| Field | In integrity hash | Tamper-evident |
+| --- | --- | --- |
+| `actor.id` | Yes | Yes — hash mismatch if altered |
+| `actor.type` | No | No — display annotation only |
+| `actor.role` | No | No — display annotation only |
+| `actor.authority` | No | No — display annotation only |
+| `actor.display_name` | No | No — display annotation only |
+
+Only `actor.id` is included in the SHA-256 integrity hash. If someone alters `actor.id` after the fact, receipt verification will fail. The other fields are stored as audit-display metadata.
+
+## Patterns
+
+### Automated system
+
+```json
+{
+  "actor": {
+    "id": "screening-service-v2",
+    "type": "system",
+    "role": "screening_service"
+  }
+}
+```
+
+Use a stable service name or versioned identifier for `id`. This lets you filter audit trails by the specific service that acted.
+
+### Human reviewer
+
+```json
+{
+  "actor": {
+    "id": "user-uuid-from-your-idp",
+    "type": "human",
+    "role": "analyst",
+    "display_name": "Alex Johnson"
+  }
+}
+```
+
+Use the user's stable identity provider ID (not an email address) for `actor.id`. Email addresses can change; IdP UUIDs are stable.
+
+### Service account
+
+```json
+{
+  "actor": {
+    "id": "svc-trade-execution",
+    "type": "system",
+    "role": "trade_service",
+    "authority": "order-management-system"
+  }
+}
+```
+
+### MLRO final sign-off
+
+```json
+{
+  "actor": {
+    "id": "user-uuid-mlro",
+    "type": "human",
+    "role": "compliance_officer",
+    "authority": "MLRO",
+    "display_name": "Sarah Chen"
+  }
+}
+```
+
+## PII considerations
+
+`display_name` is a convenience field for audit display. Avoid storing full names, email addresses, or other PII in `actor.id` — use a stable, opaque identifier from your identity provider instead. Keep the mapping from ID to personal details in your own system.
+
+<Tip>
+If you operate under GDPR or similar data protection rules, storing names directly in the audit record may complicate the right-to-erasure process. Opaque IDs keep MeshQu records clean and your compliance obligations simpler.
+</Tip>
+
+## Backward compatibility
+
+Actor attribution is fully backward compatible:
+
+- If `actor` is omitted, the decision is recorded without actor attribution. Existing integrations are unaffected.
+- If `actor` is omitted but `context.metadata.actor_id` is present, the API falls back to using that value for attribution.
+- When `actor.id` is supplied, it takes precedence over `context.metadata.actor_id`.
+
+## TypeScript SDK
+
+Pass actor as the third argument to `client.record()`:
+
+```typescript
+const decision = await client.record(
+  context,
+  { idempotency_key: 'key-001' },
+  {
+    actor: {
+      id: 'user-uuid',
+      type: 'human',
+      role: 'analyst',
+      display_name: 'Alex Johnson',
+    },
+  },
+);
+```
+
+See the [TypeScript SDK reference](../sdk/typescript#recording-with-actor-attribution) for a full example.

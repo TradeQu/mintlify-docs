@@ -3,50 +3,38 @@ title: "Trust Model"
 description: "How MeshQu cryptographically guarantees the integrity, authenticity, and transparency of every governed decision."
 ---
 
-MeshQu implements a four-level trust maturity model. Each level builds on the previous, adding stronger cryptographic guarantees. The current deployment operates at **Level 2**.
+MeshQu's trust model has four levels. Each level answers a stronger verification question. The current deployment operates at **Level 2**.
+
+| Level | Question it answers | Status |
+|-------|-------------------|--------|
+| 0 | Has this record been changed? | Active |
+| 1 | Who issued it? | Active |
+| 2 | Can a third party confirm it existed? | **Current** |
+| 3 | Was the signing key physically protected? | Planned |
+
+---
 
 ## Level 0 — Deterministic Integrity
 
-<Info>Status: **Active**</Info>
+Every decision receipt includes a SHA-256 hash computed from the decision, its violations, the input context, and the frozen policy snapshot that was used. The hash is computed over canonical JSON (keys sorted recursively), so the same inputs always produce the same hash regardless of property order or serialisation quirks.
 
-Every decision produces an identical hash when replayed with the same inputs.
+This means you can replay any decision later — feed it the same context and the same snapshot — and check that the hash matches. If someone changed the verdict, added a violation, or swapped the policy version, the hash won't match.
 
-**Capabilities:**
-- SHA-256 integrity hashing of all decision inputs, outputs, and policy snapshots
-- Canonical JSON serialisation for reproducible computation
-- Replay verification — recompute and compare at any time
-- Frozen policy snapshots bound to each decision
+The replay endpoint is `POST /v1/decisions/{id}/replay`.
 
-| Property | Value |
-|----------|-------|
-| Hash algorithm | SHA-256 |
-| Canonicalisation | Recursive key-sort + JSON.stringify |
-| Replay endpoint | `GET /v1/decisions/{id}/replay` |
-
-**What this proves:** The decision record has not been altered since it was created.
+**What this proves:** the decision record has not been altered since it was created.
 
 ---
 
 ## Level 1 — Cryptographic Signatures
 
-<Info>Status: **Active**</Info>
+Hashing detects tampering, but still assumes trust in the system that produced the hash. Level 1 reduces that dependency.
 
-Decisions are signed — tampering is detectable without any API call.
+Every receipt is signed with an Ed25519 private key. The signature covers the integrity hash, which already covers the full receipt context. Verification only requires the public key — no API call, no shared secret, and no network dependency.
 
-**Capabilities:**
-- Ed25519 digital signature on every decision receipt
-- Key versioning (`msk_v1`) with documented rotation runbook
-- Offline verification — no network call required to validate
-- Current + previous key support for graceful rotation
+Keys are versioned. Each receipt includes a `signature_kid` (for example, `msk_v1`) identifying the signing key. During rotation, both current and previous keys remain valid for verification. See [Key Management](#key-management) below.
 
-| Property | Value |
-|----------|-------|
-| Signature algorithm | Ed25519 (RFC 8032) |
-| Key format | SPKI DER, base64-encoded |
-| Key ID | `msk_v1` |
-| Verification | Web Crypto API / Node.js crypto |
-
-**What this proves:** The decision was issued by MeshQu and has not been modified.
+**What this proves:** the decision was issued by MeshQu and has not been modified by anyone since.
 
 ---
 
@@ -54,42 +42,57 @@ Decisions are signed — tampering is detectable without any API call.
 
 <Tip>This is the **current** deployment level.</Tip>
 
-Even if MeshQu disappears, receipts remain independently verifiable.
+Levels 0 and 1 prove a receipt has not been tampered with, but they still depend on MeshQu-operated infrastructure.
 
-**Capabilities:**
-- Anchored to [Sigstore Rekor](https://rekor.sigstore.dev) — a public, immutable transparency log
-- DSSE envelope with in-toto attestation statement
-- Merkle tree inclusion proofs for tamper-evident ordering
-- Graceful degradation — signing is never blocked by log availability
+Level 2 anchors each signed receipt to [Sigstore Rekor](https://rekor.sigstore.dev), a public append-only transparency log. Rekor uses Merkle-tree transparency mechanisms similar to Certificate Transparency.
 
-| Property | Value |
-|----------|-------|
-| Transparency log | Sigstore Rekor (`rekor.sigstore.dev`) |
-| Entry format | DSSE envelope + in-toto statement |
-| Proof type | Merkle tree inclusion proof |
-| Degradation | Signed but unanchored if Rekor unreachable |
+Once a receipt is anchored, anyone can query Rekor by entry UUID and verify the inclusion proof using public data.
+
+Anchoring happens after signing and is not included in the integrity hash. If Rekor is unreachable, the receipt is still signed and valid — it just won't have a transparency anchor. Signing is never blocked by log availability.
 
 <Note>
-**Why DSSE, not hashedrekord?** Ed25519 is incompatible with Rekor's `hashedrekord` entry type ([sigstore/rekor#851](https://github.com/sigstore/rekor/issues/851)). MeshQu uses DSSE envelopes with in-toto attestation statements instead.
+**Why DSSE envelopes?** Ed25519 is incompatible with Rekor's `hashedrekord` entry type ([sigstore/rekor#851](https://github.com/sigstore/rekor/issues/851)). MeshQu uses DSSE envelopes wrapping in-toto attestation statements instead.
 </Note>
 
-**What this proves:** The decision existed at a specific point in time, anchored in a public, append-only log that MeshQu cannot retroactively alter.
+<Warning>
+**Browser verifier scope:** MeshQu Verify validates entry existence, Merkle inclusion proofs, and Rekor's Signed Entry Timestamp (SET). It does not yet pin trust roots or verify checkpoint consistency over time in-browser.
+</Warning>
+
+**What this proves:** the decision existed at a specific point in time, recorded in a public log that MeshQu cannot retroactively alter.
+
+---
+
+## Actor Attribution Trust
+
+When a decision is recorded with an `actor`, the following trust layers apply:
+
+| Layer | Field | Basis | Trust level |
+| --- | --- | --- | --- |
+| Attestation | `actor` JSONB | Client-supplied claim | Application trust |
+| Verified identity | `api_key_id` / `api_key_name` | Authenticated API key | Cryptographic proof |
+
+The `actor.id` field is included in the integrity hash and is therefore **cryptographically bound** to the receipt. This means:
+
+- If someone alters `actor.id` after the fact, the integrity hash will not match.
+- Other actor fields (`type`, `role`, `authority`, `display_name`) are stored and displayed for audit convenience but are **not** part of the cryptographic proof — they can be viewed as application-level annotations.
+
+<Warning>
+MeshQu does not authenticate `actor.id` against any identity provider. It records and cryptographically binds whatever value you supply. Your application is responsible for ensuring the actor identity is accurate at call time.
+</Warning>
+
+The authenticated API key (`api_key_id`) identifies the **calling system**. The `actor` field identifies the **responsible party** within that system. Both are captured on every recorded decision.
 
 ---
 
 ## Level 3 — Hardware-Bound Identity
 
-<Warning>Status: **Planned** — available on engagement basis.</Warning>
+<Warning>Status: **Planned**.</Warning>
 
-Signing keys never leave secure hardware.
+Levels 0–2 assume software-backed signing keys. Level 3 moves signing into tamper-resistant hardware (HSM or cloud KMS) so keys can sign without being exported.
 
-**Capabilities:**
-- Hardware security modules (HSM) or Cloud KMS for key storage
-- Agent-level identity binding — each agent gets its own attested key
-- Attestation chains linking decisions to specific hardware enclaves
-- FIPS 140-2 Level 3+ compliance path
+This enables stronger identity binding and a path toward higher-assurance compliance profiles.
 
-**What this proves:** Cryptographic operations are performed within tamper-resistant hardware, providing the highest assurance that keys have not been extracted or cloned.
+**What this proves:** cryptographic operations were performed inside tamper-resistant hardware. The signing key has not been extracted or cloned.
 
 ---
 
@@ -100,16 +103,28 @@ Signing keys never leave secure hardware.
     Paste any decision receipt JSON. Integrity hash, signature, and transparency anchor are validated in your browser — no API call, no authentication.
   </Card>
   <Card title="Verification CLI" icon="terminal">
-    Open-source command-line tool for independent receipt verification. **Coming soon.**
-
-    ```bash
-    npx meshqu-verify receipt.json
-    ```
+    Open-source command-line tool for independent receipt verification. **Planned.**
   </Card>
 </CardGroup>
 
-## Why Sigstore Rekor?
+## Key Management
 
-Rekor is a free, public, immutable transparency log operated by the [Sigstore project](https://www.sigstore.dev) under the Linux Foundation. It uses the same Merkle tree technology behind Certificate Transparency — the system that secures billions of HTTPS connections.
+Every receipt includes a `signature_kid` identifying which key signed it.
 
-By anchoring decision receipts to Rekor, MeshQu creates a tamper-evident record that exists independently of our infrastructure.
+MeshQu publishes versioned public signing keys so receipts remain verifiable across key rotation.
+
+**Rotation:**
+
+- During rotation, both current and previous keys remain valid for verification
+- Old public keys are retained indefinitely — receipts never become unverifiable due to rotation
+
+**Compromise response:**
+
+If a signing key is compromised, MeshQu revokes that key and publishes updated verification material. Existing receipts can be re-verified via the [replay endpoint](/api/reference).
+
+| Property | Value |
+|----------|-------|
+| Algorithm | Ed25519 (RFC 8032) |
+| Key format | SPKI DER, base64-encoded |
+| Key ID scheme | `msk_v<N>` (e.g. `msk_v1`) |
+| Resolution | Versioned public key distribution |

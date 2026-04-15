@@ -187,6 +187,36 @@ Request body shape:
 }
 ```
 
+**Actor attribution (optional):**
+
+Include an `actor` object at the top level of the request body to record who or what triggered the decision:
+
+```json
+{
+  "context": { ... },
+  "actor": {
+    "id": "user-uuid-or-service-name",
+    "type": "human",
+    "role": "compliance_officer",
+    "authority": "MLRO",
+    "display_name": "Jane Smith"
+  },
+  "options": { ... }
+}
+```
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `actor.id` | `string` | Yes (if actor present) | Stable identifier. Included in the integrity hash. |
+| `actor.type` | `string` | No | `human` or `system`. |
+| `actor.role` | `string` | No | Functional role (e.g. `analyst`, `screening_service`). |
+| `actor.authority` | `string` | No | Authority or organisation the actor acts under. |
+| `actor.display_name` | `string` | No | Human-readable name for audit display. |
+
+<Note>
+**Backward compatibility:** If `actor` is omitted but `context.metadata.actor_id` is present, the API falls back to using that value. When `actor.id` is supplied, it takes precedence over `context.metadata.actor_id`.
+</Note>
+
 **Request fields (under `options`):**
 
 | Field | Type | Required | Description |
