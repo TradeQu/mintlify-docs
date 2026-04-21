@@ -46,36 +46,33 @@ These may appear in the `code` field for specific operations:
 | `ALREADY_DELIVERED` | Webhook retry | Delivery was already successful; cannot retry. |
 | `STILL_PENDING` | Webhook retry | Delivery is still pending; no retry needed. |
 
-## Handling errors in the SDK
+## Handling errors
 
-The TypeScript SDK throws typed error classes:
+Branch on `response.status` and the JSON `error.code`. For example:
 
 ```typescript
-import {
-  MeshQuError,
-  MeshQuValidationError,
-  MeshQuAuthError,
-  MeshQuForbiddenError,
-  MeshQuNotFoundError,
-  MeshQuConflictError,
-  MeshQuRateLimitError,
-  MeshQuNetworkError,
-  MeshQuTimeoutError,
-} from '@tradequ/meshqu-client';
+const res = await fetch(`${baseUrl}/v1/decisions/evaluate`, {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${apiKey}`,
+    'X-MeshQu-Tenant-Id': tenantId,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ context }),
+});
 
-try {
-  const result = await client.evaluate(context);
-} catch (err) {
-  if (err instanceof MeshQuRateLimitError) {
-    // Back off and retry
-  } else if (err instanceof MeshQuValidationError) {
-    // Fix request payload
-    console.error(err.message, err.details);
-  } else if (err instanceof MeshQuAuthError) {
-    // Check API key
-  } else if (err instanceof MeshQuNetworkError) {
-    // Network issue — retry with backoff
+if (!res.ok) {
+  const { error } = await res.json();
+  if (res.status === 429) {
+    // Back off and retry using `retry-after` if present
+  } else if (res.status === 400 || res.status === 422) {
+    // Fix request payload — `error.details` lists field-level issues
+  } else if (res.status === 401 || res.status === 403) {
+    // Check API key and tenant scope
+  } else if (res.status >= 500) {
+    // Transient — retry with exponential backoff
   }
+  throw new Error(`${error.code}: ${error.message}`);
 }
 ```
 

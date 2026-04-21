@@ -16,37 +16,48 @@ MeshQu evaluates and returns a decision. **Your application decides what to do w
 The most common pattern. Call MeshQu before the decision boundary and gate on the verdict.
 
 ```typescript
-import { MeshQuClient } from '@tradequ/meshqu-client';
-
-const meshqu = new MeshQuClient({
-  baseUrl: process.env.MESHQU_URL!,
-  tenantId: process.env.MESHQU_TENANT_ID!,
-  apiKey: process.env.MESHQU_API_KEY!,
-});
+async function meshqu<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${process.env.MESHQU_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.MESHQU_API_KEY!}`,
+      'X-MeshQu-Tenant-Id': process.env.MESHQU_TENANT_ID!,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`MeshQu ${path} returned ${res.status}`);
+  return res.json() as Promise<T>;
+}
 
 async function executeOrder(order: Order): Promise<OrderResult> {
   // 1. Evaluate
-  const result = await meshqu.evaluate({
-    decision_type: 'trade_execution',
-    fields: {
-      account_id: order.accountId,
-      instrument: order.instrument,
-      quantity: order.quantity,
-      side: order.side,
+  const { result } = await meshqu<{ result: EvaluationResult }>(
+    '/v1/decisions/evaluate',
+    {
+      context: {
+        decision_type: 'trade_execution',
+        fields: {
+          account_id: order.accountId,
+          instrument: order.instrument,
+          quantity: order.quantity,
+          side: order.side,
+        },
+      },
     },
-  });
+  );
 
   // 2. Act on decision
-  switch (result.result.decision) {
+  switch (result.decision) {
     case 'ALLOW':
       return await submitToExchange(order);
 
     case 'REVIEW':
-      return await queueForManualReview(order, result.result.violations);
+      return await queueForManualReview(order, result.violations);
 
     case 'DENY':
       throw new OrderRejectedError(
-        `Order blocked by policy: ${result.result.violations.map(v => v.reason).join(', ')}`,
+        `Order blocked by policy: ${result.violations.map(v => v.reason).join(', ')}`,
       );
   }
 }
@@ -62,28 +73,29 @@ When you need a persisted audit trail of every decision, use `record` instead of
 
 ```typescript
 async function executeAndRecord(order: Order): Promise<OrderResult> {
-  const decision = await meshqu.record(
+  const { decision } = await meshqu<{ decision: RecordedDecision }>(
+    '/v1/decisions/record',
     {
-      decision_type: 'trade_execution',
-      fields: {
-        account_id: order.accountId,
-        instrument: order.instrument,
-        quantity: order.quantity,
+      context: {
+        decision_type: 'trade_execution',
+        fields: {
+          account_id: order.accountId,
+          instrument: order.instrument,
+          quantity: order.quantity,
+        },
+        metadata: { order_id: order.id, source: 'order-service' },
       },
-      metadata: { order_id: order.id, source: 'order-service' },
-    },
-    {
-      idempotency_key: `order-${order.id}`,
+      options: { idempotency_key: `order-${order.id}` },
     },
   );
 
-  if (decision.decision.decision === 'ALLOW') {
+  if (decision.result.decision === 'ALLOW') {
     return await submitToExchange(order);
   }
 
   // Log the decision ID for traceability
-  logger.warn({ decisionId: decision.decision.id, decision: decision.decision.decision });
-  throw new OrderRejectedError(decision.decision.result.violations);
+  logger.warn({ decisionId: decision.id, decision: decision.result.decision });
+  throw new OrderRejectedError(decision.result.violations);
 }
 ```
 
@@ -136,7 +148,7 @@ When introducing a new policy, start in **advisory** mode. Advisory policies are
 
 ```typescript
 // Create in advisory mode
-await meshqu.createPolicy({
+await meshqu('/v1/policies', {
   code: 'concentration-limit-v2',
   name: 'New Concentration Limit',
   decision_type: 'trade_execution',
@@ -144,8 +156,16 @@ await meshqu.createPolicy({
   rules: [ /* ... */ ],
 });
 
-// Later, promote to enforcing
-await meshqu.updatePolicy(policyId, { advisory_mode: false });
+// Later, promote to enforcing — PATCH /v1/policies/{id}
+await fetch(`${process.env.MESHQU_URL}/v1/policies/${policyId}`, {
+  method: 'PATCH',
+  headers: {
+    Authorization: `Bearer ${process.env.MESHQU_API_KEY!}`,
+    'X-MeshQu-Tenant-Id': process.env.MESHQU_TENANT_ID!,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ advisory_mode: false }),
+});
 ```
 
 ---
@@ -165,19 +185,9 @@ The mapping from decision to action is entirely up to you. MeshQu provides the s
 
 ## Resilience considerations
 
-- **Timeouts**: Configure the SDK `timeout` to match your SLA. If MeshQu is unreachable, decide whether to fail open (allow) or fail closed (block).
-- **Retries**: The SDK supports automatic retries on transient errors (5xx, network failures). Configure `retries` in the client constructor.
-- **Idempotency**: Always supply an `idempotency_key` when recording decisions. This makes retries safe.
-
-```typescript
-const client = new MeshQuClient({
-  baseUrl: 'https://api.meshqu.com',
-  tenantId: 'tenant-id',
-  apiKey: 'api-key',
-  timeout: 3000,
-  retries: 2,
-});
-```
+- **Timeouts**: Configure your HTTP client's request timeout to match your SLA (most teams pick 2–5s for `evaluate`). If MeshQu is unreachable, decide whether to fail open (allow) or fail closed (block) — see below.
+- **Retries**: Retry transient errors (5xx, network failures) at the caller with exponential backoff. `evaluate` is safe to retry. When retrying `record`, always include an `idempotency_key` so duplicate deliveries do not create duplicate decisions.
+- **Idempotency**: Always supply an `idempotency_key` when recording decisions. This makes retries safe across your entire stack, not just the HTTP layer.
 
 ## Fail-open vs. fail-closed
 
@@ -191,8 +201,11 @@ Choose a failure strategy before going live. For compliance-critical workflows, 
 ```typescript
 async function evaluateWithFallback(context: DecisionContext): Promise<string> {
   try {
-    const result = await meshqu.evaluate(context);
-    return result.result.decision;
+    const { result } = await meshqu<{ result: EvaluationResult }>(
+      '/v1/decisions/evaluate',
+      { context },
+    );
+    return result.decision;
   } catch (err) {
     logger.error({ err }, 'MeshQu unavailable');
 

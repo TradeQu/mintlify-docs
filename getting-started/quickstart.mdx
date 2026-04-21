@@ -9,63 +9,11 @@ This guide walks you through making your first policy evaluation call. You will 
 
 - A MeshQu account with at least one tenant.
 - An API key with the `decisions:evaluate` scope.
-- Node.js 18+ (for the SDK path) or any HTTP client (for the raw API path).
+- Any HTTP client in your stack — curl, fetch, axios, requests, net/http, etc.
 
 ---
 
-## Option A: Using the TypeScript SDK
-
-<Warning>
-  The MeshQu SDK is in early access and not yet publicly distributed. Contact [contact@meshqu.com](mailto:contact@meshqu.com) for access.
-</Warning>
-
-### 1. Initialise the client
-
-```typescript
-import { MeshQuClient } from '@tradequ/meshqu-client';
-
-const client = new MeshQuClient({
-  baseUrl: 'https://api.meshqu.com',
-  tenantId: 'your-tenant-id',
-  apiKey: 'your-api-key',
-});
-```
-
-### 2. Evaluate a decision
-
-```typescript
-const result = await client.evaluate({
-  decision_type: 'trade_execution',
-  fields: {
-    account_id: 'ACC-001',
-    instrument: 'AAPL',
-    quantity: 100,
-  },
-  metadata: { source: 'quickstart-example' },
-});
-
-console.log(result.result.decision); // 'ALLOW' | 'REVIEW' | 'DENY' | 'ALERT'
-console.log(result.result.violations); // [] if ALLOW
-```
-
-### 3. Act on the decision
-
-```typescript
-if (result.result.decision === 'ALLOW') {
-  // Proceed with the operation
-} else if (result.result.decision === 'REVIEW') {
-  // Queue for manual review
-} else {
-  // Block the operation and surface violations
-  console.error('Blocked:', result.result.violations);
-}
-```
-
----
-
-## Option B: Using the REST API directly
-
-### 1. Evaluate (dry-run, not persisted)
+## 1. Evaluate (dry-run, not persisted)
 
 ```bash
 curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
@@ -85,7 +33,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
   }'
 ```
 
-### 2. Response
+## 2. Response
 
 ```json
 {
@@ -118,7 +66,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
 }
 ```
 
-### 3. Record a decision (persisted for audit)
+## 3. Record a decision (persisted for audit)
 
 If you want the decision stored, use `/v1/decisions/record` with an idempotency key:
 

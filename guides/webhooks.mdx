@@ -25,15 +25,6 @@ curl -X POST https://api.meshqu.com/v1/alerts/subscriptions \
   }'
 ```
 
-Or with the SDK:
-
-```typescript
-const sub = await client.createSubscription(
-  'https://your-service.com/webhooks/meshqu',
-  { decision_types: ['trade_execution'], severity_min: 'high' },
-);
-```
-
 The create response includes a `secret` field that is shown **only once**. Store it securely for signature verification.
 
 ## Payload format
