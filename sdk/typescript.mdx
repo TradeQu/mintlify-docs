@@ -10,7 +10,7 @@ description: "Client setup, decisions, policies, and alerts"
 ## Client setup
 
 ```typescript
-import { MeshQuClient } from '@tradequ/meshqu-client';
+import { MeshQuClient } from '@meshqu/client';
 
 const client = new MeshQuClient({
   baseUrl: 'https://api.meshqu.com',
@@ -280,7 +280,7 @@ import {
   MeshQuRateLimitError,
   MeshQuNetworkError,
   MeshQuTimeoutError,
-} from '@tradequ/meshqu-client';
+} from '@meshqu/client';
 
 try {
   await client.evaluate(context);
@@ -299,7 +299,7 @@ See [Errors & Status Codes](../api/errors) for the full error taxonomy.
 
 ## Types
 
-The SDK re-exports key types from the underlying schema package — published as versioned TypeScript definitions:
+The SDK re-exports key types from `@meshqu/types`, the open schema package published as versioned TypeScript definitions:
 
 ```typescript
 import type {
@@ -317,5 +317,5 @@ import type {
   DecisionMetadata,
   SourceArtifact,
   When,
-} from '@tradequ/meshqu-client';
+} from '@meshqu/client';
 ```
