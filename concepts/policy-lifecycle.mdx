@@ -1,0 +1,147 @@
+---
+title: "Policy Lifecycle"
+description: "How policies are versioned, reviewed, and ratified"
+---
+
+Every policy in MeshQu has a **version history**. Only one version is ever live at a time, and changes flow through an explicit lifecycle with optional maker-checker review. This page describes the states a version can be in, the actions each one allows, and how the API surfaces both to clients.
+
+## Version states
+
+At any moment, the version you are looking at is in exactly one of four states.
+
+| State | Meaning |
+| --- | --- |
+| `active` | The version currently used to evaluate incoming decisions. |
+| `draft` | A working copy being authored. Not yet used for evaluation. At most one draft exists per policy. |
+| `submitted` | A draft that has been handed off for approval. Editing is paused; only the approver can act. |
+| `historical` | A previously active version. Read-only. Retained for audit and diff. |
+
+Clients select the state they want to look at through a URL parameter on the policy detail endpoint:
+
+```
+GET /v1/policies/:id?version=active          # default
+GET /v1/policies/:id?version=draft           # 404 NOT_FOUND if no draft exists
+GET /v1/policies/:id?version=<number>        # a specific historical or the active version
+```
+
+The response always resolves `selectedVersion` to the numeric version and reports the corresponding `versionState`.
+
+<Note>
+Only the `active` version is used during evaluation. Looking at a draft or historical version never changes what MeshQu actually decides for production traffic.
+</Note>
+
+## Maker-checker
+
+MeshQu tenants can enable **maker-checker** enforcement to require that a different person approves a draft than the one who created it.
+
+- The **maker** authored the draft.
+- The **checker** approves or rejects it.
+- The same user cannot be both on the same draft when maker-checker is enabled.
+
+The check is **enforced server-side** on the ratify endpoint. When maker-checker is on, a ratify request from the draft's author returns `403 MAKER_CHECKER_VIOLATION` regardless of what the UI shows.
+
+When maker-checker is disabled, the author can ratify their own draft.
+
+## Lifecycle transitions
+
+```
+Active ──Start editing──▶ Draft ──Submit──▶ Submitted ──Approve──▶ Active (new v{n+1})
+                            │                   │
+                            │ Discard           │ Reject + reason
+                            ▼                   ▼
+                        (removed)            Draft (with reason attached)
+```
+
+- **Start editing** — creates a new draft from the active version. Only one draft per policy at a time.
+- **Submit** — moves a draft into the `submitted` state for a checker. _Available in a future release._
+- **Approve** (ratify) — ratifies the submitted draft. It becomes the new active version; the previous active becomes historical.
+- **Reject** — returns a submitted draft to `draft` with a rejection reason attached. _Available in a future release._
+- **Discard** — deletes the draft. Does not affect the active version.
+- **Create draft from v{n}** — copies a historical version into a new draft. Useful for reverting.
+
+## How permissions are returned
+
+Rather than ask the client to re-derive what a user can do, the policy detail response carries two fields that answer this directly.
+
+**`permissions`** — a boolean record:
+
+```json
+{
+  "permissions": {
+    "canEdit": true,
+    "canSubmit": false,
+    "canApprove": false,
+    "canReject": false,
+    "canDiscard": true,
+    "canRestore": false,
+    "canCompare": true
+  }
+}
+```
+
+Flags reflect the authenticated actor's effective rights against the selected version under the current tenant settings. Use them to gate fine-grained UI (for example, showing a confirm dialog on `canDiscard`).
+
+**`actions`** — an ordered array of lifecycle actions the UI should surface:
+
+```json
+{
+  "actions": [
+    { "kind": "continue_editing", "label": "Continue editing" },
+    { "kind": "discard",          "label": "Discard draft" },
+    { "kind": "compare",          "label": "Compare…" }
+  ]
+}
+```
+
+This array is the single source of truth for which buttons to render. Unavailable actions are **omitted**, not disabled. Clients must not invent extra actions from the permissions record — if an action is absent from `actions`, the server does not authorise it.
+
+### Action kinds
+
+| Kind | Purpose |
+| --- | --- |
+| `start_editing` | Create a new draft from the active version. |
+| `continue_editing` | Resume editing an existing draft you authored. |
+| `continue_reviewing` | Read a draft authored by someone else. |
+| `submit` | Hand the draft off for approval. _Gated — see below._ |
+| `recall` | Withdraw your own submitted draft back to draft state. _Gated._ |
+| `approve` | Ratify a submitted draft authored by someone else. _Gated._ |
+| `reject` | Return a submitted draft to draft with a reason. _Gated._ |
+| `discard` | Delete the current draft. |
+| `restore` | Create a new draft from a historical version. Label: `"Create draft from v{n}"`. |
+| `compare` | Open the diff view against another version. |
+
+<Note>
+`submit`, `recall`, `approve`, and `reject` are part of the type contract but are **not emitted by the current API**. They become available once the submit/reject endpoints ship. Clients built today against `actions[]` will render them automatically when the server starts returning them — no code change needed.
+</Note>
+
+## Action matrix
+
+For a given version state, authored-by relationship, and role, the server emits a specific ordered set of actions. The table lists what is emitted **today**; entries in italics will be added in a future release.
+
+| Version state | Actor role | Actions emitted today |
+| --- | --- | --- |
+| `active` | write-capable | `start_editing`, `compare` |
+| `active` | read-only | `compare` |
+| `draft` — author | write-capable | `continue_editing`, `discard`, `compare` (_+ submit_) |
+| `draft` — non-author | write-capable | `continue_reviewing`, `compare` |
+| `submitted` — author | write-capable | `compare` (_+ recall_) |
+| `submitted` — non-author | write-capable | `compare` (_+ approve, reject_) |
+| `historical` | write-capable | `compare`, `restore` |
+| `historical` | read-only | `compare` |
+
+When maker-checker is disabled, the "non-author vs author" distinction stops mattering for `approve` — the author can ratify their own draft.
+
+## Errors
+
+- `404 NOT_FOUND` — the policy, the requested `?version=` number, or the requested `?version=draft` does not exist. The response message distinguishes the case (`"Policy not found"`, `"Draft version not found"`, etc.) but the `code` is always `NOT_FOUND` for client convenience.
+- `403 MAKER_CHECKER_VIOLATION` — returned by the ratify endpoint when maker-checker is enabled and the actor is the draft author.
+
+## Why the server owns this
+
+Policy governance is a compliance surface. Emitting `permissions` and `actions[]` from the server means:
+
+1. The UI cannot accidentally show a button whose action the server would refuse.
+2. Clients do not need to re-implement role resolution, tenant-settings lookup, or the action matrix.
+3. New action kinds (like `submit` or `reject`) can roll out server-side and become visible in existing clients without a coordinated release.
+
+See the [API Reference](../api/reference) for the full policy detail response shape.

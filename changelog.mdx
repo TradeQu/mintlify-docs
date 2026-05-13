@@ -1,9 +1,13 @@
 ---
 title: "Changelog"
-description: "API version history"
+description: "API and SDK version history"
 ---
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The current API version is **v1.3.0**.
+<Info>
+MeshQu is in **early access** — no customer is running production traffic against MeshQu yet. This changelog documents API and SDK functionality shipped in our pre-GA deployments. Console UI changes are not tracked here.
+</Info>
+
+MeshQu follows [Semantic Versioning](https://semver.org/). The current API version is **v1.9.0**.
 
 ## Versioning policy
 
@@ -20,6 +24,62 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The current API versi
 ## API version header
 
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
+
+---
+
+## v1.9.0
+
+**Tenant Governance Settings**
+- New `GET /v1/settings` and `PATCH /v1/settings` endpoints for tenant-level governance configuration.
+- Includes maker-checker toggle controlling whether policy versions require an independent ratifier before becoming active.
+
+---
+
+## v1.8.0
+
+**Human Decision Capture (Forms)**
+- New Forms surface for capturing structured human decisions that produce receipts identical in shape to programmatic decisions.
+- Endpoints: `POST /v1/forms`, `GET /v1/forms`, `GET /v1/forms/:formId`, `PATCH /v1/forms/:formId`, `DELETE /v1/forms/:formId`.
+- Form schemas and API contracts are introspectable: `GET /v1/forms/:formId/schema`, `GET /v1/forms/:formId/api-contract`.
+- Submissions: `POST /v1/forms/:formId/submit` returns a decision receipt; retrieve later via `GET /v1/forms/:formId/receipts/:decisionId`.
+
+---
+
+## v1.7.0
+
+**Policy v2 Lifecycle (Submit / Reject / Recall)**
+- Draft policy versions now move through an explicit lifecycle:
+  - `POST /v1/policies/:id/versions/:version/submit` — submit a draft for ratification.
+  - `POST /v1/policies/:id/versions/:version/reject` — reject a submitted draft.
+  - `POST /v1/policies/:id/versions/:version/recall` — recall a submitted draft back to draft state.
+- Additional draft-version endpoints: `GET /v1/policies/:id/versions/:version`, `PATCH /v1/policies/:id/versions/:version`, `DELETE /v1/policies/:id/versions/:version`.
+- New `GET /v1/policies/:id/decisions` — list all decisions evaluated against a given policy.
+
+---
+
+## v1.6.0
+
+**Receipt Schema v2 + Approval Lineage**
+- New top-level fields on decision receipts:
+  - `receipt_schema_version` — explicit schema version marker.
+  - `policy_snapshot_digest` — canonical SHA-256 of the bound policy snapshot.
+  - `evidence_manifest_digest` — canonical SHA-256 of the evidence manifest, when present.
+- **Policy Approval Receipts** — cryptographic ratifier signatures on the policy version that governed a decision. The offline verifier now accepts ratifier and custodian public-key sets as additional trust roots.
+- All v1 receipts remain verifiable indefinitely — schema v2 fields are additive.
+
+---
+
+## v1.5.0
+
+**Public Verification Surface**
+- New JWKS endpoint: `GET /v1/.well-known/signing-keys` — versioned public signing keys for offline receipt verification.
+- New public, unauthenticated endpoints (callers do not need an API key):
+  - `GET /v1/receipts/:decisionId` — fetch a signed decision receipt.
+  - `GET /v1/receipts/:decisionId/bundle` — download the full Verification Bundle.
+  - `GET /v1/chains/:chainId/verify` — verify a chain proof.
+  - `GET /v1/chains/:chainId/seal` — read a chain seal.
+  - `GET /v1/chains/:chainId/bundle` — download a chain Verification Bundle.
+- **Verification Bundles** — self-contained, offline-verifiable archives covering 8 sub-claims under a digest-of-digests manifest (receipt, policy snapshot, chain proofs, transparency proof, trust roots, canonicalisation).
 
 ---
 
@@ -40,7 +100,7 @@ All endpoints are prefixed with `/v1`. When a new major version is released, the
 **Structured Violation Reason Codes**
 - Every violation now includes a `reason_code` field — a structured code for programmatic aggregation without text parsing.
 - 17 reason codes across all rule types: presence (`FIELD_MISSING`, `FIELD_FORBIDDEN`, `FIELD_TOO_SHORT`), temporal (`DATE_EXPIRED`, `DATE_INVALID`, etc.), threshold (`VALUE_ABOVE_MAX`, `VALUE_BELOW_MIN`, etc.), and list (`VALUE_NOT_ALLOWED`, `VALUE_FORBIDDEN`).
-- New `ReasonCode` type exported from `@tradequ/meshqu-types` and re-exported from `@tradequ/meshqu-client`.
+- New `ReasonCode` type exported from `@meshqu/types` and re-exported from `@meshqu/client`.
 - Backwards compatible: `reason_code` is a new required field on violations. Existing `reason` strings are unchanged.
 - **Replay note:** New receipts have different integrity hashes than pre-`reason_code` receipts due to the additional field. Pre-migration receipts remain verifiable against their stored hash.
 

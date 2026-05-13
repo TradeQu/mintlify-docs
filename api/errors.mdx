@@ -43,8 +43,51 @@ These may appear in the `code` field for specific operations:
 | `NO_ACTIVE_POLICIES` | Decision evaluation | No active policies matched the `decision_type`. |
 | `NO_ACTIVE_RULES` | Decision evaluation | Policies exist but have no active rules. |
 | `SNAPSHOT_NOT_FOUND` | Decision replay | The policy snapshot for this decision could not be located. |
+| `HYDRATE_FAILED` | Decision replay / bundle export | The persisted decision could not be rehydrated into a verifiable form. |
 | `ALREADY_DELIVERED` | Webhook retry | Delivery was already successful; cannot retry. |
 | `STILL_PENDING` | Webhook retry | Delivery is still pending; no retry needed. |
+| `CONFLICT` | Idempotency / unique constraints | A conflicting record already exists (e.g. duplicate idempotency key, duplicate outcome). |
+
+### Tenancy
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `MISSING_TENANT_ID` | 400 | Required tenant header was not present on the request. |
+| `INVALID_TENANT_ID` | 400 | Tenant header value is malformed or unknown. |
+
+### Policy lifecycle
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `MAKER_CHECKER_VIOLATION` | 403 | The ratifier is the same user who created the version (when maker-checker is enforced via tenant settings). |
+| `RATIFICATION_ERROR` | 400 | Version is not in the correct lifecycle state for this operation. |
+| `NO_DRAFT` | 404 | Operation requires a `draft` version but none exists. |
+| `NO_VERSIONS` | 404 | The policy has no versions. |
+
+### Receipts, chains, and bundles
+
+| Code | Context | Meaning |
+| --- | --- | --- |
+| `SIGNING_FAILED` | Decision record / chain seal | The configured signing key could not produce a signature. |
+| `CHAIN_TOO_LARGE` | Chain operations | The chain exceeds the per-tenant size limit. |
+| `BUNDLE_EXPORT_DISABLED` | Bundle endpoints | Bundle export is not enabled for this tenant. |
+
+### Evidence manifest
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `EVIDENCE_MANIFEST_MALFORMED` | 400 | The submitted evidence manifest is not a valid manifest. |
+| `EVIDENCE_DIGEST_MISMATCH` | 400 | A referenced evidence digest does not match the recomputed digest. |
+| `EVIDENCE_MANIFEST_REFERENCED_BUT_MISSING` | 400 | The decision references an evidence manifest that was not supplied. |
+| `EVIDENCE_MANIFEST_DIGEST_WITHOUT_FK` | 400 | An evidence manifest digest was submitted without a corresponding manifest record. |
+
+### Policy approval receipts
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `POLICY_APPROVAL_RECEIPTS_MALFORMED` | 400 | The submitted approval receipts are not in the expected shape. |
+| `APPROVAL_RECEIPTS_REFERENCED_BUT_MISSING` | 400 | The decision references approval receipts that were not supplied. |
+| `RATIFIER_KEY_REQUIRED` | 400 | Approval receipt verification requires a ratifier public key that was not configured. |
 
 ## Handling errors in the SDK
 
@@ -61,7 +104,7 @@ import {
   MeshQuRateLimitError,
   MeshQuNetworkError,
   MeshQuTimeoutError,
-} from '@tradequ/meshqu-client';
+} from '@meshqu/client';
 
 try {
   const result = await client.evaluate(context);

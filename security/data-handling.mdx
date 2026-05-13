@@ -16,7 +16,7 @@ All production traffic must use HTTPS (TLS 1.2+). The API rejects plain HTTP in 
 
 ## Multi-tenant isolation
 
-Every API request is scoped to a tenant via the `X-MeshQu-Tenant-Id` header. Data from one tenant is never accessible to another. The API key must belong to the specified tenant.
+Every API request is tenant-scoped via the `X-MeshQu-Tenant-Id` header. Tenant boundaries are enforced on every request. If the API key and tenant do not match, the request is rejected.
 
 ## Scoped access
 
@@ -31,9 +31,9 @@ API keys carry explicit scopes that limit what operations they can perform. Foll
 
 ## Decision receipt integrity
 
-Every evaluation returns a cryptographic receipt binding the verdict to the exact policy snapshot. The `integrity_hash` (SHA-256 over canonical JSON) covers the context, decision, and snapshot.
+Every evaluation returns a cryptographic receipt that binds the verdict to the exact policy snapshot. The `integrity_hash` (SHA-256 over canonical JSON) covers the context, decision, and snapshot.
 
-When a signing key is configured, MeshQu signs the integrity hash with **Ed25519**. Auditors verify receipts using the public key alone — no shared secret exchange is needed. Key IDs (`msk_v1` format) identify which key signed a receipt, and key rotation is supported via a previous-key grace period.
+When signing is enabled, MeshQu signs the integrity hash with **Ed25519**. Auditors verify receipts with the public key alone — no shared secret exchange is required. Key IDs (`msk_v1` format) identify which key signed a receipt, and key rotation is supported.
 
 ### Verifying a receipt signature
 
@@ -85,7 +85,7 @@ Two-tier rate limiting protects against abuse:
 
 ## Correlation IDs
 
-Every request is assigned a `correlation_id` returned in the response body and as the `x-correlation-id` header. Use this for tracing and when contacting support.
+Every request is assigned a `correlation_id`, returned in the response body and as the `x-correlation-id` header. Use this for tracing and support requests.
 
 ## Trust model
 
@@ -97,7 +97,7 @@ This separation allows independent verification without access to application co
 
 ## Data you send to MeshQu
 
-Decision contexts (`fields`, `metadata`, `evidence`) are sent by your application. You control what data is included. Follow the principle of **data minimisation**: send only the fields your policies need to make a decision. Avoid sending sensitive personally identifiable information unless required by your policies. Use opaque identifiers (account IDs, order IDs) rather than raw personal data where possible.
+Decision contexts (`fields`, `metadata`, `evidence`) are sent by your application. You control what data is included. Follow **data minimisation**: send only fields required for policy evaluation. Avoid sending sensitive personal data unless policy requirements make it necessary. Prefer opaque identifiers (for example, account IDs or order IDs) over raw personal data.
 
 ## What MeshQu stores
 

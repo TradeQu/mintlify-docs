@@ -1,0 +1,98 @@
+---
+title: "Decision Assurance"
+description: "What MeshQu cryptographically proves to a regulator, auditor, or counterparty — and what's still informational."
+---
+
+Decision Assurance is the contract MeshQu offers a regulator, auditor, or
+counterparty: given a downloaded artifact and the right out-of-band public
+keys, you can independently prove what decision was made, under which
+policy, against which evidence, by which actor, at what externally-verifiable
+time — without trusting MeshQu's live database or dashboard.
+
+<Info>
+MeshQu is in **early access** — no customer is running production traffic against MeshQu yet. The statuses below describe what is implemented and verifiable in our pre-GA deployments.
+</Info>
+
+## Maturity model
+
+| Level | What it proves | Status |
+| --- | --- | --- |
+| **L1** Logged | Something happened, MeshQu's UI shows it. | Implemented |
+| **L2** Hashed | Decision data hasn't drifted from what was originally evaluated. | Implemented |
+| **L3** Signed | MeshQu attested to this hash. Ed25519. | Implemented (default behaviour) |
+| **L4** Bundled | Self-contained, offline-verifiable archive — receipt + policy snapshot + chain proofs + transparency proof + trust roots — under a digest-of-digests manifest. **8 sub-claims.** | Implemented |
+| **L5** Externally co-attested | Evidence custodians, ratifiers, and external auditors signed off; receipt-v2 binds their digests into the receipt's signed payload. | In flight |
+
+## Trust roots — the load-bearing rule
+
+Every signature in a Decision Receipt and Verification Bundle is verified
+against an **out-of-band** trust root. The bundle's own
+`trusted_keys.json` is informational — useful for fingerprint UIs — but
+**never used to authenticate a signature**. Otherwise, a self-signed bundle
+(operator-controlled keys listed as "trusted" in the bundle) would pass
+verification.
+
+| Trust domain | What it covers | Where the public keys live |
+| --- | --- | --- |
+| MeshQu signing keys | Receipt, chain-link, chain-seal signatures | `GET /v1/.well-known/signing-keys` (JWKS); bundled defaults in `verify.meshqu.com` |
+| Rekor log keys | Rekor `signedEntryTimestamp` (SET) on transparency anchors | Sigstore-published; bundled as `c0d23d6ad406…` for production |
+| Custodian keys *(planned)* | External evidence custodian signatures | Per-deployment env-var pattern |
+| Ratifier keys *(planned)* | Policy approval receipts | Per-tenant env-var pattern |
+
+## What an offline verifier proves today
+
+| Sub-claim | What's bound | Notes |
+| --- | --- | --- |
+| `bundle_manifest` | File presence, per-file SHA-256, manifest digest | — |
+| `integrity` | Recomputed integrity hash matches the receipt | — |
+| `signature` | Ed25519 verifies against external trust root | — |
+| `snapshot_replay` | Bundled `snapshot.id` matches receipt; rule replay reproduces integrity hash | `policy_versions` informational until receipt-v2 |
+| `transparency` | DSSE subject + envelope-body hash + Rekor SET | Pre-PR-5b receipts → partial attestation |
+| `chain_link` | Chain proof identifies *this* receipt; signature verifies | — |
+| `chain_seal` | Seal covers this receipt; signature verifies | — |
+| `canonicalization` | `meshqu-canonical/v0` profile | — |
+
+See [Verification Bundle](/concepts/verification-bundle) for the full
+sub-claim taxonomy and failure codes.
+
+## What still requires trusting MeshQu
+
+- MeshQu's signing-private-key custody.
+- The authenticity of the out-of-band public-key distribution channel
+  (we publish via JWKS and bundle defaults; you can pin fingerprints).
+- That `DecisionContext.evidence` references and `source_artifact`
+  hashes the caller submits are truthful — we hash what we're given.
+
+## What a privileged DB operator can and cannot do
+
+After PR #416 (DB-level immutability triggers):
+
+- DELETE on `meshqu.decisions` or `meshqu.policy_snapshots` is blocked
+  at the trigger level.
+- UPDATE on integrity-bound columns is blocked. The only legitimate
+  post-INSERT mutation is `result.transparency_anchor` (the async-Rekor
+  patch path).
+- Forging a new receipt still requires the signing key. Rekor anchoring
+  + future external-attestor signatures (L5) are the next layer.
+
+## Roadmap
+
+**P1 (in flight):**
+
+- **Receipt-v2 envelope** — bind canonical snapshot digest, evidence
+  manifest digest, and approval receipt digest into the signed
+  `integrity_hash`. Closes the `policy_versions` informational gap.
+  Dual-hash migration window: v1 receipts continue verifying forever.
+- **Evidence Manifest v1** — first-class evidence artifact: multi-item,
+  optionally signed by external custodians.
+- **Policy Approval Receipts** — cryptographic ratification receipts;
+  ratifier-signed.
+
+**P2:** AI provenance envelope · RFC 3161 timestamps · multi-log
+transparency · counterfactual replay · RFC 8785 / canonical-v1.
+
+## See also
+
+- [Verification Bundle](/concepts/verification-bundle) — the L4 contract in full.
+- [Verifying Bundles](/guides/verifying-bundles) — auditor workflow.
+- [Bundles API](/api/bundles) — endpoint reference.

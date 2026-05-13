@@ -1,0 +1,188 @@
+---
+title: "Verification Bundle"
+description: "A self-contained, digest-addressed archive that lets a third party verify a Decision Receipt offline."
+---
+
+A **Verification Bundle** is a self-contained archive of everything an
+external verifier needs to validate a Decision Receipt offline:
+
+- the signed receipt itself,
+- the policy snapshot the receipt was evaluated against (so rules can
+  be re-run),
+- chain proofs and seal (when the receipt is part of a chain),
+- the Rekor transparency proof (when anchored),
+- the public keys used to sign the receipt and chain proofs (informational only),
+- a top-level manifest that hashes everything together.
+
+Trust roots come from out-of-band channels (MeshQu's published JWKS,
+sigstore.dev's well-known Rekor key, your own pinned keys). The bundle's
+own `trusted_keys.json` is informational and **never used** to authenticate
+signatures.
+
+## At-a-glance
+
+| | |
+| --- | --- |
+| Manifest version | `1` |
+| Canonicalization profile | `meshqu-canonical/v0` |
+| Signature algorithm | Ed25519 |
+| Transparency log | Sigstore Rekor (configurable) |
+| Sub-claims verified offline | 8 |
+| Verifier runtimes | Node + browser |
+
+## Bundle layout
+
+```
+bundle.tar
+├── bundle_manifest.json       — top-level integrity descriptor (REQUIRED)
+├── receipt.json               — signed Decision Receipt (REQUIRED)
+├── policy_snapshot.json       — frozen rules + version metadata (REQUIRED)
+├── trusted_keys.json          — public-key snapshot (INFORMATIONAL ONLY)
+├── transparency_proof.json    — Rekor anchor + DSSE envelope (OPTIONAL)
+├── chain_proof.json           — chain-link proof (OPTIONAL)
+└── chain_seal.json            — chain-completeness seal (OPTIONAL)
+```
+
+## The 8 sub-claims
+
+`verifyBundle()` returns one structured result per sub-claim. Every
+relevant sub-claim is reported — the verifier never short-circuits past
+the first failure.
+
+### 1. `bundle_manifest`
+
+File presence + per-file SHA-256 + manifest digest match.
+
+Failure codes: `bundle.unknown_version`, `bundle.unknown_profile`,
+`bundle.file_missing`, `bundle.file_digest_mismatch`,
+`bundle.manifest_digest_mismatch`.
+
+### 2. `integrity`
+
+Recomputed integrity hash matches the receipt's stored value.
+
+Failure code: `integrity.mismatch`.
+
+### 3. `signature`
+
+Ed25519 signature over the integrity hash, verified against
+**out-of-band** trust roots.
+
+Failure codes: `signature.unknown_kid`, `signature.invalid`,
+`signature.not_signed`, `signature.no_external_trust_root`.
+
+### 4. `snapshot_replay`
+
+Bundled `snapshot.id` matches `receipt.policy_snapshot_id`; re-running
+the bundled rules against the bundled context reproduces the receipt's
+`integrity_hash`.
+
+Failure codes: `snapshot_replay.snapshot_id_mismatch`,
+`snapshot_replay.hash_mismatch`,
+`snapshot_replay.evaluator_unavailable`,
+`snapshot_replay.skipped_in_browser` (advisory).
+
+<Note>
+  Today `snapshot_replay.status === 'valid'` binds `snapshot.id` and
+  `snapshot.rules`. It does NOT bind `snapshot.policy_versions` or
+  `snapshot.created_at` — those are informational in v1.
+  Receipt-v2 will close this gap.
+</Note>
+
+### 5. `transparency`
+
+If the bundle ships `transparency_proof.json`: DSSE envelope's subject
+digest equals receipt's integrity hash; `sha256(dsse_envelope)` equals
+`entry_body.spec.envelopeHash.value`; Rekor's SET signature verifies
+against a trusted Rekor log key.
+
+Failure codes: `transparency.body_subject_mismatch`,
+`transparency.envelope_body_hash_mismatch`,
+`transparency.set_invalid`, `transparency.unknown_log_id`,
+`transparency.envelope_decode_failed`,
+`transparency.inclusion_proof_invalid`,
+`transparency.inclusion_proof_unverified` (advisory).
+
+### 6. `chain_link`
+
+Chain proof identifies *this* receipt (`decision_id` +
+`decision_integrity_hash`); chain integrity hash recomputes; chain
+signature verifies against external trust roots.
+
+Failure codes: `chain_link.hash_mismatch`,
+`chain_link.signature_invalid`,
+`chain_link.receipt_binding_mismatch`.
+
+### 7. `chain_seal`
+
+Seal covers this receipt's integrity hash; seal hash recomputes; seal
+signature verifies.
+
+Failure codes: `chain_seal.hash_mismatch`,
+`chain_seal.signature_invalid`,
+`chain_seal.receipt_binding_mismatch`.
+
+### 8. `canonicalization`
+
+Manifest's canonicalization profile is one the verifier accepts
+(`meshqu-canonical/v0` for v1 bundles).
+
+Failure codes: `canonicalization.profile_mismatch`,
+`canonicalization.vector_failure`.
+
+## How `verified` is determined
+
+The browser UI's headline verdict collapses 8 sub-claim results into one
+of three states:
+
+- **Valid** — every sub-claim passes cleanly.
+- **Verified with caveats** — only *advisory* codes are present (e.g.
+  `snapshot_replay.skipped_in_browser`,
+  `transparency.inclusion_proof_unverified`). Cryptographic checks all
+  passed; the verifier honestly flags what it can't fully attest in
+  this context.
+- **Failed** — at least one *hard* failure code on any sub-claim.
+
+The exact rule: downgrade only when ALL failure codes on a claim are
+advisory. Real failures always win.
+
+## Trust roots — required input
+
+```ts
+import { verifyBundle, parseBundle } from '@meshqu/core';
+
+const archive = parseBundle(bundleBytes);
+
+const result = await verifyBundle(archive, [
+  // MeshQu signing keys, fetched out-of-band
+  { kid: 'msk_v1', public_key_base64: '…' },
+], {
+  // Optional: Rekor log keys for SET verification
+  rekorTrustedRoots: [
+    { log_id: 'c0d23d6ad406…', public_key_base64: '…' },
+  ],
+});
+```
+
+Empty `trustedRoots` → `signature.no_external_trust_root` (the verifier
+refuses to authenticate via the bundle's own keys). Empty
+`rekorTrustedRoots` is allowed but downgrades transparency to
+`inclusion_proof_unverified`.
+
+## Cross-runtime parity
+
+Two implementations:
+
+- **Node** in `@meshqu/core`
+- **Browser** in `meshqu-verify`
+
+The verify-app deliberately doesn't import meshqu-core — same pattern as
+canonical-json and rekor primitives. Drift between the two would silently
+weaken the offline guarantee, so a parity test asserts byte-identical
+sub-claim verdicts on every released archive.
+
+## See also
+
+- [Decision Assurance](/concepts/decision-assurance) — maturity model.
+- [Bundles API](/api/bundles) — endpoint reference.
+- [Verifying Bundles](/guides/verifying-bundles) — auditor workflow.

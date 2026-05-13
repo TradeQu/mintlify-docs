@@ -20,7 +20,7 @@ If decisions are fully automated and actor identity is not a compliance requirem
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `actor.id` | `string` | Yes (if actor present) | Stable, unique identifier. **Included in the integrity hash.** |
-| `actor.type` | `string` | No | `human` or `system`. |
+| `actor.type` | `string` | No | `human` or `automated`. |
 | `actor.role` | `string` | No | Functional role: `analyst`, `compliance_officer`, `screening_service`, etc. |
 | `actor.authority` | `string` | No | Authority or organisation the actor acts under (e.g. `MLRO`). |
 | `actor.display_name` | `string` | No | Human-readable name for audit display. |
@@ -69,7 +69,7 @@ Only `actor.id` is included in the SHA-256 integrity hash. If someone alters `ac
 {
   "actor": {
     "id": "screening-service-v2",
-    "type": "system",
+    "type": "automated",
     "role": "screening_service"
   }
 }
@@ -98,7 +98,7 @@ Use the user's stable identity provider ID (not an email address) for `actor.id`
 {
   "actor": {
     "id": "svc-trade-execution",
-    "type": "system",
+    "type": "automated",
     "role": "trade_service",
     "authority": "order-management-system"
   }

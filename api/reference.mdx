@@ -208,7 +208,7 @@ Include an `actor` object at the top level of the request body to record who or 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `actor.id` | `string` | Yes (if actor present) | Stable identifier. Included in the integrity hash. |
-| `actor.type` | `string` | No | `human` or `system`. |
+| `actor.type` | `string` | No | `human` or `automated`. |
 | `actor.role` | `string` | No | Functional role (e.g. `analyst`, `screening_service`). |
 | `actor.authority` | `string` | No | Authority or organisation the actor acts under. |
 | `actor.display_name` | `string` | No | Human-readable name for audit display. |
@@ -607,6 +607,74 @@ New versions are created in `draft` status and must be ratified before they take
 | `MAKER_CHECKER_VIOLATION` | 403 | The ratifier is the same user who created the version (when maker-checker is enforced). |
 | `RATIFICATION_ERROR` | 400 | Version is not in `draft` status or other validation failure. |
 
+### Submit policy version
+
+```
+POST /v1/policies/:id/versions/:version/submit
+```
+
+**Scope**: `policies:write`
+
+Submits a draft version for ratification. The version moves from `draft` to `pending_ratification`.
+
+### Reject policy version
+
+```
+POST /v1/policies/:id/versions/:version/reject
+```
+
+**Scope**: `policies:write`
+
+Rejects a submitted version. Optional body field `reason` is recorded on the audit trail.
+
+### Recall policy version
+
+```
+POST /v1/policies/:id/versions/:version/recall
+```
+
+**Scope**: `policies:write`
+
+Recalls a submitted version back to `draft` so the author can revise it.
+
+### Update draft rules
+
+```
+PATCH /v1/policies/:id/versions/:version
+```
+
+**Scope**: `policies:write`
+
+Replaces the rules on a `draft` version. Rejected with `400` if the version is already ratified or superseded.
+
+### Delete draft version
+
+```
+DELETE /v1/policies/:id/versions/:version
+```
+
+**Scope**: `policies:write`
+
+Deletes a `draft` version. Ratified versions cannot be deleted — supersede them by creating a new version instead.
+
+### List decisions for a policy
+
+```
+GET /v1/policies/:id/decisions
+```
+
+**Scope**: `policies:read`, `decisions:read`
+
+Returns recorded decisions that were evaluated against this policy, across all versions.
+
+**Query parameters:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `version` | `number` | Restrict to a specific policy version. |
+| `from`, `to` | `string` | ISO 8601 date range. |
+| `limit`, `cursor` | — | Standard pagination. |
+
 ---
 
 ## Policy Groups
@@ -817,3 +885,206 @@ POST /v1/audit-log/verify
 **Scope**: `audit:admin`
 
 Verifies the integrity of an audit event.
+
+---
+
+## Forms (Human Decision Capture)
+
+Forms let you capture structured human decisions that produce receipts identical in shape to programmatic decisions. A form binds a decision type, a target policy, and an input schema. Submitting a form runs evaluation and records the result.
+
+### Create form
+
+```
+POST /v1/forms
+```
+
+**Scope**: `forms:write`
+
+### List forms
+
+```
+GET /v1/forms
+```
+
+**Scope**: `forms:read`
+
+### Get form
+
+```
+GET /v1/forms/:formId
+```
+
+**Scope**: `forms:read`
+
+### Update form
+
+```
+PATCH /v1/forms/:formId
+```
+
+**Scope**: `forms:write`
+
+### Delete form
+
+```
+DELETE /v1/forms/:formId
+```
+
+**Scope**: `forms:write`
+
+### Get input schema
+
+```
+GET /v1/forms/:formId/schema
+```
+
+**Scope**: `forms:read`
+
+Returns the JSON Schema describing the form's input shape — suitable for rendering a form UI or validating client-side.
+
+### Get API contract
+
+```
+GET /v1/forms/:formId/api-contract
+```
+
+**Scope**: `forms:read`
+
+Returns the request/response contract an integrating system needs to submit this form programmatically.
+
+### Submit form
+
+```
+POST /v1/forms/:formId/submit
+```
+
+**Scope**: `forms:submit`
+
+Submits a form, evaluates against the bound policy, records a decision, and returns the decision and verification URL. The actor on the resulting decision is the submitter.
+
+**Response fields:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `decision` | `object` | The full recorded decision receipt. |
+| `verification_url` | `string` | Public verifier URL for this receipt. |
+
+### Get form submission receipt
+
+```
+GET /v1/forms/:formId/receipts/:decisionId
+```
+
+**Scope**: `forms:read`
+
+Returns the decision receipt produced by a previous form submission, with the form's binding metadata attached.
+
+---
+
+## Tenant Settings
+
+### Get settings
+
+```
+GET /v1/settings
+```
+
+**Scope**: `settings:read`
+
+Returns tenant-level governance configuration.
+
+**Response fields:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `enforce_maker_checker` | `boolean` | If `true`, policy version ratification requires a different user than the version creator. |
+
+### Update settings
+
+```
+PATCH /v1/settings
+```
+
+**Scope**: `settings:admin`
+
+Body accepts any subset of the settings fields above.
+
+---
+
+## Fields
+
+### List fields
+
+```
+GET /v1/fields
+```
+
+**Scope**: `fields:read`
+
+Returns the field catalog discovered from decision contexts seen for this tenant. Used by the policy editor to suggest field paths.
+
+---
+
+## Public Verification
+
+These endpoints are **unauthenticated** — they do not require an API key or tenant header. They are intended for offline verifiers, third-party auditors, and counterparties holding a receipt or chain ID.
+
+### Get receipt
+
+```
+GET /v1/receipts/:decisionId
+```
+
+Returns a signed decision receipt by ID. The receipt is enough to verify integrity and signature offline given the corresponding public signing key (see [JWKS](#jwks)).
+
+### Get receipt bundle
+
+```
+GET /v1/receipts/:decisionId/bundle
+```
+
+**Query parameters:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `format` | `'json' \| 'tar'` | Bundle format. Default `json`. |
+
+Returns a full Verification Bundle — receipt + policy snapshot + chain proofs + transparency proof + trust roots, under a digest-of-digests manifest. See [Verification Bundle](../concepts/verification-bundle) for the on-disk layout and sub-claim taxonomy.
+
+### Verify chain
+
+```
+GET /v1/chains/:chainId/verify
+```
+
+Computes and returns the verification result for a decision chain. The response identifies each step receipt and whether all chain-link signatures verify.
+
+### Get chain seal
+
+```
+GET /v1/chains/:chainId/seal
+```
+
+Returns the chain seal record if one exists. Sealing itself is performed via the authenticated `POST /v1/decisions/chain/:chainId/seal` endpoint.
+
+### Get chain bundle
+
+```
+GET /v1/chains/:chainId/bundle
+```
+
+**Query parameters:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `format` | `'json' \| 'tar'` | Bundle format. Default `json`. |
+
+Returns a chain-level Verification Bundle covering every step receipt in the chain plus the chain seal (if sealed).
+
+### JWKS
+
+```
+GET /v1/.well-known/signing-keys
+```
+
+Returns the versioned public signing keys used by MeshQu, as a JWKS document. Verifiers should fetch these out-of-band, pin fingerprints, and use them as trust roots for receipt signature verification. The bundle's `trusted_keys.json` file is informational only and must not be used as a trust root.

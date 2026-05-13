@@ -27,7 +27,11 @@
           {
             "group": "Concepts",
             "pages": [
-              "concepts/overview"
+              "concepts/overview",
+              "concepts/decision-assurance",
+              "concepts/policy-lifecycle",
+              "concepts/verification-bundle",
+              "concepts/receipt-reference"
             ]
           },
           {

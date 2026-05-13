@@ -1,0 +1,638 @@
+---
+title: "Receipt Reference"
+description: "Source-grounded reference for the Decision Receipt — every field, what it binds, and which features are implemented today."
+---
+
+This is the authoritative reference for the Decision Receipt and every feature
+attached to it. It is intended as a working spec when writing or reviewing
+public surfaces (homepage, /spec, /verify, sales/regulatory copy) so that what
+is presented externally aligns with what the technology actually does.
+
+If a property is **not** listed here as Implemented, do not claim it. Statuses
+use: **Implemented**, **Partial** (real but limited), **Stub** (wired but
+currently no-op), **Planned**.
+
+Source files referenced inline are paths within the monorepo
+(`packages/meshqu-types/src/`, `packages/meshqu-core/src/`,
+`apps/meshqu-api/src/routes/`).
+
+## 1. The Receipt Envelope
+
+A Decision Receipt on the wire is the row written to `meshqu.decisions`,
+exposed as `{ context, result, chain_id, chain_step }`. The cryptographic
+centre of gravity is `result` (the `EvaluationResult`).
+
+### 1.1 v1 vs v2 — which fields exist
+
+| Field | v1 | v2 |
+| --- | --- | --- |
+| `decision` ∈ `ALLOW \| DENY \| REVIEW \| ALERT` | ✓ | ✓ |
+| `violations[]` (rule_code, severity, reason_code, reason, optional field/actual_value/expected_value/details/policy_id/is_shadow) | ✓ | ✓ |
+| `rules_evaluated`, `rules_na`, `na_rules[]` | ✓ | ✓ |
+| `evaluation_time_ms` | ✓ | ✓ |
+| `timestamp` (ISO 8601, evaluation time) | ✓ | ✓ |
+| `policy_snapshot_id` (UUID) | ✓ | ✓ |
+| `evaluated_rules_hash` (SHA-256 hex; legacy alias `policy_snapshot_hash`) | ✓ | ✓ |
+| `integrity_hash` (SHA-256 hex) | ✓ | ✓ |
+| `signature` (Ed25519, base64url) | ✓ | ✓ |
+| `signature_kid` (e.g. `msk_v1`) | ✓ | ✓ |
+| `signature_algorithm` = `ed25519` | ✓ | ✓ |
+| `action` (ReceiptAction, optional) | ✓ | ✓ |
+| `transparency_anchor` (optional) | ✓ | ✓ |
+| `receipt_schema_version` ∈ `1 \| 2` | optional/absent | **required = 2** |
+| `policy_snapshot_digest` (SHA-256 hex) | — | **required** |
+| `evidence_manifest_digest` (SHA-256 hex \| null) | — | optional (null when absent) |
+
+Top-level (on the `decisions` row, not inside `result`): `id` (UUID),
+`tenant_id`, `actor` (DecisionActor JSON), `chain_id`, `chain_step`,
+`parent_decision_id`, `created_at` (recorded-at, distinct from
+`result.timestamp`).
+
+**Migration semantics.** v1 receipts continue to verify forever. There is no
+cut-over date. Cross-version fallback is rejected — a v2 receipt **must**
+verify under the v2 path; a v1 receipt **must** verify under the v1 path.
+Source: `packages/meshqu-core/src/integrity.ts`.
+
+### 1.2 Decision Context (the input)
+
+Type: `DecisionContext` (`packages/meshqu-types/src/decision-context.ts`).
+
+```
+decision_type         string                      selects applicable policies
+fields                Record<string, unknown>     evaluation inputs (dot-notated)
+evidence              Evidence[]                  reference-only (kind, ref?, hash?, data?)
+metadata              DecisionMetadata            actor_id, correlation_id, ip_address, user_agent, timestamp, ...
+source_artifact       SourceArtifact              optional (see §1.3)
+```
+
+`context.evidence[]` is the *legacy* reference-only evidence list. The richer
+Evidence Manifest (§5) is a separate first-class concept and its digest is
+stored on `result`, not `context`.
+
+### 1.3 Source Artifact (`context.source_artifact`)
+
+Type: `SourceArtifact`. Reference-based: stores
+`{ type, hash, hash_algorithm: 'SHA-256', reference_id?, filename?, byte_size? }`.
+
+**Only `hash` is bound into `integrity_hash`.** Type, filename and size are
+convenience metadata and intentionally outside the hash.
+
+This is the older single-artifact binding ("Trust Without Disclosure"). It
+co-exists with the Evidence Manifest in v2; deprecation is out of scope.
+
+### 1.4 Actor (`decisions.actor`)
+
+Type: `DecisionActor`.
+
+```
+id            string                  required
+type          'human' | 'automated'   required
+role          string?                 freeform (e.g. 'MLRO')
+authority     string?                 freeform (e.g. 'final_disposition')
+display_name  string?                 PII-bearing; optional
+```
+
+MeshQu does not validate actor identity — the caller attests.
+`metadata.actor_id` on `context` is bound into the integrity hash via
+`context_hash`; the structured `actor` row is stored alongside but **not**
+part of the integrity hash.
+
+### 1.5 Action (`result.action`)
+
+Type: `ReceiptAction`. Shape: `{ type, reference_id, metadata? }`.
+
+**`type` and `reference_id` are bound into `integrity_hash`. `metadata` is
+not.**
+
+## 2. Cryptographic Model
+
+### 2.1 Canonicalisation profile
+
+`meshqu-canonical/v0` — frozen. Alphabetic key order, JS `Array.sort`. RFC 8785
+alignment is a planned P1 follow-up that will introduce
+`meshqu-canonical/v1`.
+
+### 2.2 Integrity hash — exact payloads
+
+**v1 input** — `sha256(canonicalJson(payload))` where `payload` is, alphabetised:
+
+```
+{
+  action,                           // ReceiptAction or null
+  context_hash,                     // sha256(canonicalJson(context minus source_artifact))
+  decision,
+  policy_snapshot_hash,             // == result.evaluated_rules_hash (key kept for stability)
+  policy_snapshot_id,
+  source_artifact_hash,             // context.source_artifact.hash or null
+  timestamp,
+  violations,
+}
+```
+
+**v2 input** — extends v1 with:
+
+```
+{
+  action, context_hash, decision,
+  evidence_manifest_digest,         // null when no manifest
+  policy_snapshot_digest,           // required
+  policy_snapshot_hash, policy_snapshot_id,
+  receipt_schema_version: 2,
+  source_artifact_hash, timestamp, violations,
+}
+```
+
+**Not in the integrity hash:** `transparency_anchor` (computed after signing),
+chain fields, `evaluation_time_ms`, `rules_evaluated` / `rules_na`, the
+`actor` row, `action.metadata`, source artifact metadata.
+
+### 2.3 Signing — what is signed
+
+- **v1** signs the bare 64-char hex `integrity_hash` string, UTF-8 encoded.
+- **v2** signs the **canonical envelope**, alphabetised:
+
+```json
+{
+  "evidence_manifest_digest": "<hex|null>",
+  "integrity_hash": "<hex>",
+  "policy_snapshot_digest": "<hex>",
+  "receipt_schema_version": 2,
+  "signature_algorithm": "ed25519",
+  "signature_kid": "<kid>",
+  "timestamp": "<ISO>"
+}
+```
+
+The v2 envelope binds `signature_kid`, `signature_algorithm` and
+`receipt_schema_version` into the signed bytes — closing the gap where v1
+stored these alongside but not inside the signature. The verifier
+reconstructs envelope bytes using the receipt's *stored* `signature_kid` /
+`signature_algorithm` (not hardcoded) so any tampering of those fields fails
+the signature check.
+
+Algorithm: Ed25519 only in v1+v2. Other algorithms require a manifest-version
+bump.
+
+### 2.4 Policy snapshot digest (v2)
+
+`computePolicySnapshotDigest(snapshot)` =
+`sha256(canonicalJson({ id, rules, policy_versions, created_at }))`.
+
+This binds the **content** of the policy, not just its UUID. Approval-receipt
+digests live on `policy_versions[i].approval_receipt_digest`, so approval
+lineage is bound **transitively** through this single digest — there is no
+separate top-level approval digest on the receipt.
+
+### 2.5 Evidence manifest digest (v2, optional)
+
+`sha256(canonicalJson(manifest minus manifest_digest))`. Self-describing
+pattern (mirrors the bundle manifest). Defined in
+`packages/meshqu-types/src/evidence.ts`; computed/verified in
+`packages/meshqu-core/src/evidence.ts`.
+
+### 2.6 Active-rule projection (used everywhere rules are hashed)
+
+`projectActiveRules` strips inactive rules and all metadata, keeping only
+`{ code, condition, severity, when? }`. This single helper is used by:
+
+- `computeSnapshotHash` (snapshot repo + evaluator)
+- `PolicyApprovalReceipt.policy_rules_hash`
+- `PolicySnapshot.policy_versions[i].policy_rules_hash`
+- the bundle verifier when comparing per-version hashes
+
+Changing the projection is a hash-migration event.
+
+## 3. Policy Snapshot
+
+A frozen, immutable copy of the rules that governed a decision. Identifies
+the policy run by **both UUID and content digest** in v2.
+
+- `id` (UUID, on the receipt as `policy_snapshot_id`)
+- `rules[]` — full `PolicyRule[]`. Bundled in `policy_snapshot.json`; **not**
+  stored on the receipt itself.
+- `policy_versions[]` — list of
+  `{ policy_id, version, policy_rules_hash, approval_receipt_digest? }`
+- `created_at` (ISO 8601)
+- `evaluated_rules_hash` on the receipt =
+  `sha256(canonicalJson(projectActiveRules(rules)))`
+- `policy_snapshot_digest` on the receipt (v2) =
+  `sha256(canonicalJson({ id, rules, policy_versions, created_at }))`
+
+**Replay** = re-run the snapshot's rules against the original context and
+check the verdict matches. The bundle verifier sub-claim is `snapshot_replay`.
+
+## 4. Approval Receipts (lineage)
+
+Status: **Implemented** end-to-end (APR-008 / APR-009 / APR-010, May 2026).
+Issuance, storage, bundle export, Node verifier and browser verifier all
+verify approval lineage. Pinned by golden fixtures, an 18-row mutation
+matrix and Node ↔ browser parity tests.
+
+- `meshqu.policy_approval_receipts` table exists. Each receipt holds a
+  `ratifier_signature` (Ed25519, kid + algorithm), `policy_rules_hash` (via
+  `projectActiveRules`) and a self-describing `approval_receipt_digest`.
+- A bundle ships these in `policy_approval_receipts.json`.
+- The verifier sub-claim `approval_lineage` activates when the receipt is v2
+  **and** the bundled snapshot has at least one non-null
+  `policy_versions[i].approval_receipt_digest`. For every such version the
+  verifier checks:
+  1. The receipt is present in the bundled file (keyed by
+     `policy_version_id`).
+  2. `computeApprovalReceiptDigest(receipt)` equals the snapshot entry's
+     `approval_receipt_digest`.
+  3. `receipt.policy_rules_hash` equals `entry.policy_rules_hash` by
+     **string equality** (do not re-hash `snapshot.rules` — APR-006
+     precomputed per-version hashes that cover only that version's rules,
+     and the snapshot entry is itself bound by `policy_snapshot_digest`).
+  4. `receipt.ratifier_signature.kid` resolves in the caller-supplied
+     `ratifierTrustedRoots`.
+  5. The ratifier Ed25519 signature verifies.
+- Reports `not_applicable` for v1 receipts and v2 receipts whose snapshot
+  has no non-null `approval_receipt_digest` entries.
+- Runtime entry point: `packages/meshqu-core/src/bundle.ts` (≈ L1305-1449).
+  Browser parity lives in `meshqu-verify` (APR-009).
+
+## 5. Evidence Manifest (v2 only)
+
+Type: `EvidenceManifest`. Strictly additive — does not modify v1 receipts or
+`source_artifact`.
+
+```
+manifest_version: '1'
+items: EvidenceItem[]
+manifest_digest: sha256(canonical(manifest minus manifest_digest))
+```
+
+Each `EvidenceItem`:
+
+```
+kind                   EvidenceItemKind   open string union; named: source_document,
+                                          kyc_record, sanctions_screening_result,
+                                          payment_receipt, audit_report
+mime_type              string             IANA media type (caller-attested)
+byte_length            number
+source_system          string             opaque (e.g. 'kyc-vendor-acme')
+retrieval_time         ISO 8601
+custodian_id           string|null        optional attribution
+normalization_profile  string|null        e.g. 'pdf-strip-metadata-v1'
+content_hash           SHA-256 hex (64 lowercase chars)
+signature              EvidenceItemSignature|null  optional Ed25519 over
+                                                   sha256(canonical(item minus signature))
+```
+
+Custodian signatures are produced **outside** MeshQu (banks, KYC vendors,
+auditors). MeshQu never holds custodian private keys. Trust roots are supplied
+to the verifier out-of-band via `custodianTrustedRoots`.
+
+The manifest can carry a mix of signed and unsigned items. The manifest digest
+covers all items; the per-item signature is an additional, independent
+attestation by the custodian.
+
+**Reference-based — the artifact bytes are NOT stored.** Only digests,
+references, and metadata.
+
+## 6. Transparency Anchor (Rekor)
+
+Type: `TransparencyAnchor`. Stamped onto the receipt **after signing**, so it
+is not part of `integrity_hash`.
+
+```
+provider                  e.g. 'rekor.sigstore.dev'
+entry_uuid                Rekor entry id
+log_index                 position in the Merkle tree
+inclusion_proof           { hashes[], log_index, root_hash, tree_size }
+anchored_at               ISO 8601 (derived)
+rekor_public_url?         convenience link
+dsse_envelope?            JSON-encoded DSSE envelope we submitted (optional, post-PR-5b)
+entry_body?               base64 entry body returned by Rekor (optional)
+signed_entry_timestamp?   base64 ECDSA-P256 SET (optional, post-PR-5f)
+integrated_time?          unix seconds (optional, post-PR-5f)
+log_id?                   sha256(SPKI DER of Rekor pubkey), hex (optional)
+```
+
+What works today:
+
+- **Anchoring.** Implemented. Receipt is submitted to Rekor; anchor data
+  captured.
+- **Offline SET verification.** Implemented in
+  `packages/meshqu-core/src/rekor-set.ts`. The verifier reconstructs the
+  canonical message Rekor signed (`{body, integratedTime, logID, logIndex}`)
+  and checks the SET against a trusted Rekor public key.
+- **Offline subject-digest binding.** Implemented when `dsse_envelope` is
+  present. The verifier decodes the DSSE envelope, reads the in-toto Statement
+  and asserts `subject.digest.sha256 == receipt.integrity_hash`.
+- **Inclusion-proof verification.** Accepted as
+  `transparency.inclusion_proof_unverified` for legacy anchors lacking the new
+  fields; emits `transparency.inclusion_proof_invalid` when present and
+  broken.
+
+What's **not** implemented:
+
+- **Online Rekor lookups** (live witness fetching): Planned. Only offline SET
+  verification today.
+
+Pre-PR-5b/5f anchors (no `dsse_envelope` / `signed_entry_timestamp` /
+`integrated_time` / `log_id`) report `transparency: not_applicable`.
+
+## 7. Decision Chains
+
+A chain is an ordered group of receipts that together prove a workflow.
+
+### 7.1 Linkage on the receipt
+
+`ChainLinkage` — top-level columns on `meshqu.decisions`:
+
+- `chain_id` (UUID, caller-provided)
+- `chain_step` (1-based, auto-assigned if omitted)
+- `parent_decision_id` (UUID, optional — explicit causal lineage)
+
+### 7.2 Chain proofs
+
+`decision_chain_proofs` rows. Each non-first step gets:
+
+- `chain_integrity_hash` = sha256 over
+  `{ chain_id, step, decision_integrity_hash, previous_chain_hash }`
+- `chain_signature` (Ed25519 over the chain integrity hash)
+
+This makes the chain hash-linked: edit any step's receipt and every later
+step's `chain_integrity_hash` changes.
+
+### 7.3 Chain seal
+
+`decision_chain_seals` rows:
+
+- `seal_hash` = sha256 over
+  `{ chain_id, sealed_at, steps_count, ALL receipt_hashes (ordered) }`
+- `seal_signature` (Ed25519 over seal hash)
+- `sealed_at` (ISO 8601)
+
+The seal is a **completeness proof** — adding, removing or reordering steps
+breaks the seal. A sealed chain is a closed proof of the entire workflow.
+
+### 7.4 Verification result type
+
+`ChainVerificationResult` exposes `chain_proof: 'full' | 'partial' | 'none' |
+'failed'`, per-step status, warnings (`gap`, `parent_not_in_chain`,
+`parent_step_not_lower`, `chain_id_mismatch`, `proof_boundary`) and seal
+status.
+
+## 8. Decision Outcomes (post-decision tracking)
+
+Separate from the receipt itself. `decision_outcomes` rows:
+
+```
+status              'accepted' | 'overridden' | 'escalated' | 'expired' | 'abandoned'
+final_action        'ALLOW' | 'DENY' | 'NO_ACTION' | null   (only meaningful on override)
+source_type         'human' | 'external_system' | 'agent'
+reported_by         string
+reported_at         ISO 8601
+resolution_reason   string?
+notes               string?
+```
+
+Use on UI / detail surfaces. **Do not market** as part of the receipt; it is
+an audit-grade post-hoc annotation.
+
+## 9. Audit Trail
+
+Append-only, hash-chained. Each event carries:
+
+- `previous_hash`
+- per-event `integrity_hash` = sha256 over
+  `{ action, entity_type, entity_id, actor_id, tenant_id, changes, timestamp, previous_hash }`
+
+UPDATE / DELETE on audit rows are denied at the row level by DB triggers. A
+`decision_recorded` audit event is written on every record.
+
+## 10. Verification Bundle
+
+A self-describing tar / JSON archive that lets a third party verify a receipt
+offline. See also the standalone *Verification Bundle* page; this section
+focuses on the contract relevant to the receipt.
+
+### 10.1 Manifest (`bundle_manifest.json`)
+
+```
+version                        '1'   (locked; v2+ additive)
+canonicalization_profile       'meshqu-canonical/v0'
+signature_alg                  'ed25519'
+evaluator_version              string (stamped)
+exported_at                    ISO 8601
+decision_id                    UUID
+chain_id                       UUID | null
+files[]                        BundleFileEntry[]   { path, sha256, required, size? }
+manifest_digest                sha256(canonical(manifest minus manifest_digest))
+```
+
+### 10.2 Files in a bundle
+
+| File | Required | Purpose |
+| --- | --- | --- |
+| `bundle_manifest.json` | ✓ | Top-level integrity descriptor |
+| `receipt.json` | ✓ | `{ context, result }` |
+| `policy_snapshot.json` | ✓ | `{ id, rules, policy_versions, created_at }` |
+| `trusted_keys.json` | ✓ | Public keys at export time (no private material) |
+| `transparency_proof.json` | optional | Present if anchored |
+| `chain_proof.json` | optional | Present if part of a chain |
+| `chain_seal.json` | optional | Present if chain is sealed |
+| `evidence_manifest.json` | optional | Present if v2 receipt with evidence |
+| `policy_approval_receipts.json` | optional | Present when snapshot has approval-receipt digests |
+
+`trusted_keys.json` is pinned at export time. Rotating signing keys does
+**not** retroactively invalidate already-issued bundles.
+
+### 10.3 Verifier sub-claims
+
+Every relevant sub-claim is reported (not just the first failure). Each has
+`status: 'valid' | 'invalid' | 'not_applicable'` and a
+`failure_codes: string[]`.
+
+| Sub-claim | What it checks | Today's status |
+| --- | --- | --- |
+| `bundle_manifest` | Version/profile/file digests + manifest self-digest | Implemented |
+| `integrity` | `integrity_hash` recomputes correctly (v1 or v2 path by `receipt_schema_version`) | Implemented |
+| `signature` | Ed25519 signature valid against trusted key (v1: bare hash; v2: canonical envelope) | Implemented |
+| `snapshot_replay` | `evaluated_rules_hash` + `policy_snapshot_id` match; v2 also checks `policy_snapshot_digest` | Implemented |
+| `transparency` | DSSE subject digest binding + offline SET; `not_applicable` if anchor lacks new fields | Implemented (offline) |
+| `chain_link` | Hash-linked parent receipt → chain integrity hash | Implemented |
+| `chain_seal` | Seal hash + signature; receipt binding | Implemented |
+| `canonicalization` | Profile match + canonical-form vector tests | Implemented |
+| `evidence` | v2: `evidence_manifest_digest` matches bundled `evidence_manifest.json`; `not_applicable` for v1 or null | Implemented |
+| `approval_lineage` | Per-version approval-receipt digest + ratifier signature + `policy_rules_hash` (string equality) | Implemented (APR-008 / APR-009) |
+
+### 10.4 Failure codes (full list)
+
+```
+bundle.unknown_version
+bundle.unknown_profile
+bundle.file_missing
+bundle.file_digest_mismatch
+bundle.manifest_digest_mismatch
+
+integrity.mismatch
+
+signature.unknown_kid
+signature.invalid
+signature.not_signed
+signature.no_external_trust_root
+
+snapshot_replay.hash_mismatch
+snapshot_replay.evaluator_unavailable
+snapshot_replay.snapshot_id_mismatch
+snapshot_replay.policy_snapshot_digest_mismatch     (v2 only)
+
+transparency.body_subject_mismatch
+transparency.inclusion_proof_invalid
+transparency.inclusion_proof_unverified
+transparency.set_invalid
+transparency.unknown_log_id
+transparency.envelope_decode_failed
+transparency.envelope_body_hash_mismatch
+
+chain_link.hash_mismatch
+chain_link.signature_invalid
+chain_link.receipt_binding_mismatch
+
+chain_seal.hash_mismatch
+chain_seal.signature_invalid
+chain_seal.receipt_binding_mismatch
+
+canonicalization.profile_mismatch
+canonicalization.vector_failure
+
+evidence.digest_mismatch
+evidence.bundled_manifest_invalid
+evidence.custodian_unknown_kid
+evidence.custodian_signature_invalid
+evidence.custodian_signature_malformed
+
+approval_lineage.digest_mismatch
+approval_lineage.signature_invalid
+approval_lineage.unknown_ratifier
+approval_lineage.policy_rules_hash_mismatch
+```
+
+## 11. Public API Surface
+
+All paths under `meshqu-api` (`apps/meshqu-api/src/routes/`):
+
+| Endpoint | Auth | Rate limit | Status |
+| --- | --- | --- | --- |
+| `POST /v1/decisions/evaluate` | API key + tenant | tenant-tier | Implemented |
+| `POST /v1/decisions/record` | API key + tenant | tenant-tier; `idempotency_key` required | Implemented |
+| `POST /v1/decisions/replay` | API key + tenant | tenant-tier | Implemented |
+| `GET /v1/receipts/:decisionId` | **Public, unauth** | 300 req/min per IP | Implemented |
+| `GET /v1/receipts/:decisionId/bundle?format=json\|tar` | Public, unauth | 60 req/min per IP | Implemented; gated by feature flag `MESHQU_BUNDLE_EXPORT_ENABLED` |
+| `GET /v1/chains/:chainId/bundle?format=json\|tar` | Public, unauth | 30 req/min per IP | Implemented |
+
+Public receipt response shape: `{ context, result, chain_id, chain_step }`.
+The API normalises legacy `policy_snapshot_hash` → `evaluated_rules_hash` on
+the way out.
+
+## 12. Storage Model (summary)
+
+- `meshqu.decisions` — receipt rows. Immutability triggers deny UPDATE /
+  DELETE on hash / sig / timestamp fields.
+- `meshqu.decision_chain_proofs` — per-step chain integrity hashes +
+  signatures.
+- `meshqu.decision_chain_seals` — completeness seal per chain.
+- `meshqu.decision_outcomes` — post-decision status (override / escalate /
+  etc).
+- `meshqu.policy_snapshots` — frozen policy bundles.
+- `meshqu.policy_approval_receipts` — ratifier-signed approval records.
+- `meshqu.audit_events` — append-only, hash-chained audit log.
+
+Tenant isolation is 4-layer: header → app-level WHERE → `withTenant()` SET
+LOCAL → Postgres RLS with FORCE.
+
+## 13. Key Management
+
+- Signing key kid format: `msk_v{N}` (e.g. `msk_v1`).
+- Algorithm: Ed25519 only.
+- **Key rotation does not retroactively invalidate bundles** — each bundle
+  pins its trusted keys at export time in `trusted_keys.json`.
+- The /verify demo uses bundled `msk_demo_v1`; production verification uses
+  `trusted_keys.json` from the bundle.
+- Custodian (evidence) keys and ratifier (approval) keys are supplied to the
+  verifier out-of-band via `custodianTrustedRoots` / `ratifierTrustedRoots`.
+  MeshQu never holds them.
+
+## 14. What Is and Isn't Bound — quick reference
+
+**Bound into v1 `integrity_hash`:** decision, violations, context (minus
+source_artifact metadata), `source_artifact.hash`, `action.{type,
+reference_id}`, `policy_snapshot_id`, `evaluated_rules_hash`, `timestamp`.
+
+**Additionally bound into v2 `integrity_hash`:** `receipt_schema_version`,
+`policy_snapshot_digest`, `evidence_manifest_digest` (or null).
+
+**Additionally bound into the v2 signed envelope (not the integrity hash):**
+`signature_kid`, `signature_algorithm`, `timestamp`.
+
+**Stored on the receipt but NOT hashed:** `transparency_anchor`, chain
+linkage, `evaluation_time_ms`, `rules_evaluated`, `rules_na`, `na_rules`,
+`action.metadata`, source artifact metadata (type / filename / byte_size),
+the structured `actor` row, decision outcomes.
+
+**Bound transitively via `policy_snapshot_digest`:** all
+`policy_versions[i].approval_receipt_digest` entries (when present), all
+`policy_versions[i].policy_rules_hash` entries — therefore approval lineage.
+
+## 15. Status Matrix
+
+| Capability | Status | Public-claim guidance |
+| --- | --- | --- |
+| Ed25519 signing of receipts | Implemented | "Signed against published keys" — safe |
+| Offline integrity + signature verification | Implemented | "Verifiable offline / no MeshQu API" — safe |
+| Snapshot replay (deterministic re-evaluation) | Implemented | "Replayable: same inputs and snapshot → same result" — safe |
+| Self-contained verification bundle | Implemented | "Portable" / "self-contained proof" — safe |
+| Chain linkage + chain integrity hash | Implemented | "Chainable" — safe |
+| Chain seal | Implemented | "Sealed chain" / "completeness proof" — safe |
+| Evidence manifest (digest + custodian sigs) | Implemented (v2) | "Evidence digest / evidence references" — safe. **Never imply MeshQu stores evidence content.** |
+| Source artifact hash binding | Implemented | "Document binding" — safe |
+| Rekor anchoring | Implemented | "Anchored to a public transparency log" — safe with footnote |
+| Offline SET verification | Implemented | "Verifiable without contacting the log" — safe |
+| Online Rekor inclusion-proof lookup | **Planned** | Don't claim live witness verification |
+| Approval lineage verified by bundle (per-version digest + ratifier signature + rules-hash) | Implemented (APR-008 / APR-009 / APR-010) | "Approval lineage verified" — safe. Requires `ratifierTrustedRoots` supplied out-of-band. |
+| Recursive governance (`governance_source.level > 0`) | **Planned** (`level` always 0) | Don't market hierarchical / tiered governance |
+| RFC 8785 canonical JSON | **Planned** (`v1` profile) | Today the spec is `meshqu-canonical/v0` |
+| Decision outcome tracking | Implemented | Safe on detail UIs; not part of the signed receipt |
+| Audit trail (hash-chained, immutable) | Implemented | Safe |
+
+## 16. Glossary — safe public terms (and what to avoid)
+
+| Use | Avoid | Why |
+| --- | --- | --- |
+| **Decision Receipt** | "Decision token" | Receipt is the canonical product noun |
+| **Signed** | "Tamper-proof" | We claim *tamper-evident* (any change is detected), not impossible-to-tamper |
+| **Verifiable offline** | "Trustless" | We still trust the bundled public keys |
+| **Replayable** | "Reversible" | Replay reproduces the verdict; nothing is undone |
+| **Portable** | "Decentralised" | Self-contained bundle ≠ decentralisation |
+| **Independently verifiable** | "Permissionless" | We provide a verifier and a bundle format; no permission, but not permissionless infra |
+| **Chainable / Sealed chain** | "Workflow ledger" | Chain is hash-linked; "ledger" implies more than we ship |
+| **Evidence references / Evidence digest** | "Evidence stored" | We do not store evidence content |
+| **Anchored to a public transparency log** | "Notarised on-chain" | Rekor ≠ blockchain |
+| **Snapshot of policy** | "Frozen ledger" | Snapshot is the right primitive |
+| **Actor** (human / automated) | "Approver" | Receipt records *who acted*, not necessarily who approved |
+| **Ratifier** (in approval receipts) | "Auditor" | Auditor is the wrong role |
+| **Custodian** (in evidence manifests) | "Issuer" | Custodian = external system attesting to evidence |
+| **`receipt_schema_version` v1 / v2** | "Receipt protocol v2" | Not a protocol; just envelope schema |
+| **`integrity_hash`** | "Fingerprint" | OK casually but not in /spec |
+| **Verification bundle** | "Proof package" | Use the canonical product noun |
+| **Approval lineage verified** | "Policy provenance proven" | Lineage *is* verified per-version, but "provenance proven" overstates the claim |
+| **Governance** | "Tiered governance" | Recursive governance is planned |
+
+## 17. The two highest-risk public-copy traps
+
+1. **Implying evidence content custody.** The product is reference-based. Any
+   public surface that says "MeshQu stores the policy, context, evidence and
+   outcome" overshoots. Use *evidence references* / *evidence digests*. The
+   single artefact on the receipt that binds content (`source_artifact.hash`)
+   binds **only the hash** — type, filename and size are not bound.
+
+2. **Implying live transparency-log verification.** Anchoring to Rekor and
+   offline SET verification are real. **Online inclusion-proof lookup
+   against a live witness is not implemented yet.** Don't say "checked
+   against the live transparency log" or "live witness verification".
+   "Anchored to a public transparency log; verifiable offline against a
+   pinned log key" is accurate.
