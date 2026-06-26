@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.3",
+  "openapi": "3.1.0",
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
@@ -85,7 +85,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1Health"
       }
     },
     "/v1/ready": {
@@ -513,7 +514,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1Ready"
       }
     },
     "/v1/policies": {
@@ -1338,7 +1340,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1Policies"
       },
       "post": {
         "summary": "Create policy",
@@ -2561,7 +2564,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1Policies"
       }
     },
     "/v1/policies/validate": {
@@ -2986,7 +2990,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1PoliciesValidate"
       }
     },
     "/v1/policies/{id}": {
@@ -3769,7 +3774,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1PoliciesById"
       },
       "patch": {
         "summary": "Update policy",
@@ -4635,7 +4641,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "patchV1PoliciesById"
       },
       "delete": {
         "summary": "Delete policy",
@@ -4697,7 +4704,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "deleteV1PoliciesById"
       }
     },
     "/v1/policies/{id}/versions": {
@@ -5620,7 +5628,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1PoliciesByIdVersions"
       },
       "get": {
         "summary": "List policy versions",
@@ -6121,7 +6130,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1PoliciesByIdVersions"
       }
     },
     "/v1/policies/{id}/versions/{version}/ratify": {
@@ -6863,7 +6873,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1PoliciesByIdVersionsByVersionRatify"
       }
     },
     "/v1/policies/{id}/versions/{version}/submit": {
@@ -7489,7 +7500,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1PoliciesByIdVersionsByVersionSubmit"
       }
     },
     "/v1/policies/{id}/versions/{version}/reject": {
@@ -8138,7 +8150,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1PoliciesByIdVersionsByVersionReject"
       }
     },
     "/v1/policies/{id}/versions/{version}/recall": {
@@ -8764,7 +8777,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1PoliciesByIdVersionsByVersionRecall"
       }
     },
     "/v1/policies/{id}/decisions": {
@@ -10003,7 +10017,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1PoliciesByIdDecisions"
       }
     },
     "/v1/policies/{id}/versions/{version}": {
@@ -10933,7 +10948,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "patchV1PoliciesByIdVersionsByVersion"
       },
       "delete": {
         "summary": "Discard draft version",
@@ -11082,7 +11098,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "deleteV1PoliciesByIdVersionsByVersion"
       },
       "get": {
         "summary": "Get policy version",
@@ -11589,7 +11606,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1PoliciesByIdVersionsByVersion"
       }
     },
     "/v1/policy-groups": {
@@ -11770,7 +11788,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1PolicyGroups"
       },
       "post": {
         "summary": "Create policy group",
@@ -11968,7 +11987,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1PolicyGroups"
       }
     },
     "/v1/policy-groups/{id}": {
@@ -12102,7 +12122,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1PolicyGroupsById"
       },
       "patch": {
         "summary": "Update policy group",
@@ -12262,7 +12283,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "patchV1PolicyGroupsById"
       },
       "delete": {
         "summary": "Delete policy group",
@@ -12363,7 +12385,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "deleteV1PolicyGroupsById"
       }
     },
     "/v1/policy-groups/{id}/policies": {
@@ -12568,7 +12591,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1PolicyGroupsByIdPolicies"
       }
     },
     "/v1/decisions/evaluate": {
@@ -13498,7 +13522,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1DecisionsEvaluate"
       }
     },
     "/v1/decisions/record": {
@@ -16462,7 +16487,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1DecisionsRecord"
       }
     },
     "/v1/decisions": {
@@ -17681,7 +17707,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1Decisions"
       }
     },
     "/v1/decisions/{id}": {
@@ -18936,7 +18963,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1DecisionsById"
       }
     },
     "/v1/decisions/{id}/outcome": {
@@ -19359,7 +19387,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1DecisionsByIdOutcome"
       }
     },
     "/v1/decisions/{id}/replay": {
@@ -20968,7 +20997,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1DecisionsByIdReplay"
       }
     },
     "/v1/decisions/chain/{chainId}/seal": {
@@ -21214,7 +21244,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1DecisionsChainByChainIdSeal"
       },
       "get": {
         "summary": "Get chain seal",
@@ -21341,7 +21372,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1DecisionsChainByChainIdSeal"
       }
     },
     "/v1/decisions/chain/{chainId}/verify": {
@@ -21626,7 +21658,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1DecisionsChainByChainIdVerify"
       }
     },
     "/v1/decisions/stream": {
@@ -21648,7 +21681,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1DecisionsStream"
       }
     },
     "/v1/alerts/subscriptions": {
@@ -21744,7 +21778,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AlertsSubscriptions"
       },
       "post": {
         "summary": "Create subscription",
@@ -21979,7 +22014,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1AlertsSubscriptions"
       }
     },
     "/v1/alerts/subscriptions/{id}": {
@@ -22043,7 +22079,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "deleteV1AlertsSubscriptionsById"
       }
     },
     "/v1/alerts/deliveries": {
@@ -22281,7 +22318,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AlertsDeliveries"
       }
     },
     "/v1/alerts/deliveries/stats": {
@@ -22321,7 +22359,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AlertsDeliveriesStats"
       }
     },
     "/v1/alerts/deliveries/{id}": {
@@ -22521,7 +22560,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AlertsDeliveriesById"
       }
     },
     "/v1/alerts/deliveries/{id}/retry": {
@@ -22760,7 +22800,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1AlertsDeliveriesByIdRetry"
       }
     },
     "/v1/alerts": {
@@ -22969,7 +23010,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1Alerts"
       }
     },
     "/v1/alerts/{id}": {
@@ -23141,7 +23183,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AlertsById"
       }
     },
     "/v1/alerts/{id}/acknowledge": {
@@ -23333,7 +23376,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1AlertsByIdAcknowledge"
       }
     },
     "/v1/api-keys": {
@@ -23530,7 +23574,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1ApiKeys"
       },
       "post": {
         "summary": "Create API key",
@@ -23818,7 +23863,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1ApiKeys"
       }
     },
     "/v1/api-keys/{id}": {
@@ -24011,7 +24057,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1ApiKeysById"
       },
       "delete": {
         "summary": "Revoke API key",
@@ -24073,7 +24120,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "deleteV1ApiKeysById"
       }
     },
     "/v1/audit-log": {
@@ -24722,7 +24770,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AuditLog"
       }
     },
     "/v1/audit-log/entity/{type}/{id}": {
@@ -25088,7 +25137,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AuditLogEntityByTypeById"
       }
     },
     "/v1/audit-log/verify": {
@@ -25204,7 +25254,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1AuditLogVerify"
       }
     },
     "/metrics": {
@@ -25255,7 +25306,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getMetrics"
       }
     },
     "/v1/metrics/overview": {
@@ -25295,7 +25347,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1MetricsOverview"
       }
     },
     "/v1/metrics/overview/groups/{id}": {
@@ -25371,7 +25424,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1MetricsOverviewGroupsById"
       }
     },
     "/v1/metrics/policies/{id}": {
@@ -25534,7 +25588,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1MetricsPoliciesById"
       }
     },
     "/v1/fields": {
@@ -25651,7 +25706,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1Fields"
       }
     },
     "/v1/settings": {
@@ -25720,7 +25776,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1Settings"
       },
       "patch": {
         "summary": "Update tenant settings",
@@ -25806,7 +25863,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "patchV1Settings"
       }
     },
     "/v1/rule-creation-logs": {
@@ -25963,7 +26021,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1RuleCreationLogs"
       }
     },
     "/v1/.well-known/signing-keys": {
@@ -26026,7 +26085,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1WellKnownSigningKeys"
       }
     },
     "/v1/forms": {
@@ -26403,7 +26463,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1Forms"
       },
       "get": {
         "summary": "List forms",
@@ -26616,7 +26677,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1Forms"
       }
     },
     "/v1/forms/{formId}": {
@@ -26827,7 +26889,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1FormsByFormId"
       },
       "patch": {
         "summary": "Update form",
@@ -27164,7 +27227,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "patchV1FormsByFormId"
       },
       "delete": {
         "summary": "Delete form",
@@ -27227,7 +27291,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "deleteV1FormsByFormId"
       }
     },
     "/v1/forms/{formId}/schema": {
@@ -27432,7 +27497,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1FormsByFormIdSchema"
       }
     },
     "/v1/forms/{formId}/api-contract": {
@@ -27539,7 +27605,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1FormsByFormIdApiContract"
       }
     },
     "/v1/forms/{formId}/submit": {
@@ -28070,7 +28137,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1FormsByFormIdSubmit"
       }
     },
     "/v1/forms/{formId}/receipts/{decisionId}": {
@@ -28190,7 +28258,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1FormsByFormIdReceiptsByDecisionId"
       }
     },
     "/v1/receipts/{decisionId}": {
@@ -28301,7 +28370,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1ReceiptsByDecisionId"
       }
     },
     "/v1/receipts/{decisionId}/bundle": {
@@ -28423,7 +28493,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1ReceiptsByDecisionIdBundle"
       }
     },
     "/v1/chains/{chainId}/bundle": {
@@ -28584,7 +28655,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1ChainsByChainIdBundle"
       }
     },
     "/v1/chains/{chainId}/verify": {
@@ -28908,7 +28980,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1ChainsByChainIdVerify"
       }
     },
     "/v1/chains/{chainId}/seal": {
@@ -29016,7 +29089,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1ChainsByChainIdSeal"
       }
     },
     "/v1/dashboard/preferences": {
@@ -29135,7 +29209,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "patchV1DashboardPreferences"
       }
     },
     "/v1/dashboard/activate": {
@@ -29239,7 +29314,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1DashboardActivate"
       }
     },
     "/v1/dashboard/activate/{regulation_code}": {
@@ -29331,7 +29407,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "deleteV1DashboardActivateByRegulationCode"
       }
     },
     "/v1/dashboard/clause/{id}": {
@@ -29544,7 +29621,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1DashboardClauseById"
       }
     },
     "/v1/dashboard/clauses": {
@@ -29601,7 +29679,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1DashboardClauses"
       }
     },
     "/v1/dashboard/group/{group_id}": {
@@ -29794,7 +29873,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1DashboardGroupByGroupId"
       }
     },
     "/v1/dashboard/overview": {
@@ -29877,7 +29957,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1DashboardOverview"
       }
     },
     "/v1/admin/members": {
@@ -29980,7 +30061,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AdminMembers"
       }
     },
     "/v1/admin/members/invite": {
@@ -30098,7 +30180,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1AdminMembersInvite"
       }
     },
     "/v1/admin/members/{user_id}": {
@@ -30221,7 +30304,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "patchV1AdminMembersByUserId"
       },
       "delete": {
         "summary": "Remove a member from this tenant",
@@ -30279,7 +30363,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "deleteV1AdminMembersByUserId"
       }
     },
     "/v1/admin/audit-log": {
@@ -30701,7 +30786,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AdminAuditLog"
       }
     },
     "/v1/admin/audit-log/{id}/verify": {
@@ -30789,7 +30875,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AdminAuditLogByIdVerify"
       }
     },
     "/v1/admin/me": {
@@ -30839,7 +30926,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AdminMe"
       }
     },
     "/v1/admin/api-keys": {
@@ -31036,7 +31124,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AdminApiKeys"
       },
       "post": {
         "summary": "Create API key",
@@ -31324,7 +31413,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1AdminApiKeys"
       }
     },
     "/v1/admin/api-keys/{id}": {
@@ -31517,7 +31607,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AdminApiKeysById"
       },
       "delete": {
         "summary": "Revoke API key",
@@ -31708,7 +31799,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "deleteV1AdminApiKeysById"
       }
     },
     "/v1/admin/tenants": {
@@ -31991,7 +32083,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1AdminTenants"
       },
       "get": {
         "summary": "List active tenants (operator)",
@@ -32055,7 +32148,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getV1AdminTenants"
       }
     },
     "/v1/admin/tenants/{id}/deactivate": {
@@ -32191,7 +32285,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "postV1AdminTenantsByIdDeactivate"
       }
     }
   },
