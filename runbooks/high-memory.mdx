@@ -1,0 +1,36 @@
+---
+title: "Runbook: High Memory Usage"
+description: "MeshQu API process memory is above threshold. Triage steps for on-call operators."
+---
+
+<Info>
+**Audience:** MeshQu on-call operators. This page is the public landing target for the Grafana `MeshQuHighMemoryUsage` alert. The full internal procedure lives in MeshQu's internal incident-response runbook — see the operators pointer at the foot of this page.
+</Info>
+
+## What fired
+
+The API process resident memory crossed its threshold.
+
+| Alert | Condition | For |
+| --- | --- | --- |
+| `MeshQuHighMemoryUsage` (warning) | resident memory > **512 MB** | 5 min |
+
+## Symptoms
+
+- Memory panel climbing toward or past the threshold.
+- May cascade into elevated latency or event-loop lag — cross-check [high-latency](/runbooks/high-latency) and [event-loop-lag](/runbooks/event-loop-lag).
+- In the worst case, an out-of-memory restart of the instance.
+
+## First actions
+
+1. **Confirm trend.** Is memory flat-but-high, or climbing steadily? A steady climb suggests a leak; a plateau may just be elevated load.
+2. **Correlate with traffic and deploys.** A traffic burst raises memory legitimately; a recent deploy that climbs without traffic change suggests a regression. Roll back if onset lines up with a release.
+3. **Check for cascade.** High memory often shows up alongside latency and event-loop lag — treat the cluster of signals together.
+4. **Mitigate.** A controlled restart of the affected instance reclaims memory as a stopgap; it is not a fix. Capture the state first so the root cause can be investigated.
+5. **Escalate** to the platform owner if memory pressure is recurring or platform-side.
+
+## Operators pointer
+
+<Card title="MeshQu operators" icon="shield-halved">
+The full internal runbook — leak diagnostics, restart procedure, and escalation tree — is maintained in MeshQu's internal incident-response documentation and is not published here. On-call operators should follow that internal procedure. Integrators do not need to act on this alert; if API availability is affected, check [status.meshqu.com](https://status.meshqu.com).
+</Card>

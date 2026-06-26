@@ -1,0 +1,37 @@
+---
+title: "Runbook: Critical Alert Spike"
+description: "MeshQu is generating critical decision alerts at an elevated rate. Triage steps for on-call operators."
+---
+
+<Info>
+**Audience:** MeshQu on-call operators. This page is the public landing target for the Grafana `MeshQuCriticalAlertSpike` alert. The full internal procedure lives in MeshQu's internal incident-response runbook — see the operators pointer at the foot of this page.
+</Info>
+
+## What fired
+
+MeshQu is raising **critical-severity decision alerts** (the `ALERT` outcome / critical-severity alert events) faster than usual.
+
+| Alert | Condition | For |
+| --- | --- | --- |
+| `MeshQuCriticalAlertSpike` (warning) | critical alerts generated > **1/sec** | 5 min |
+
+This is a **business-logic** signal. It reflects what tenant policies are flagging, not an infrastructure fault. A surge of critical alerts may itself indicate something real happening in a tenant's traffic.
+
+## Symptoms
+
+- The critical-alert-generation panel is above the threshold line.
+- Tenants subscribed to alert webhooks receive a burst of notifications — a [webhook-backlog](/runbooks/webhook-backlog) may build downstream.
+
+## First actions
+
+1. **This is not a MeshQu fault.** A spike means policies are firing critical alerts. That can be correct (real anomaly in tenant traffic) or a policy misconfiguration.
+2. **Scope it.** One tenant, one policy, one decision type? Concentrate the investigation where the spike originates.
+3. **Correlate with policy changes.** A newly activated policy or a changed alert rule can produce a sudden surge. Check the policy lifecycle timeline.
+4. **Assess downstream impact.** A burst of alerts drives a burst of webhooks — check [webhook-backlog](/runbooks/webhook-backlog) and [webhook-failures](/runbooks/webhook-failures).
+5. **Notify, don't suppress.** If the alerts are legitimate, the tenant needs to know. If they are noise from a misconfigured rule, that is a policy fix the tenant owns — do not silence alerts to clear the signal.
+
+## Operators pointer
+
+<Card title="MeshQu operators" icon="shield-halved">
+The full internal runbook — alert-source attribution, policy correlation, and tenant-notification guidance — is maintained in MeshQu's internal incident-response documentation and is not published here. On-call operators should follow that internal procedure. Integrators receiving unexpected critical alerts should review their active policies and contact [support@meshqu.com](mailto:support@meshqu.com).
+</Card>

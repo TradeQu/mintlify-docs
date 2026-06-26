@@ -1,0 +1,36 @@
+---
+title: "Runbook: Slow Database Queries"
+description: "Database p95 query latency is above threshold. Triage steps for on-call operators."
+---
+
+<Info>
+**Audience:** MeshQu on-call operators. This page is the public landing target for the Grafana `MeshQuDatabaseSlowQueries` alert. The full internal procedure lives in MeshQu's internal incident-response runbook — see the operators pointer at the foot of this page.
+</Info>
+
+## What fired
+
+Database query latency at the p95 percentile crossed its threshold.
+
+| Alert | Condition | For |
+| --- | --- | --- |
+| `MeshQuDatabaseSlowQueries` (warning) | p95 query duration > **100ms** | 5 min |
+
+## Symptoms
+
+- Slow database queries surface as elevated API request latency — cross-check [high-latency](/runbooks/high-latency).
+- The DB query-duration panel is above the threshold line.
+- Evaluate / record calls that touch persistence are slow.
+
+## First actions
+
+1. **Confirm sustained vs transient.** A migration, a backup, or a one-off heavy query can spike p95 briefly.
+2. **Check load.** Is query volume unusually high, or are individual queries slow? Distinguish a throughput problem from a per-query problem.
+3. **Check the database health.** Connection saturation, CPU, and lock contention are the usual culprits for broad slowdowns.
+4. **Correlate with deploys.** A recent change to a query path or an index can regress query timing. Roll back if onset lines up.
+5. **Escalate to platform.** If the database itself is degraded (provider-side), engage the database/platform owner per the internal escalation path.
+
+## Operators pointer
+
+<Card title="MeshQu operators" icon="shield-halved">
+The full internal runbook — slow-query diagnostics, index review, and escalation tree — is maintained in MeshQu's internal incident-response documentation and is not published here. On-call operators should follow that internal procedure. Integrators seeing slow API responses should check [status.meshqu.com](https://status.meshqu.com) and contact [support@meshqu.com](mailto:support@meshqu.com).
+</Card>
