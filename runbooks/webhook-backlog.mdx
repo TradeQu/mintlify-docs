@@ -1,0 +1,40 @@
+---
+title: "Runbook: Webhook Delivery Backlog"
+description: "Pending webhook deliveries are accumulating beyond threshold. Triage steps for on-call operators."
+---
+
+<Info>
+**Audience:** MeshQu on-call operators. This page is the public landing target for the Grafana `MeshQuWebhookDeliveryBacklog` alert. The full internal procedure lives in MeshQu's internal incident-response runbook — see the operators pointer at the foot of this page.
+</Info>
+
+## What fired
+
+Pending webhook deliveries are accumulating faster than they drain.
+
+| Alert | Condition | For |
+| --- | --- | --- |
+| `MeshQuWebhookDeliveryBacklog` (warning) | > **100** pending deliveries in a 10-minute window | 10 min |
+
+## Symptoms
+
+- Tenants report delayed alert webhooks.
+- The pending-deliveries panel is climbing rather than draining.
+- Webhook latency (enqueue → delivered) is rising.
+
+## First actions
+
+1. **Confirm direction.** Is the backlog still growing, plateaued, or draining? A transient spike that is already draining may need no action.
+2. **Check delivery health.** A backlog often pairs with elevated failures — cross-check the [webhook-failures](/runbooks/webhook-failures) signal. Failing endpoints get retried, which inflates the queue.
+3. **Check the worker path.** Confirm the delivery worker is running and processing. A stalled worker is the classic cause of a monotonically growing backlog.
+4. **Scope by destination.** One slow or unreachable tenant endpoint can dominate the queue. Identify whether the backlog is concentrated on a single destination.
+5. **Check resource pressure.** Cross-reference [high-memory](/runbooks/high-memory) and [event-loop-lag](/runbooks/event-loop-lag) — resource starvation slows delivery throughput.
+
+<Note>
+Webhooks are an at-least-once notification channel, not a system of record. A delivery backlog delays notifications; it does not lose or alter any recorded decision. Decisions and receipts remain durable and independently verifiable regardless of webhook state.
+</Note>
+
+## Operators pointer
+
+<Card title="MeshQu operators" icon="shield-halved">
+The full internal runbook — worker diagnostics, queue inspection, and remediation steps — is maintained in MeshQu's internal incident-response documentation and is not published here. On-call operators should follow that internal procedure. Integrators expecting webhooks that have not arrived should contact [support@meshqu.com](mailto:support@meshqu.com).
+</Card>

@@ -1,0 +1,37 @@
+---
+title: "Runbook: No Traffic"
+description: "The MeshQu API has received no requests over the alert window. Triage steps for on-call operators."
+---
+
+<Info>
+**Audience:** MeshQu on-call operators. This page is the public landing target for the Grafana `MeshQuNoTraffic` alert. The full internal procedure lives in MeshQu's internal incident-response runbook — see the operators pointer at the foot of this page.
+</Info>
+
+## What fired
+
+The API request rate dropped to zero for the alert window.
+
+| Alert | Condition | For |
+| --- | --- | --- |
+| `MeshQuNoTraffic` (warning) | request rate == **0** | 10 min |
+
+Zero traffic can mean a silent outage (requests are failing before they are counted) **or** a benign quiet period in early access. Both are worth confirming.
+
+## Symptoms
+
+- The request-rate panel reads zero.
+- No corresponding error spike (because requests are not arriving at all).
+
+## First actions
+
+1. **Distinguish outage from quiet.** In early access, low-traffic windows are normal. Confirm whether the API is actually reachable before treating this as an outage.
+2. **Synthetic check.** Make a known-good request (e.g. a health check). If it succeeds and is counted, the service is up and traffic is genuinely quiet.
+3. **Check the ingress path.** If the synthetic check fails, the problem is upstream — DNS, load balancer, gateway, or a total instance failure. Cross-check [api-down](/runbooks/api-down).
+4. **Check the metrics path.** A broken metrics pipeline can report zero traffic while the API serves normally. Verify the scrape is healthy.
+5. **Escalate** to a real incident only once an outage (not a quiet period or a monitoring gap) is confirmed.
+
+## Operators pointer
+
+<Card title="MeshQu operators" icon="shield-halved">
+The full internal runbook — synthetic-check procedure, ingress diagnostics, and escalation tree — is maintained in MeshQu's internal incident-response documentation and is not published here. On-call operators should follow that internal procedure. If you are an integrator unable to reach the API, contact [support@meshqu.com](mailto:support@meshqu.com).
+</Card>

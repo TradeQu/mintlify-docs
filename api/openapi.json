@@ -29985,7 +29985,7 @@
     },
     "/v1/admin/members/invite": {
       "post": {
-        "summary": "Invite an existing Supabase user to this tenant",
+        "summary": "Invite an existing user to this tenant",
         "tags": [
           "Admin"
         ],
@@ -29998,7 +29998,7 @@
                 "properties": {
                   "user_id": {
                     "format": "uuid",
-                    "description": "Existing Supabase user id",
+                    "description": "Existing user id",
                     "type": "string"
                   },
                   "role": {

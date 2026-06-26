@@ -1,0 +1,39 @@
+---
+title: "Runbook: High Latency"
+description: "MeshQu API p95 request latency is above its SLO threshold. Triage steps for on-call operators."
+---
+
+<Info>
+**Audience:** MeshQu on-call operators. This page is the public landing target for the Grafana `MeshQuHighLatency` / `MeshQuElevatedLatency` alerts. The full internal procedure lives in MeshQu's internal incident-response runbook — see the operators pointer at the foot of this page.
+</Info>
+
+## What fired
+
+The MeshQu API's p95 request latency crossed an SLO threshold.
+
+| Alert | Condition | For |
+| --- | --- | --- |
+| `MeshQuHighLatency` (critical) | p95 request duration > **500ms** | 5 min |
+| `MeshQuElevatedLatency` (warning) | p95 request duration > **250ms** | 10 min |
+
+The latency SLO target is **p95 < 100ms** over a 5-minute window.
+
+## Symptoms
+
+- Evaluate / record calls are slow to return.
+- Clients report timeouts or sluggish responses from `api.meshqu.com`.
+- The p95 latency panel on the MeshQu API dashboard is above the threshold line.
+
+## First actions
+
+1. **Confirm it's real.** A traffic burst or a deploy mid-flight can spike p95 briefly. Check whether latency is sustained or already recovering.
+2. **Scope it.** Is it one route or system-wide? Narrow by route to find which path is slow.
+3. **Check downstream timing.** Database query latency is the most common contributor — see the [slow-queries](/runbooks/slow-queries) runbook if DB timing is also elevated.
+4. **Check resource pressure.** Elevated memory or event-loop lag can cascade into request latency — cross-check the [high-memory](/runbooks/high-memory) and [event-loop-lag](/runbooks/event-loop-lag) signals.
+5. **Check recent changes.** Correlate onset with the most recent deploy. Roll back if it lines up.
+
+## Operators pointer
+
+<Card title="MeshQu operators" icon="shield-halved">
+The full internal runbook — diagnostic queries, escalation tree, and remediation steps — is maintained in MeshQu's internal incident-response documentation and is not published here. On-call operators should follow that internal procedure. Integrators seeing slow responses should contact [support@meshqu.com](mailto:support@meshqu.com) with the `correlation_id` from a slow response.
+</Card>

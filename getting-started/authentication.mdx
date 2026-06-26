@@ -21,11 +21,11 @@ Each key has:
 - **Name** — a human-readable label for audit trails.
 - **Scopes** — the set of permissions the key grants (see below).
 - **Expiry** (optional) — an `expires_at` timestamp after which the key is rejected.
-- **Prefix/suffix** — a safe fragment (e.g. `mqu_...ai4`) shown in dashboards for identification.
+- **Prefix/suffix** — a safe fragment (e.g. `mqu_...c123`) shown in dashboards for identification.
 
 <Note>
   Keys are `mqu_` followed by a base64url-encoded random token (e.g.
-  `mqu_tYrzhhHfchPhHvffuQAF5z0JpJK9pWw__3L1Qk_-ai4`). There is no
+  `mqu_EXAMPLEKEYdonotuse_replace_with_ownx_abc123`). There is no
   environment segment such as `_live_` or `_test_` — a single key format is
   used everywhere.
 </Note>
@@ -109,7 +109,7 @@ Response (key shown once):
     "id": "key_uuid",
     "tenant_id": "tenant_uuid",
     "name": "trade-service-prod",
-    "key_preview": "mqu_...-ai4",
+    "key_preview": "mqu_...c123",
     "scopes": ["decisions:evaluate", "decisions:write"],
     "expires_at": null,
     "last_used_at": null,
@@ -119,7 +119,7 @@ Response (key shown once):
     "revoked_at": null,
     "revoked_by": null
   },
-  "plaintext_key": "mqu_tYrzhhHfchPhHvffuQAF5z0JpJK9pWw__3L1Qk_-ai4"
+  "plaintext_key": "mqu_EXAMPLEKEYdonotuse_replace_with_ownx_abc123"
 }
 ```
 
