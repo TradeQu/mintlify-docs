@@ -26,7 +26,7 @@ A **decision context** is the payload you send to MeshQu describing what is abou
 A **policy** is a named, versioned governance configuration that MeshQu evaluates against incoming decision contexts. Policies have:
 
 - A unique `code` (human-readable identifier).
-- An `advisory_mode` flag: when enabled, `DENY` decisions are downgraded to `ALERT` for observation.
+- A `shadow_mode` flag: when enabled, `DENY` decisions are downgraded to `ALERT` for observation.
 - One or more **versions**. Only the active version is used during evaluation.
 
 You manage policies via the API or the MeshQu Console.

@@ -1,34 +1,40 @@
 ---
 title: "SDK Overview"
-description: "Official TypeScript/JavaScript SDK"
+description: "The REST API is the supported integration surface; the TypeScript client is early access"
 ---
 
 <Warning>
-  The MeshQu SDK is in early access and not yet publicly distributed. Contact [contact@meshqu.com](mailto:contact@meshqu.com) for access.
+  **The REST API is the primary, supported way to integrate MeshQu.** The TypeScript client (`@meshqu/client`) is an early-access convenience wrapper. It is **not published to npm**, its surface is **not stable**, and it may change without notice. Build against the [REST API](../api/reference) for any production integration; contact [contact@meshqu.com](mailto:contact@meshqu.com) for early access to the client.
 </Warning>
 
-MeshQu provides an official TypeScript/JavaScript SDK for integrating with the API.
+The **REST API** is the integration surface MeshQu supports. Every capability — evaluate, record, policies, alerts, webhooks — is reachable over plain HTTP with two headers, from any language. See the [API Reference](../api/reference).
+
+For internal Node.js and TypeScript usage we also maintain a thin convenience client, `@meshqu/client`, that wraps the same REST endpoints. It is offered as **early access** only.
 
 | Package | Language | Status |
 | --- | --- | --- |
-| `@meshqu/client` | TypeScript / JavaScript | Early access — contact us |
+| `@meshqu/client` | TypeScript / JavaScript | Early access — not on npm, surface may change |
 
-The SDK handles:
+The client is a convenience wrapper around the REST API. It handles:
 
 - Authentication header injection.
 - Tenant header injection.
 - Typed request and response objects.
-- Automatic error mapping to typed exception classes.
-- Configurable timeouts and retries.
+- Error mapping to exception classes.
+- Timeout and retry options.
 
-## When to use the SDK vs. raw HTTP
+<Warning>
+  These conveniences (typed objects, exception classes, timeout/retry options) are **not a stability contract**. The client surface is early access and may change in any release. The REST contract is the surface to depend on.
+</Warning>
 
-Use the **SDK** when you are working in a Node.js or TypeScript environment. It removes boilerplate and provides compile-time type safety.
+## When to use the client vs. the REST API
 
-Use **raw HTTP** when you are calling from a language without an official SDK, or from infrastructure tooling (CI pipelines, shell scripts, etc.).
+The **REST API** is the right choice for any production integration, and the only choice from a language other than TypeScript or from infrastructure tooling (CI pipelines, shell scripts, etc.).
+
+The TypeScript **client** can remove boilerplate inside a Node.js or TypeScript codebase during early access — but treat its surface as provisional and pin a known-good version, since it is not published to npm and may change without notice.
 
 ## Other languages
 
-A Python SDK is coming soon. In the meantime, use the REST API directly with `httpx` or `requests`. See the [API Reference](../api/reference) for endpoint details.
+There is no official SDK for other languages. Use the REST API directly — for example with `httpx` or `requests` in Python. See the [API Reference](../api/reference) for endpoint details.
 
-Additional SDKs for other languages are planned depending on demand. If you need SDK support for a specific language, contact [contact@meshqu.com](mailto:contact@meshqu.com).
+If you need a purpose-built SDK for a specific language, contact [contact@meshqu.com](mailto:contact@meshqu.com).
