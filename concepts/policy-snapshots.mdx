@@ -1,0 +1,104 @@
+---
+title: "Policy Snapshots"
+description: "How MeshQu freezes the exact rules that governed a decision, so an old decision can always be explained against the rules that were actually in effect."
+---
+
+A **policy snapshot** is an immutable copy of the rules that governed a single decision, captured at evaluation time. Policies evolve — thresholds move, rules are added, conditions are refined — but a snapshot freezes the state that was actually in effect when MeshQu decided. That is what lets you answer "why was *this* approved, six months ago?" against the rules that applied then, not the rules that apply now.
+
+> **Mental model:** a policy is a living document with a version history; a snapshot is a photograph of the exact rules used for one decision. The decision pins the photograph, not the document.
+
+<Info>
+This page is about the **frozen rule state** behind a decision. For the human-facing version *lifecycle* — drafts, maker-checker review, ratification, and the active-version model — see [Policy Lifecycle](/concepts/policy-lifecycle). For how a decision replays against its snapshot, see [Snapshot Pinning](/concepts/snapshot-pinning).
+</Info>
+
+## Why snapshots exist
+
+Consider a policy that changes between a decision and an audit:
+
+```
+Day 1   Policy v1 — allow transactions up to $100,000
+Day 1   $75,000 transaction evaluated → ALLOW
+Day 30  Policy v2 — allow only up to $50,000
+Day 90  Auditor: "why was the $75,000 transaction allowed?"
+```
+
+Without a frozen snapshot, re-evaluating against the *current* policy (v2) would wrongly return `DENY`, and the original decision would be unreproducible. The snapshot makes the Day-1 rules permanently available, so the decision is always explainable on its own terms.
+
+## What a snapshot binds
+
+A snapshot is content-addressed: its identity is derived from the rules it contains, not from a sequential version number alone.
+
+| Field | Description |
+| --- | --- |
+| `id` | UUID. The stable reference recorded on the decision as `policy_snapshot_id`. |
+| `snapshot_hash` | SHA-256 over the canonical rules **plus** the set of policy versions they came from. |
+| `rules` | The frozen rules that governed the decision. |
+| `policy_versions` | Which policy version(s) contributed, each with its own per-version rules hash (and approval-receipt digest when ratified). |
+| `created_at` | When the snapshot was first created. |
+
+Only **behavioural** rule fields are hashed: `code`, `condition`, `severity`, and `when` (when present). Documentation-style metadata — a rule's `name`, `description`, or `source_ref` — is deliberately excluded, so editing a rule's prose does not invalidate receipts that reference the snapshot. Inactive rules are excluded entirely.
+
+<Note>
+Two rule sets that differ only in their `when` clauses hash **differently** — conditional applicability is behaviour, so it is bound. Two that differ only in a `description` hash **the same** — prose is not behaviour.
+</Note>
+
+## Content addressing and deduplication
+
+Because identity is derived from content, identical rules produce an identical hash. If a later policy version reverts to a previously-seen rule set, MeshQu reuses the existing snapshot rather than storing a duplicate:
+
+```
+Policy v1: rules = [A, B]    → snapshot hash X
+Policy v2: rules = [A, B, C] → snapshot hash Y   (new)
+Policy v3: rules = [A, B]    → snapshot hash X   (reuses v1's snapshot)
+```
+
+The snapshot hash binds **both** the rule content and the policy-version attribution it was derived from. That distinction matters for audit: reverting to byte-identical rules on a *different* policy version still yields a distinguishable snapshot, so the version lineage of every decision is preserved rather than collapsed.
+
+<Note>
+Use **both** identifiers for what each is good at. The version number ("this used policy v3") is human-readable lineage. The snapshot hash is content-addressable, tamper-evident proof that the rules weren't altered after the fact. MeshQu keeps both on every decision.
+</Note>
+
+## Immutability
+
+Snapshots are written once and never modified. This is enforced at two layers:
+
+- **By construction** — a snapshot is created via a find-or-create path. If a matching snapshot already exists for the tenant, it is reused; otherwise a new one is written. Existing rows are never updated.
+- **At the database** — an immutability trigger rejects every `UPDATE` and `DELETE` on the snapshot table. A privileged operator cannot silently rewrite a snapshot's rules.
+
+This guarantees three properties auditors rely on:
+
+| Property | Guarantee |
+| --- | --- |
+| Same `policy_snapshot_id` | Always returns the same rules. |
+| Same `snapshot_hash` | Always means the same rule content. |
+| Historical decisions | Always reproducible against the rules that governed them. |
+
+<Warning>
+If you need to change the rules a policy enforces, create a **new policy version** — never attempt to alter an existing snapshot. A snapshot is a record of what *was* decided, not a place to store what you want to decide next. See [Policy Lifecycle](/concepts/policy-lifecycle).
+</Warning>
+
+## Snapshot, version, and policy
+
+Three layers, different mutability:
+
+| Concept | Mutability | Purpose |
+| --- | --- | --- |
+| **Policy** | Mutable metadata | Container for a version history. |
+| **Policy version** | Immutable once superseded | A specific revision of the rules; only the active version evaluates traffic. |
+| **Policy snapshot** | Immutable | The frozen rule state pinned to a decision. |
+
+## Snapshots in the receipt
+
+In **v2 receipts**, the snapshot is bound into the cryptographic proof two ways:
+
+- `policy_snapshot_id` — the UUID, identifying *which* snapshot.
+- `policy_snapshot_digest` — `sha256(canonicalJson({ id, rules, policy_versions, created_at }))`, binding the full snapshot **content**, not just its UUID. Approval-receipt lineage is carried transitively through this digest.
+
+A v1 receipt binds the snapshot by `policy_snapshot_id` and `evaluated_rules_hash`; the full content-digest binding is the v2 addition. Both verify forever. See the [Receipt Reference](/concepts/receipt-reference) for the exact payloads.
+
+## See also
+
+- [Snapshot Pinning](/concepts/snapshot-pinning) — how a recorded decision replays to an identical verdict.
+- [Policy Lifecycle](/concepts/policy-lifecycle) — drafts, review, ratification, and the active-version model.
+- [Integrity & Hashing](/concepts/integrity) — canonical JSON and the SHA-256 primitives behind snapshot hashes.
+- [Receipt Reference](/concepts/receipt-reference) — how the snapshot is bound into a receipt.

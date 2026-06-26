@@ -1,0 +1,120 @@
+---
+title: "Snapshot Pinning & Replay"
+description: "How a recorded decision is pinned to its policy snapshot, so replaying it always reproduces the original verdict — even after the policy changes."
+---
+
+**Snapshot pinning** is the mechanism that makes a recorded decision reproducible. When MeshQu records a decision, it stores the `policy_snapshot_id` of the exact rules used. Replaying that decision re-runs *those* pinned rules — never the current policy — so the verdict is the same today as it was the day it was made.
+
+> **Mental model:** evaluation reads the *current* active policy. Replay reads the *pinned* snapshot. Changing a policy never changes what a past decision replays to.
+
+<Info>
+Pinning builds directly on [Policy Snapshots](/concepts/policy-snapshots) (the frozen rules) and [Integrity & Hashing](/concepts/integrity) (the hash that proves the replay matched). Read those first if the snapshot or integrity-hash terms are unfamiliar.
+</Info>
+
+## The problem pinning solves
+
+```
+Day 1   Policy allows transactions up to $100,000
+Day 1   A $75,000 transaction is recorded → ALLOW
+Day 2   Policy is tightened to $50,000
+Day 3   Auditor: "why was the $75,000 transaction allowed?"
+```
+
+If replay used the *current* policy, it would return `DENY` and the original `ALLOW` would look unjustifiable. Pinning re-evaluates against the Day-1 snapshot, so replay returns `ALLOW` — and the integrity hash matches the original, proving nothing was altered.
+
+## How pinning works
+
+When a decision is recorded, MeshQu captures three things on the receipt:
+
+```json
+{
+  "policy_snapshot_id": "11111111-1111-1111-1111-111111111111",
+  "evaluated_rules_hash": "2c26b46b68ffc68ff99b453c1d...",
+  "integrity_hash": "6f1ed002ab5595859014ebf09..."
+}
+```
+
+The `policy_snapshot_id` is the **pin** — a permanent reference to the immutable rules used. Because snapshots are content-addressed and never mutated, that pin always resolves to the same rules.
+
+## Replaying a decision
+
+Replay is a single call:
+
+```bash
+POST https://api.meshqu.com/v1/decisions/{id}/replay
+-H "Authorization: Bearer YOUR_API_KEY"
+-H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID"
+```
+
+Internally, replay:
+
+1. Loads the original decision — including its `policy_snapshot_id`.
+2. Loads the **pinned snapshot**, not the current active policies.
+3. Re-evaluates the original context against the snapshot's rules, **at the original evaluation timestamp** (so time-dependent rules behave identically).
+4. Recomputes the integrity hash and compares it to the original.
+
+The response contrasts original and replay and tells you whether they match:
+
+```json
+{
+  "original": { "...": "the recorded decision" },
+  "replay":   { "decision": "ALLOW", "integrity_hash": "6f1ed002ab..." },
+  "matches": true,
+  "signature_verification": "valid",
+  "duration_ms": 5.2
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `matches` | `true` when the replayed integrity hash equals the original. |
+| `signature_verification` | Whether the *original* receipt's Ed25519 signature is valid (`valid`, `invalid`, `unknown_key`, or `not_signed`). |
+
+<Note>
+**Two independent checks.** `matches` proves the verdict is reproducible from the pinned rules. `signature_verification` proves MeshQu signed the original receipt. Both should pass for a clean audit. They answer different questions — determinism vs. attestation.
+</Note>
+
+## What pinning guarantees
+
+| Property | Guarantee |
+| --- | --- |
+| Deterministic replay | Same context + same snapshot + same evaluation time → same verdict and same integrity hash. |
+| Stable across policy changes | Updating or even deleting the live policy does not change what a past decision replays to — replay uses the pinned snapshot. |
+| Survives policy deletion | If the policy is gone but its snapshot remains, replay still succeeds. |
+| Tamper-evident | A replayed hash that does not match the original signals corruption or tampering. |
+
+Because the snapshot is immutable and replay freezes the evaluation time, replaying the same decision repeatedly yields the same integrity hash every time.
+
+## Evaluation vs. replay — which rules are used
+
+| Operation | Rules used |
+| --- | --- |
+| `POST /v1/decisions/evaluate` | Current active policies (creating a new snapshot if needed). |
+| `POST /v1/decisions/record` | Current active policies (creating a new snapshot if needed). |
+| `POST /v1/decisions/{id}/replay` | The **pinned snapshot** from the original decision. |
+| `POST /v1/decisions/evaluate` with `options.snapshot_id` | A **specified snapshot** — manual replay against any snapshot you name. |
+
+The last form lets you re-evaluate an arbitrary context against a known snapshot (for example, to test how a new context would have fared under historical rules) by passing `options.snapshot_id` and, optionally, `options.evaluation_time`.
+
+## When replay does not match
+
+A mismatch (`matches: false`) is a signal, not a routine outcome — it means the replayed verdict diverged from the recorded one, which should not happen for an untampered decision. MeshQu records the comparison in the audit trail so the divergence is itself evidence. Investigate it as potential data corruption or tampering rather than retrying.
+
+## Error responses
+
+| Situation | Response |
+| --- | --- |
+| Decision not found | `404 NOT_FOUND` |
+| Pinned snapshot missing (data corruption) | `404 SNAPSHOT_NOT_FOUND` |
+| Replaying another tenant's decision | `404 NOT_FOUND` — cross-tenant requests are indistinguishable from "does not exist" |
+
+<Warning>
+Replay reproduces a verdict; it does **not** undo anything. A replayed `DENY` does not block, and a replayed `ALLOW` does not execute. MeshQu is advisory — replay is an audit operation, not an enforcement one.
+</Warning>
+
+## See also
+
+- [Policy Snapshots](/concepts/policy-snapshots) — how the pinned rules are frozen and content-addressed.
+- [Integrity & Hashing](/concepts/integrity) — the integrity hash that `matches` compares.
+- [Decision Assurance](/concepts/decision-assurance) — what an offline verifier can prove about a replayed decision.
+- [Receipt Reference](/concepts/receipt-reference) — the full replay response and receipt field reference.
