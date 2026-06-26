@@ -80,23 +80,6 @@
             ]
           },
           {
-            "group": "Runbooks",
-            "pages": [
-              "runbooks/api-down",
-              "runbooks/no-traffic",
-              "runbooks/high-error-rate",
-              "runbooks/high-latency",
-              "runbooks/slow-queries",
-              "runbooks/high-memory",
-              "runbooks/event-loop-lag",
-              "runbooks/rate-limiting",
-              "runbooks/webhook-backlog",
-              "runbooks/webhook-failures",
-              "runbooks/high-deny-rate",
-              "runbooks/critical-alerts"
-            ]
-          },
-          {
             "group": "Meta",
             "pages": [
               "changelog",
