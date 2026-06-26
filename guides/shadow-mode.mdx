@@ -1,0 +1,193 @@
+---
+title: "Shadow Mode"
+description: "Roll out new policies safely by downgrading their blocks to alerts"
+---
+
+**Audience:** engineers and risk owners introducing or changing a policy in a live system who need to see what it *would* do before letting it affect outcomes.
+
+Shadow mode lets a policy run against real traffic without ever escalating to a hard block. While a policy is in shadow mode, any `DENY` it produces is **downgraded to `ALERT`** — the violation is recorded and surfaced, but the verdict your application receives never tells you to block. You watch the alerts, build confidence, then promote the policy to enforcing.
+
+<Info>
+  **Console terminology** — In the MeshQu console UI this setting is labelled **"Advisory mode."** It is the same feature as the `shadow_mode` field described here; the API and SDK use `shadow_mode`. There is no `advisory_mode` field.
+</Info>
+
+> **Mental model:** shadow mode changes how *one policy's* verdict is reported, not how your application behaves. MeshQu is [advisory by design](/) — it never blocks anything itself — so shadow mode is specifically about keeping a new policy's `DENY` out of the verdict your enforcement code reads.
+
+## Why use it
+
+- **Risk-free introduction** — a new or tightened policy can't start blocking real operations on day one.
+- **Real traffic** — you observe how the policy behaves against production data, not synthetic cases.
+- **Evidence before promotion** — alerts accumulate so you can review false positives and tune thresholds before enforcing.
+
+## The `shadow_mode` flag
+
+`shadow_mode` is a boolean on the policy. When `true`, the engine still evaluates every rule and records every violation, but a verdict that would have been `DENY` is returned as `ALERT` instead.
+
+### Create a policy in shadow mode
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.meshqu.com/v1/policies \
+  -H "Authorization: Bearer mqu_YOUR_API_KEY" \
+  -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "PAYMENT-LIMIT-V2",
+    "name": "Payment Limit v2",
+    "decision_type": "payment_approval",
+    "shadow_mode": true,
+    "rules": [
+      {
+        "code": "MAX-AMOUNT",
+        "name": "Maximum Payment Amount",
+        "rule_type": "threshold",
+        "condition": { "field": "amount", "max": 100000 },
+        "severity": "high"
+      }
+    ]
+  }'
+```
+
+```typescript TypeScript
+const policy = await meshqu.createPolicy({
+  code: 'PAYMENT-LIMIT-V2',
+  name: 'Payment Limit v2',
+  decision_type: 'payment_approval',
+  shadow_mode: true,
+  rules: [
+    {
+      code: 'MAX-AMOUNT',
+      name: 'Maximum Payment Amount',
+      rule_type: 'threshold',
+      condition: { field: 'amount', max: 100000 },
+      severity: 'high',
+    },
+  ],
+});
+```
+
+</CodeGroup>
+
+### Promote to enforcing
+
+When the alerts look right, flip the flag. Existing logic stays untouched — only the policy's verdict reporting changes.
+
+<CodeGroup>
+
+```bash cURL
+curl -X PATCH https://api.meshqu.com/v1/policies/POLICY_ID \
+  -H "Authorization: Bearer mqu_YOUR_API_KEY" \
+  -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID" \
+  -H "Content-Type: application/json" \
+  -d '{ "shadow_mode": false }'
+```
+
+```typescript TypeScript
+await meshqu.updatePolicy(policyId, { shadow_mode: false });
+```
+
+</CodeGroup>
+
+## Reading shadow state from a verdict
+
+Both `evaluate` and `record` report shadow state on the response. The top-level `shadow_mode` object tells you whether the *evaluation as a whole* was affected by a shadowed policy, and what the verdict would have been without the downgrade:
+
+```json
+{
+  "result": {
+    "decision": "ALERT",
+    "violations": [
+      { "rule_code": "MAX-AMOUNT", "severity": "high", "reason": "amount exceeds 100000" }
+    ]
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "original_decision": "DENY"
+  }
+}
+```
+
+Here the returned `decision` is `ALERT` — safe for your enforcement code — while `shadow_mode.original_decision` shows it *would* have been `DENY` once the policy is promoted. That delta is exactly what you monitor during the shadow period.
+
+Each evaluated policy also carries its own `shadow_mode` flag in the per-policy breakdown of the result, so you can see which policy caused the downgrade when several are evaluated together.
+
+<Warning>
+  Shadow mode protects against a new policy's `DENY`. It does **not** make MeshQu enforce anything in the first place — enforcement is always your application's job. A policy that is *not* in shadow mode still only returns a verdict; your code must act on it. See [Integration Patterns](guides/integration-patterns).
+</Warning>
+
+## Monitoring the shadow period
+
+The signal you care about is: **how often, and where, would this policy have blocked?** Use the recorded alerts and decisions.
+
+```bash
+# Alerts raised by the shadowed policy
+curl "https://api.meshqu.com/v1/alerts?limit=50" \
+  -H "Authorization: Bearer mqu_YOUR_API_KEY" \
+  -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID"
+```
+
+Review each alert as a candidate block. Ask:
+
+| Observation | Likely action |
+| --- | --- |
+| Alerts on operations that *should* pass | Threshold too tight, or rule too broad — tune it. |
+| Alerts that correctly catch bad operations | Good signal — builds confidence to promote. |
+| No alerts at all over real traffic | Rule may never fire — check field mapping and `decision_type`. |
+
+For real-time delivery of these alerts to your own monitoring, subscribe a [webhook](guides/webhooks) and filter by `decision_type` and `severity_min`.
+
+### Suggested shadow duration
+
+Capture enough variety — different times of day, days of week, and edge cases — before promoting:
+
+| Risk of the decision | Suggested minimum shadow period |
+| --- | --- |
+| Low (advisory alerts) | ~1 week |
+| Medium (queued for review) | ~2 weeks |
+| High (approvals, payments) | ~3–4 weeks |
+
+These are guidelines, not enforced limits.
+
+## Comparing against your existing logic
+
+If you are replacing or supplementing a system that already makes the decision, you can run MeshQu *alongside* it before MeshQu becomes authoritative. This is a client-side pattern — it doesn't require any MeshQu feature beyond the stateless `evaluate` endpoint:
+
+```typescript
+async function processPayment(payment: Payment) {
+  // Your existing decision logic remains authoritative.
+  const existingDecision = await yourExistingLogic(payment);
+
+  // Evaluate with MeshQu in parallel and log the comparison (fire-and-forget).
+  meshqu
+    .evaluate({
+      decision_type: 'payment_approval',
+      fields: { amount: payment.amount, currency: payment.currency },
+      metadata: { correlation_id: payment.id, existing_decision: existingDecision },
+    })
+    .then((res) =>
+      logger.info({
+        paymentId: payment.id,
+        existingDecision,
+        meshquDecision: res.result.decision,
+        matches: existingDecision === res.result.decision,
+      }),
+    )
+    .catch((err) => logger.warn({ err }, 'MeshQu comparison failed'));
+
+  return existingDecision; // MeshQu does not affect the outcome yet
+}
+```
+
+Don't block your critical path on the comparison call — fire it and forget it, or push the context onto a queue. Tag the evaluation with a `correlation_id` and your existing verdict in `metadata` so you can line the two up later.
+
+<Note>
+  Use `evaluate` (not `record`) for throwaway comparisons — it persists nothing. Switch to `record` once you want a durable, replayable audit trail of each decision. See [Evaluate vs Record](concepts/overview#evaluate-vs-record).
+</Note>
+
+## Related
+
+- [Integration Patterns](guides/integration-patterns) — the advisory-mode rollout pattern in context.
+- [Webhooks](guides/webhooks) — deliver shadow-period alerts to your monitoring in real time.
+- [Idempotency](guides/idempotency) — make the recording step in a dual-write rollout safe to retry.
+</content>

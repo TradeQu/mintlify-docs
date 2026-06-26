@@ -29,13 +29,17 @@
             "pages": [
               "concepts/overview",
               "concepts/decision-assurance",
+              "concepts/integrity",
               "concepts/policy-lifecycle",
+              "concepts/policy-snapshots",
+              "concepts/snapshot-pinning",
               "concepts/verification-bundle",
               "concepts/receipt-reference"
             ]
           },
           {
             "group": "API Reference",
+            "openapi": "api/openapi.json",
             "pages": [
               "api/reference",
               "api/errors"
@@ -56,6 +60,8 @@
               "guides/actor-attribution",
               "guides/manual-checks",
               "guides/verifying-offline",
+              "guides/idempotency",
+              "guides/shadow-mode",
               "guides/webhooks"
             ]
           },

@@ -13,9 +13,11 @@ MeshQu can send real-time HTTP notifications when alerts are created. You subscr
 
 ## Creating a subscription
 
-```bash
+<CodeGroup>
+
+```bash cURL
 curl -X POST https://api.meshqu.com/v1/alerts/subscriptions \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Authorization: Bearer mqu_YOUR_API_KEY" \
   -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID" \
   -H "Content-Type: application/json" \
   -d '{
@@ -25,16 +27,63 @@ curl -X POST https://api.meshqu.com/v1/alerts/subscriptions \
   }'
 ```
 
-Or with the SDK:
-
-```typescript
+```typescript TypeScript
 const sub = await client.createSubscription(
   'https://your-service.com/webhooks/meshqu',
   { decision_types: ['trade_execution'], severity_min: 'high' },
 );
 ```
 
-The create response includes a `secret` field that is shown **only once**. Store it securely for signature verification.
+</CodeGroup>
+
+The create response includes a `secret` that is shown **only once**:
+
+```json
+{
+  "subscription": {
+    "id": "660e8400-e29b-41d4-a716-446655440000",
+    "tenant_id": "123e4567-e89b-12d3-a456-426614174000",
+    "webhook_url": "https://your-service.com/webhooks/meshqu",
+    "decision_types": ["trade_execution"],
+    "severity_min": "high",
+    "is_active": true,
+    "has_secret": true,
+    "created_at": "2026-01-01T10:00:00.000Z"
+  },
+  "secret": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456"
+}
+```
+
+<Warning>
+  **The `secret` is returned exactly once.** Save it to your secrets manager immediately — it is encrypted at rest on our side (AES-256-GCM) and cannot be retrieved again. If you lose it, delete the subscription and create a new one to obtain a fresh secret.
+</Warning>
+
+### Filtering: which alerts you receive
+
+A subscription delivers an alert only if it matches **both** filters.
+
+`severity_min` sets the minimum severity (inclusive):
+
+| `severity_min` | Delivers |
+| --- | --- |
+| `low` | all alerts |
+| `medium` | medium, high, critical |
+| `high` | high, critical |
+| `critical` | critical only |
+
+`decision_types` restricts delivery to alerts arising from specific decision types. Omit it (or pass an empty array) to receive alerts from every decision type. A critical-only, type-scoped subscription is the typical shape for paging on-call:
+
+```json
+{
+  "url": "https://your-service.com/webhooks/oncall",
+  "decision_types": ["trade_execution", "fraud_check"],
+  "severity_min": "critical"
+}
+```
+
+<Info>
+  **SSRF protection.** The webhook URL must be HTTPS in production and its host must resolve to a publicly-routable address. URLs that resolve to private, loopback, link-local, cloud-metadata, or otherwise reserved ranges are rejected — both when you create the subscription **and** again at delivery time. If a legitimate endpoint is being rejected, this is operator-only allowlist configuration, never self-service — [contact us](mailto:contact@meshqu.com).
+</Info>
 
 ## Payload format
 
@@ -108,6 +157,34 @@ function verifyWebhook(
 }
 ```
 
+The same verification in Python:
+
+```python
+import hmac
+import hashlib
+import time
+
+def verify_webhook(body: str, signature: str, timestamp: str, secret: str,
+                   max_age_ms: int = 5 * 60 * 1000) -> bool:
+    # 1. Replay protection: reject stale timestamps.
+    try:
+        ts_ms = int(timestamp)
+    except ValueError:
+        return False
+    if (time.time() * 1000 - ts_ms) > max_age_ms:
+        return False
+
+    # 2. Recompute and compare.
+    signature_base = f"{timestamp}.{body}"
+    expected = hmac.new(secret.encode(), signature_base.encode(), hashlib.sha256).hexdigest()
+    received = signature.replace("sha256=", "")
+    return hmac.compare_digest(expected, received)
+```
+
+<Warning>
+  Verify against the **raw request body**, byte for byte — not a re-serialized parse of it. Re-encoding JSON can reorder keys or change whitespace and will break the signature. Read and verify the raw body first, then parse it.
+</Warning>
+
 ## Retry behaviour
 
 If your endpoint returns a non-2xx status or times out, MeshQu retries with exponential backoff:
@@ -121,16 +198,74 @@ If your endpoint returns a non-2xx status or times out, MeshQu retries with expo
 | 5 | ~8 seconds |
 | 6 | ~16 seconds |
 
-After the maximum attempts are exhausted the delivery is moved to a dead-letter queue. You can inspect delivery history via the API:
+After the maximum attempts are exhausted, the delivery moves to a dead-letter queue and the failure reason is recorded on the delivery record.
 
-```
+## Inspecting and replaying deliveries
+
+Every delivery attempt is persisted, so you can monitor and debug without trawling logs. Each delivery has one of these statuses:
+
+| Status | Meaning |
+| --- | --- |
+| `pending` | Awaiting first delivery or a scheduled retry. |
+| `delivered` | Successfully delivered (your endpoint returned 2xx). |
+| `failed` | Last attempt failed; a retry is scheduled. |
+| `dead` | Permanently failed after the maximum attempts. |
+
+```bash
+# List deliveries (filter by status or subscription_id)
 GET /v1/alerts/deliveries
+
+# Aggregate delivery statistics
 GET /v1/alerts/deliveries/stats
+
+# Inspect a single delivery
+GET /v1/alerts/deliveries/:id
 ```
+
+If a delivery is `failed` or `dead` — for example after you fixed an outage on your side — you can force an immediate retry. This resets the attempt count and schedules delivery right away:
+
+```bash
+curl -X POST https://api.meshqu.com/v1/alerts/deliveries/DELIVERY_ID/retry \
+  -H "Authorization: Bearer mqu_YOUR_API_KEY" \
+  -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID"
+```
+
+Retrying a delivery that is already `delivered` returns `400 ALREADY_DELIVERED`; retrying one still `pending` returns `400 STILL_PENDING`.
 
 ## Timeout
 
 Your endpoint must respond within **10 seconds**. Longer processing should be handled asynchronously (accept the webhook, enqueue, process later).
+
+## Handling a webhook end to end
+
+A robust handler verifies the signature against the raw body, responds fast, and processes out of band:
+
+```typescript
+import express from 'express';
+
+const app = express();
+
+// Capture the RAW body — verification must run against the exact bytes sent.
+app.post(
+  '/webhooks/meshqu',
+  express.raw({ type: 'application/json' }),
+  (req, res) => {
+    const body = req.body.toString();
+    const signature = req.header('X-MeshQu-Signature') ?? '';
+    const timestamp = req.header('X-MeshQu-Timestamp') ?? '';
+
+    if (!verifyWebhook(body, signature, timestamp, process.env.MESHQU_WEBHOOK_SECRET!)) {
+      return res.status(401).send('Invalid signature');
+    }
+
+    // Respond immediately, then process asynchronously.
+    res.status(200).send('OK');
+
+    const { alert } = JSON.parse(body);
+    enqueueForProcessing(alert); // your own queue / worker
+  },
+);
+```
 
 ## Managing subscriptions
 
@@ -141,6 +276,8 @@ GET /v1/alerts/subscriptions
 # Delete
 DELETE /v1/alerts/subscriptions/:id
 ```
+
+To change a subscription's filters, delete it and create a new one. Deleting a subscription stops further deliveries to that endpoint.
 
 ## Best practices
 

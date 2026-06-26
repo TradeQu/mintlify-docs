@@ -1,0 +1,173 @@
+---
+title: "Integrity & Hashing"
+description: "How MeshQu makes a decision tamper-evident — canonical JSON, the SHA-256 integrity hash, and Ed25519 signing."
+---
+
+Every decision MeshQu evaluates is bound to a **SHA-256 integrity hash**: a single 64-character hex string computed over the verdict, the context, the policy snapshot, and the timestamp. Change any of those inputs and the hash changes. That is what makes a recorded decision tamper-**evident** — not impossible to alter, but impossible to alter *undetectably*.
+
+> **Mental model:** the integrity hash is a fingerprint of the whole decision. The Ed25519 signature is MeshQu attesting "this fingerprint is mine." Verification recomputes the fingerprint and checks the signature — no trust in MeshQu's database required.
+
+<Info>
+This page covers the hashing and signing primitives — the **L2 (hashed)** and **L3 (signed)** layers of the [Decision Assurance](/concepts/decision-assurance) maturity model. For the full offline-verifiable contract — bundles, transparency anchoring, and the per-sub-claim taxonomy — see [Verification Bundle](/concepts/verification-bundle) and the [Receipt Reference](/concepts/receipt-reference).
+</Info>
+
+## Canonical JSON
+
+Two objects with the same content must produce the same hash, regardless of the order their keys happen to be in. MeshQu achieves this with a **canonical JSON** serialization that recursively sorts object keys before hashing.
+
+```typescript
+// Same content, different key order
+const a = { z: 1, a: 2 };
+const b = { a: 2, z: 1 };
+
+// Plain JSON.stringify is order-sensitive — different strings, different hashes
+JSON.stringify(a); // '{"z":1,"a":2}'
+JSON.stringify(b); // '{"a":2,"z":1}'
+
+// Canonical JSON sorts keys — identical bytes, identical hash
+canonicalJson(a); // '{"a":2,"z":1}'
+canonicalJson(b); // '{"a":2,"z":1}'
+```
+
+The canonicalization profile is named **`meshqu-canonical/v0`** and is frozen: alphabetic key ordering with arrays left in their original element order. Because hashes are part of the verification contract, the profile is versioned in the data, not changed silently.
+
+<Note>
+RFC 8785 (JCS) alignment is a planned follow-up that would introduce a `meshqu-canonical/v1` profile. Today, the live profile is `meshqu-canonical/v0`. Receipts always carry the profile they were canonicalized under, so a future profile never invalidates an existing receipt.
+</Note>
+
+### What canonical JSON does not accept
+
+The serializer is strict on purpose. Inputs that cannot be represented deterministically are rejected rather than silently coerced — a silently-coerced value would produce a validly-signed hash over the wrong data.
+
+| Input | Behaviour |
+| --- | --- |
+| `Map`, `Set`, `WeakMap`, `WeakSet` | **Throws.** These would otherwise serialize to `{}` and hide the error. Convert to plain objects/arrays upstream. |
+| `Date` | Serialized as its ISO string. Prefer passing ISO strings yourself so the boundary is explicit. |
+| `undefined` object values | Dropped, per standard JSON. |
+| Nested objects/arrays | Recursively canonicalized (keys sorted at every level). |
+
+<Warning>
+When you submit `fields` or `evidence` for evaluation, use plain JSON-compatible types — strings, numbers, booleans, null, objects, and arrays. Wrapping a value in a `Map`, `Set`, or `BigInt` will fail canonicalization. For large numeric identifiers, use a **string** (`"12345678901234567890"`), not a numeric literal.
+</Warning>
+
+## The integrity hash
+
+Every evaluation result includes an `integrity_hash`. It is `sha256(canonicalJson(payload))`, where the payload binds:
+
+| Bound field | What it is |
+| --- | --- |
+| `decision` | The verdict — `ALLOW`, `DENY`, `REVIEW`, or `ALERT`. |
+| `violations` | Every rule violation detected. |
+| `context_hash` | Hash of the decision context (excluding `source_artifact` metadata). |
+| `source_artifact_hash` | SHA-256 of the bound source document, or `null`. |
+| `action` | The bound receipt action (`type` and `reference_id` only), or `null`. |
+| `policy_snapshot_id` | UUID of the frozen policy snapshot used. |
+| `evaluated_rules_hash` | SHA-256 of the rules that governed the decision. |
+| `timestamp` | The evaluation timestamp. |
+
+<Note>
+On the wire, the receipt field is `evaluated_rules_hash`. Inside the hash payload the key is named `policy_snapshot_hash` for historical signature stability — the same value under a legacy key name. You verify against `evaluated_rules_hash`; the internal key name does not affect what you check.
+</Note>
+
+### Source artifact binding — proof without disclosure
+
+If you bind a source document, **only its hash** is included in the integrity hash. The document's `type`, `filename`, and `byte_size` are stored for convenience but are *not* part of the cryptographic proof. This lets you prove a specific document was the one evaluated — by re-hashing your copy and comparing — without MeshQu ever holding the document itself.
+
+```json
+"source_artifact": {
+  "type": "PDF",
+  "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "hash_algorithm": "SHA-256",
+  "filename": "invoice-88423.pdf"
+}
+```
+
+<Warning>
+MeshQu hashes what you give it. If you submit a `source_artifact.hash` or `evidence` reference, MeshQu binds that hash into the receipt — it does **not** independently fetch and re-hash the underlying document. The honesty of the input is yours to guarantee.
+</Warning>
+
+## Ed25519 signing
+
+After computing the integrity hash, MeshQu signs it with an **Ed25519** key. The signature proves a specific key holder attested to the hash — not merely that the hash is internally consistent. Anyone with the matching public key can verify a receipt; no shared secret is involved.
+
+| Field | Description |
+| --- | --- |
+| `signature` | Ed25519 signature, base64url-encoded. |
+| `signature_kid` | Key ID identifying which key signed (e.g. `msk_v1`). Supports rotation. |
+| `signature_algorithm` | Always `ed25519`. |
+
+Public keys are published — unauthenticated — at:
+
+```
+GET https://api.meshqu.com/v1/.well-known/signing-keys
+```
+
+In production, signing is mandatory: unsigned receipts are only possible in non-production environments.
+
+<Note>
+**Receipt schema v1 and v2.** v1 receipts sign the bare integrity-hash string. v2 receipts sign a canonical *envelope* that also binds `signature_kid`, `signature_algorithm`, `policy_snapshot_digest`, and `timestamp` — so tampering with the declared key or algorithm fails verification. v1 receipts continue to verify forever; there is no cut-over. A verifier never falls back across versions. See the [Receipt Reference](/concepts/receipt-reference) for the exact payloads.
+</Note>
+
+## Verifying a receipt
+
+Recompute and compare:
+
+```typescript
+// Recompute the integrity hash from the original context + result
+const valid = verifyIntegrityHash(originalContext, result);
+// → false if the context or result was altered
+
+// Verify the signature against the published public key
+const { valid: signed } = verifyReceiptSignature(result, publicKeyBase64);
+```
+
+Both checks run entirely client-side against bundled or published public keys — no live MeshQu API call is required. Receipts can be verified through:
+
+| Path | What it checks |
+| --- | --- |
+| Web verifier — [verify.meshqu.com](https://verify.meshqu.com) | Integrity hash + signature + transparency anchor |
+| CLI / offline bundle verifier | The same checks, offline |
+| API replay — `POST /v1/decisions/{id}/replay` | Re-evaluates against the original pinned snapshot |
+
+## Transparency anchoring (optional)
+
+When enabled, a signed receipt can be anchored in a public, append-only transparency log ([Sigstore Rekor](https://rekor.sigstore.dev)). This provides an independent witness that the receipt existed at a particular time.
+
+- Anchoring runs **asynchronously after** the decision is committed — it never blocks recording.
+- If the log is unreachable, the receipt is still valid (signed but unanchored). `transparency_anchor: null` is a legitimate state.
+- The anchor is **explicitly excluded** from the integrity hash, because it is produced after signing.
+
+<Warning>
+MeshQu verifies Rekor's signed entry timestamp **offline** against a pinned log key — proving the log signed this exact entry at this exact time. It does **not** perform a live lookup against a running Rekor witness today. "Anchored to a public transparency log, verifiable offline against a pinned log key" is the accurate claim.
+</Warning>
+
+## Audit trail hash chain
+
+Beyond per-decision receipts, MeshQu's audit log is an **append-only, hash-chained** record. Each event includes the integrity hash of the previous event:
+
+```
+Event 1: previous_hash = null,    integrity_hash = H(event1 ‖ null)
+Event 2: previous_hash = H(e1),   integrity_hash = H(event2 ‖ H(e1))
+Event 3: previous_hash = H(e2),   integrity_hash = H(event3 ‖ H(e2))
+```
+
+Modify, delete, or insert any event and every subsequent hash no longer reconstructs — the break is detectable and locatable. At the database layer, audit rows, recorded decisions, and policy snapshots are protected by immutability triggers that reject `UPDATE` and `DELETE` (the one permitted post-write mutation is stamping the asynchronous transparency anchor).
+
+## What MeshQu does and does not claim
+
+| Claimed | Not claimed |
+| --- | --- |
+| Tamper-**evident**: any change is detectable. | Tamper-**proof**: changes are not made impossible. |
+| Deterministic hashing: same inputs → same hash. | Blockchain consensus or distributed agreement. |
+| Independent verification via published public keys. | Defence against signing-key compromise — whoever holds the private key can forge new receipts. |
+| Offline time-ordering via Rekor. | Live transparency-log witness lookup (planned). |
+
+The remaining trust requirement is **signing-key custody** and the authenticity of the out-of-band public-key channel. That contract is documented under [Decision Assurance — trust roots](/concepts/decision-assurance).
+
+## See also
+
+- [Decision Assurance](/concepts/decision-assurance) — the maturity model and what an offline verifier proves.
+- [Policy Snapshots](/concepts/policy-snapshots) — how the rules that governed a decision are frozen and hashed.
+- [Snapshot Pinning](/concepts/snapshot-pinning) — how a recorded decision replays to the same verdict.
+- [Receipt Reference](/concepts/receipt-reference) — every receipt field and exactly what each binds.
+- [Verification Bundle](/concepts/verification-bundle) — the self-contained offline-verifiable archive.

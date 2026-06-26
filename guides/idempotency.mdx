@@ -1,0 +1,185 @@
+---
+title: "Idempotency"
+description: "Make decision recording safe to retry"
+---
+
+When you record a decision, the network can fail *after* MeshQu has persisted it but *before* your code receives the response. Retrying blindly would create a duplicate decision. An **idempotency key** closes that gap: retry as many times as you like and you get back the same decision, recorded once.
+
+> **Mental model:** the idempotency key is a stable name for a business operation. The first request with that key records a decision; every later request with the same key returns the decision that already exists.
+
+<Info>
+  **Evaluate vs Record** — Idempotency applies to [`record`](concepts/overview#evaluate-vs-record), the endpoint that persists a decision. `evaluate` is stateless and stores nothing, so it has nothing to deduplicate.
+</Info>
+
+## How it works
+
+When you call `POST /v1/decisions/record` with an `idempotency_key`, MeshQu checks whether a decision already exists with that key for your tenant:
+
+| Outcome | Status | `is_new` | What happens |
+| --- | --- | --- | --- |
+| Key not seen before | `201 Created` | `true` | Policies are evaluated, a decision is recorded and returned. |
+| Key already used | `200 OK` | `false` | The original decision is returned immediately — no re-evaluation. |
+
+The second call returns the stored decision without running policies again, so retries are both safe and cheap.
+
+```
+First request:  POST /record { idempotency_key: "payment-12345" } → 201, is_new: true
+Retry request:  POST /record { idempotency_key: "payment-12345" } → 200, is_new: false
+```
+
+## Recording with an idempotency key
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.meshqu.com/v1/decisions/record \
+  -H "Authorization: Bearer mqu_YOUR_API_KEY" \
+  -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "context": {
+      "decision_type": "payment_approval",
+      "fields": { "amount": 50000, "reference": "PAY-12345" }
+    },
+    "options": {
+      "idempotency_key": "payment-12345-approval"
+    }
+  }'
+```
+
+```typescript TypeScript
+import { MeshQuClient } from '@meshqu/client';
+
+const meshqu = new MeshQuClient({
+  baseUrl: 'https://api.meshqu.com',
+  tenantId: process.env.MESHQU_TENANT_ID!,
+  apiKey: process.env.MESHQU_API_KEY!,
+});
+
+const result = await meshqu.record(
+  {
+    decision_type: 'payment_approval',
+    fields: { amount: 50000, reference: 'PAY-12345' },
+  },
+  { idempotency_key: 'payment-12345-approval' },
+);
+
+console.log(result.is_new); // true on first call, false on retries
+console.log(result.decision.id);
+```
+
+</CodeGroup>
+
+<Note>
+  The TypeScript SDK **requires** `idempotency_key` on `record()` and throws if it is missing or blank. The REST API treats it as optional but strongly recommended — a `record` call without a key still succeeds, it just won't be deduplicated. For any workflow that can retry (which is most of them), always supply one.
+</Note>
+
+## Choosing good keys
+
+A key should uniquely and deterministically identify the business operation, so that a retry of the *same* operation produces the *same* key.
+
+**Good keys** — derived from a stable business identifier:
+
+```
+payment-{payment_id}-approval
+order-{order_id}-release
+invoice-{invoice_id}-validation-v1
+```
+
+**Bad keys** — collide across operations, or change on every retry (defeating the purpose):
+
+```
+approval-1        # too generic — collides across transactions
+user-123          # multiple operations per user
+${Date.now()}     # different every call — never deduplicates
+${random()}       # different on every retry — never deduplicates
+```
+
+### Key format
+
+| Property | Value |
+| --- | --- |
+| Length | 1–255 characters |
+| Case sensitivity | Case-sensitive (`ABC` ≠ `abc`) |
+| Scope | Unique **per tenant** — the same key may exist in different tenants |
+
+A key, once used, is bound to that decision permanently within the tenant. There is no expiry, so a retry months later still returns the original decision. If a decision genuinely needs to be re-made (for example after corrected input data), use a new key with a version suffix:
+
+```
+invoice-123-validation-v1   # original
+invoice-123-validation-v2   # after data correction — a new, distinct decision
+```
+
+## Safe-retry pattern
+
+Treat both `200` and `201` as success. Retry only on server errors (`5xx`) and network failures — never on client errors (`4xx`), which indicate a request that won't succeed on retry.
+
+```typescript
+import { MeshQuError } from '@meshqu/client';
+
+async function recordWithRetry(
+  context: DecisionContext,
+  idempotencyKey: string,
+  maxRetries = 3,
+) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // The SDK returns on both 200 (idempotent hit) and 201 (new record).
+      return await meshqu.record(context, { idempotency_key: idempotencyKey });
+    } catch (err) {
+      // Don't retry client errors — they won't succeed on retry.
+      if (err instanceof MeshQuError && err.status >= 400 && err.status < 500) {
+        throw err;
+      }
+      if (attempt === maxRetries) throw err;
+
+      // Exponential backoff: 200ms, 400ms, 800ms
+      await new Promise((r) => setTimeout(r, 2 ** attempt * 100));
+    }
+  }
+}
+```
+
+Because the key is stable, a retry after a post-write network failure returns the already-recorded decision instead of creating a second one.
+
+## Common patterns
+
+**Queue processing** — use the message ID so reprocessing a redelivered message is a no-op:
+
+```typescript
+async function handleMessage(message: QueueMessage) {
+  await meshqu.record(message.context, {
+    idempotency_key: `queue-${message.id}`,
+  });
+  await message.acknowledge(); // safe — a crash + reprocess yields the same decision
+}
+```
+
+**Inbound webhooks** — key on the delivery ID of the upstream system so its retries are absorbed:
+
+```typescript
+const idempotencyKey = `inbound-${req.headers['x-webhook-id']}`;
+await meshqu.record(parseContext(req.body), { idempotency_key: idempotencyKey });
+```
+
+**Environment prefixes** — avoid cross-environment collisions if a non-production system can ever reach the same tenant:
+
+```typescript
+const key = `${process.env.NODE_ENV}-payment-${paymentId}`;
+```
+
+## Verifying a key was used
+
+Recorded decisions carry their `idempotency_key`. List recent decisions and filter:
+
+```bash
+curl "https://api.meshqu.com/v1/decisions?limit=50" \
+  -H "Authorization: Bearer mqu_YOUR_API_KEY" \
+  -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID" \
+  | jq '.items[] | select(.idempotency_key == "payment-12345-approval")'
+```
+
+## Related
+
+- [Integration Patterns](guides/integration-patterns) — where recording fits in your request flow.
+- [Decision Chains](guides/decision-chains) — grouping related decisions into an ordered sequence.
