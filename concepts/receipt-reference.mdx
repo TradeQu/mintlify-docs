@@ -12,14 +12,14 @@ If a property is **not** listed here as Implemented, do not claim it. Statuses
 use: **Implemented**, **Partial** (real but limited), **Stub** (wired but
 currently no-op), **Planned**.
 
-Source files referenced inline are paths within the monorepo
-(`packages/meshqu-types/src/`, `packages/meshqu-core/src/`,
-`apps/meshqu-api/src/routes/`).
+This page describes the receipt as it appears on the wire — the shapes the API
+returns and what each field binds. It is a working spec for public surfaces,
+not an implementation guide.
 
 ## 1. The Receipt Envelope
 
-A Decision Receipt on the wire is the row written to `meshqu.decisions`,
-exposed as `{ context, result, chain_id, chain_step }`. The cryptographic
+A Decision Receipt on the wire is exposed as
+`{ context, result, chain_id, chain_step }`. The cryptographic
 centre of gravity is `result` (the `EvaluationResult`).
 
 ### 1.1 v1 vs v2 — which fields exist
@@ -43,7 +43,7 @@ centre of gravity is `result` (the `EvaluationResult`).
 | `policy_snapshot_digest` (SHA-256 hex) | — | **required** |
 | `evidence_manifest_digest` (SHA-256 hex \| null) | — | optional (null when absent) |
 
-Top-level (on the `decisions` row, not inside `result`): `id` (UUID),
+Top-level (alongside the receipt, not inside `result`): `id` (UUID),
 `tenant_id`, `actor` (DecisionActor JSON), `chain_id`, `chain_step`,
 `parent_decision_id`, `created_at` (recorded-at, distinct from
 `result.timestamp`).
@@ -51,11 +51,10 @@ Top-level (on the `decisions` row, not inside `result`): `id` (UUID),
 **Migration semantics.** v1 receipts continue to verify forever. There is no
 cut-over date. Cross-version fallback is rejected — a v2 receipt **must**
 verify under the v2 path; a v1 receipt **must** verify under the v1 path.
-Source: `packages/meshqu-core/src/integrity.ts`.
 
 ### 1.2 Decision Context (the input)
 
-Type: `DecisionContext` (`packages/meshqu-types/src/decision-context.ts`).
+Type: `DecisionContext`.
 
 ```
 decision_type         string                      selects applicable policies
@@ -80,7 +79,7 @@ convenience metadata and intentionally outside the hash.
 This is the older single-artifact binding ("Trust Without Disclosure"). It
 co-exists with the Evidence Manifest in v2; deprecation is out of scope.
 
-### 1.4 Actor (`decisions.actor`)
+### 1.4 Actor (the `actor` field)
 
 Type: `DecisionActor`.
 
@@ -186,9 +185,8 @@ separate top-level approval digest on the receipt.
 ### 2.5 Evidence manifest digest (v2, optional)
 
 `sha256(canonicalJson(manifest minus manifest_digest))`. Self-describing
-pattern (mirrors the bundle manifest). Defined in
-`packages/meshqu-types/src/evidence.ts`; computed/verified in
-`packages/meshqu-core/src/evidence.ts`.
+pattern (mirrors the bundle manifest). MeshQu computes and verifies this
+digest as part of v2 receipt and bundle handling.
 
 ### 2.6 Active-rule projection (used everywhere rules are hashed)
 
@@ -228,7 +226,7 @@ Issuance, storage, bundle export, Node verifier and browser verifier all
 verify approval lineage. Pinned by golden fixtures, an 18-row mutation
 matrix and Node ↔ browser parity tests.
 
-- `meshqu.policy_approval_receipts` table exists. Each receipt holds a
+- Policy approval receipts are a first-class artifact. Each receipt holds a
   `ratifier_signature` (Ed25519, kid + algorithm), `policy_rules_hash` (via
   `projectActiveRules`) and a self-describing `approval_receipt_digest`.
 - A bundle ships these in `policy_approval_receipts.json`.
@@ -249,8 +247,8 @@ matrix and Node ↔ browser parity tests.
   5. The ratifier Ed25519 signature verifies.
 - Reports `not_applicable` for v1 receipts and v2 receipts whose snapshot
   has no non-null `approval_receipt_digest` entries.
-- Runtime entry point: `packages/meshqu-core/src/bundle.ts` (≈ L1305-1449).
-  Browser parity lives in `meshqu-verify` (APR-009).
+- The same approval-lineage checks run in both the Node verifier and the
+  browser verifier, kept at parity (APR-009).
 
 ## 5. Evidence Manifest (v2 only)
 
@@ -314,8 +312,7 @@ What works today:
 
 - **Anchoring.** Implemented. Receipt is submitted to Rekor; anchor data
   captured.
-- **Offline SET verification.** Implemented in
-  `packages/meshqu-core/src/rekor-set.ts`. The verifier reconstructs the
+- **Offline SET verification.** Implemented. The verifier reconstructs the
   canonical message Rekor signed (`{body, integratedTime, logID, logIndex}`)
   and checks the SET against a trusted Rekor public key.
 - **Offline subject-digest binding.** Implemented when `dsse_envelope` is
@@ -340,7 +337,7 @@ A chain is an ordered group of receipts that together prove a workflow.
 
 ### 7.1 Linkage on the receipt
 
-`ChainLinkage` — top-level columns on `meshqu.decisions`:
+`ChainLinkage` — top-level fields on the receipt:
 
 - `chain_id` (UUID, caller-provided)
 - `chain_step` (1-based, auto-assigned if omitted)
@@ -348,7 +345,8 @@ A chain is an ordered group of receipts that together prove a workflow.
 
 ### 7.2 Chain proofs
 
-`decision_chain_proofs` rows. Each non-first step gets:
+The chain-proof artifact (`chain_proof.json` in a bundle). Each non-first
+step gets:
 
 - `chain_integrity_hash` = sha256 over
   `{ chain_id, step, decision_integrity_hash, previous_chain_hash }`
@@ -359,7 +357,7 @@ step's `chain_integrity_hash` changes.
 
 ### 7.3 Chain seal
 
-`decision_chain_seals` rows:
+The chain-seal artifact (`chain_seal.json` in a bundle):
 
 - `seal_hash` = sha256 over
   `{ chain_id, sealed_at, steps_count, ALL receipt_hashes (ordered) }`
@@ -378,7 +376,7 @@ status.
 
 ## 8. Decision Outcomes (post-decision tracking)
 
-Separate from the receipt itself. `decision_outcomes` rows:
+Separate from the receipt itself. A decision-outcome record carries:
 
 ```
 status              'accepted' | 'overridden' | 'escalated' | 'expired' | 'abandoned'
@@ -514,7 +512,7 @@ approval_lineage.policy_rules_hash_mismatch
 
 ## 11. Public API Surface
 
-All paths under `meshqu-api` (`apps/meshqu-api/src/routes/`):
+The endpoints exposed by the MeshQu API:
 
 | Endpoint | Auth | Rate limit | Status |
 | --- | --- | --- | --- |
@@ -522,28 +520,29 @@ All paths under `meshqu-api` (`apps/meshqu-api/src/routes/`):
 | `POST /v1/decisions/record` | API key + tenant | tenant-tier; `idempotency_key` required | Implemented |
 | `POST /v1/decisions/replay` | API key + tenant | tenant-tier | Implemented |
 | `GET /v1/receipts/:decisionId` | **Public, unauth** | 300 req/min per IP | Implemented |
-| `GET /v1/receipts/:decisionId/bundle?format=json\|tar` | Public, unauth | 60 req/min per IP | Implemented; gated by feature flag `MESHQU_BUNDLE_EXPORT_ENABLED` |
+| `GET /v1/receipts/:decisionId/bundle?format=json\|tar` | Public, unauth | 60 req/min per IP | Implemented; may be disabled by the operator |
 | `GET /v1/chains/:chainId/bundle?format=json\|tar` | Public, unauth | 30 req/min per IP | Implemented |
 
 Public receipt response shape: `{ context, result, chain_id, chain_step }`.
 The API normalises legacy `policy_snapshot_hash` → `evaluated_rules_hash` on
 the way out.
 
-## 12. Storage Model (summary)
+## 12. Persistence Model (summary)
 
-- `meshqu.decisions` — receipt rows. Immutability triggers deny UPDATE /
-  DELETE on hash / sig / timestamp fields.
-- `meshqu.decision_chain_proofs` — per-step chain integrity hashes +
-  signatures.
-- `meshqu.decision_chain_seals` — completeness seal per chain.
-- `meshqu.decision_outcomes` — post-decision status (override / escalate /
-  etc).
-- `meshqu.policy_snapshots` — frozen policy bundles.
-- `meshqu.policy_approval_receipts` — ratifier-signed approval records.
-- `meshqu.audit_events` — append-only, hash-chained audit log.
+MeshQu persists each of these as a distinct artifact, surfaced through the
+REST API and verification bundles:
 
-Tenant isolation is 4-layer: header → app-level WHERE → `withTenant()` SET
-LOCAL → Postgres RLS with FORCE.
+- **Receipts** — immutable once written; hash, signature and timestamp fields
+  cannot be updated or deleted after they are recorded.
+- **Chain proofs** — per-step chain integrity hashes and signatures.
+- **Chain seals** — a completeness seal per chain.
+- **Decision outcomes** — post-decision status (override / escalate / etc).
+- **Policy snapshots** — frozen policy bundles.
+- **Policy approval receipts** — ratifier-signed approval records.
+- **Audit events** — an append-only, hash-chained audit log.
+
+Each tenant's data is strictly isolated; a request can only ever read or write
+data belonging to its own tenant.
 
 ## 13. Key Management
 

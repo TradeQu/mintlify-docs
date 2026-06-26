@@ -65,12 +65,11 @@ sub-claim taxonomy and failure codes.
 
 ## What a privileged DB operator can and cannot do
 
-After PR #416 (DB-level immutability triggers):
+MeshQu enforces immutability at the storage layer:
 
-- DELETE on `meshqu.decisions` or `meshqu.policy_snapshots` is blocked
-  at the trigger level.
-- UPDATE on integrity-bound columns is blocked. The only legitimate
-  post-INSERT mutation is `result.transparency_anchor` (the async-Rekor
+- Deleting a recorded receipt or policy snapshot is blocked.
+- Updating any integrity-bound field is blocked. The only legitimate
+  post-record mutation is `result.transparency_anchor` (the async-Rekor
   patch path).
 - Forging a new receipt still requires the signing key. Rekor anchoring
   + future external-attestor signatures (L5) are the next layer.
