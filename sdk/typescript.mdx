@@ -1,10 +1,10 @@
 ---
-title: "TypeScript SDK"
-description: "Client setup, decisions, policies, and alerts"
+title: "TypeScript client"
+description: "Early-access convenience wrapper over the REST API: client setup, decisions, policies, and alerts"
 ---
 
 <Warning>
-  The MeshQu SDK is in early access and not yet publicly distributed. Contact [contact@meshqu.com](mailto:contact@meshqu.com) for access.
+  The `@meshqu/client` TypeScript client is **early access**. It is a convenience wrapper over the [REST API](../api/reference), which is the primary, supported integration surface. The client is **not published to npm**, and its public surface — method signatures, options, and exported types — is **not stable and may change without notice in any release**. Pin a known-good version, and prefer the REST contract for anything you depend on. Contact [contact@meshqu.com](mailto:contact@meshqu.com) for access.
 </Warning>
 
 ## Client setup
@@ -20,6 +20,10 @@ const client = new MeshQuClient({
   retries: 3,      // optional, automatic retries on transient errors
 });
 ```
+
+<Info>
+  Options such as `timeout` and `retries` are early-access conveniences, not a stability contract — their names, defaults, and behaviour may change. If you need guaranteed timeout and retry semantics, implement them around direct REST calls.
+</Info>
 
 ## Decisions
 
@@ -201,7 +205,7 @@ const policy = await client.createPolicy({
   name: 'Max Order Size',
   description: 'Rejects orders above threshold.',
   decision_type: 'trade_execution',
-  advisory_mode: false,
+  shadow_mode: false,
   rules: [
     {
       rule_code: 'SIZE-001',
@@ -219,7 +223,7 @@ const policy = await client.createPolicy({
 const fetched = await client.getPolicy(policy.id);
 
 // Update metadata
-await client.updatePolicy(policy.id, { advisory_mode: true });
+await client.updatePolicy(policy.id, { shadow_mode: true });
 
 // Deactivate
 await client.deletePolicy(policy.id);
@@ -270,7 +274,11 @@ await client.deleteSubscription(sub.id);
 
 ## Error handling
 
-All SDK errors extend `MeshQuError`:
+<Info>
+  The typed exception classes below are part of the early-access client surface and may change without notice. The authoritative contract is the HTTP status and error code returned by the REST API — see [Errors & Status Codes](../api/errors). Match on those when you need stability.
+</Info>
+
+All client errors extend `MeshQuError`:
 
 ```typescript
 import {

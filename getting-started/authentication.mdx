@@ -21,7 +21,14 @@ Each key has:
 - **Name** — a human-readable label for audit trails.
 - **Scopes** — the set of permissions the key grants (see below).
 - **Expiry** (optional) — an `expires_at` timestamp after which the key is rejected.
-- **Prefix/suffix** — a safe fragment (e.g. `mqk_abc...xyz`) shown in dashboards for identification.
+- **Prefix/suffix** — a safe fragment (e.g. `mqu_...ai4`) shown in dashboards for identification.
+
+<Note>
+  Keys are `mqu_` followed by a base64url-encoded random token (e.g.
+  `mqu_tYrzhhHfchPhHvffuQAF5z0JpJK9pWw__3L1Qk_-ai4`). There is no
+  environment segment such as `_live_` or `_test_` — a single key format is
+  used everywhere.
+</Note>
 
 ### Revoking a key
 
@@ -46,7 +53,15 @@ Each API key carries one or more scopes that control what it can access:
 | `alerts:write` | Acknowledge alerts, manage webhook subscriptions |
 | `audit:read` | Read audit events |
 | `audit:admin` | Verify audit log integrity |
+| `members:read` | List and read tenant members |
+| `members:write` | Invite, update, and remove tenant members |
 | `api-keys:admin` | Create, list, and revoke API keys |
+
+<Note>
+  A `tenants:provision` scope also exists for cross-tenant operator keys, but
+  it is **not grantable through the API** — an `api-keys:admin` key cannot mint
+  itself one. It is assigned out-of-band by MeshQu operators only.
+</Note>
 
 **Principle of least privilege**: create separate keys for different services. A service that only evaluates decisions needs `decisions:evaluate` — not `api-keys:admin`.
 
@@ -94,7 +109,7 @@ Response (key shown once):
     "id": "key_uuid",
     "tenant_id": "tenant_uuid",
     "name": "trade-service-prod",
-    "key_preview": "mqu_live_...x7Kf",
+    "key_preview": "mqu_...-ai4",
     "scopes": ["decisions:evaluate", "decisions:write"],
     "expires_at": null,
     "last_used_at": null,
@@ -104,7 +119,7 @@ Response (key shown once):
     "revoked_at": null,
     "revoked_by": null
   },
-  "plaintext_key": "mqu_live_abc123...full_plaintext_key"
+  "plaintext_key": "mqu_tYrzhhHfchPhHvffuQAF5z0JpJK9pWw__3L1Qk_-ai4"
 }
 ```
 

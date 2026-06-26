@@ -1,0 +1,111 @@
+---
+title: "Verifying a Receipt Offline"
+description: "Paste a Decision Receipt into the web verifier, read the verdict, and see tampering get caught — plus an honest account of what a passing verdict does and does not prove."
+---
+
+**Audience:** Regulators, auditors, risk reviewers, and counterparties who need to confirm a MeshQu Decision Receipt for themselves — without trusting MeshQu's dashboard, database, or word for it. No MeshQu account or API key is required.
+
+> **Mental model:** A Decision Receipt is a self-describing artefact. The verifier re-derives the receipt's cryptographic facts from the receipt bytes alone and tells you whether they hold. It runs entirely in your browser — the receipt you paste never leaves your machine. A green verdict means *"these bytes are mathematically consistent and were signed by the key they claim."* It does **not** mean *"the underlying decision was correct."* Those are different questions, and this page is careful to keep them apart.
+
+## When you'd use this
+
+You have been handed a Decision Receipt — a JSON file, or a link — and you want to answer one question: **has anyone altered it since MeshQu issued it, and did MeshQu actually issue it?** The web verifier answers that without any cooperation from MeshQu at the moment you check. That independence is the entire point for a regulated buyer: the proof survives even if MeshQu's API is down, or MeshQu no longer exists.
+
+For the deeper structure behind these checks, see [Verification Bundle](/concepts/verification-bundle), [Receipt Reference](/concepts/receipt-reference), and the [Trust Model](/security/trust-model). This guide is the hands-on walkthrough; those pages are the reference depth.
+
+## The verifier
+
+Open [verify.meshqu.com](https://verify.meshqu.com). The page has one job: take a receipt and report what it can prove about it.
+
+1. **Paste or upload** the receipt JSON. The verifier accepts either the full record from `GET /v1/decisions/{id}` (shaped `{ "context": {...}, "result": {...} }`) or a flat receipt that carries an `integrity_hash`.
+2. **Read the verdict.** The verifier reports three independent checks — integrity, signature, and (when the receipt is anchored) transparency.
+
+<Note>
+Everything runs locally in your browser using the Web Crypto API. The receipt is never uploaded to MeshQu. The only network call the verifier may make is an *optional* lookup to the public Sigstore Rekor log — and only when the receipt carries a transparency anchor. Your receipt contents are not sent to Rekor; only an entry identifier is queried.
+</Note>
+
+## What the verdict means — check by check
+
+### 1. Integrity
+
+The verifier recomputes the receipt's SHA-256 `integrity_hash` from canonical JSON of the decision, its violations, the context fields, the policy snapshot identity, and the timestamp. It then compares that to the hash stored on the receipt.
+
+- **Valid** — the recomputed hash equals the stored hash. Nothing inside the hashed payload has been altered.
+- **Tampered** — the hashes differ. Some hashed field was changed after issuance.
+
+**What this proves:** the receipt's hashed content is byte-for-byte what it was when the hash was computed.
+
+**What it does *not* prove on its own:** that MeshQu produced it. A hash anyone can recompute can also be recomputed by anyone who rewrites the receipt. Integrity without a valid signature only tells you the bytes are internally consistent — not who stands behind them. That is what the signature check is for.
+
+### 2. Signature
+
+Every signed receipt carries an Ed25519 signature and a `signature_kid` (key identifier, e.g. `msk_v1`). The verifier looks up the public key for that `kid` in its **bundled, out-of-band trust roots** and checks the signature.
+
+- **Valid** — the signature verifies against a trusted public key. MeshQu (the holder of the corresponding private key) issued this exact receipt.
+- **Invalid** — signature material is present but does not verify. Treat as tampered.
+- **Unknown key** — the receipt names a `kid` the verifier does not have a trusted key for. It cannot vouch for the signature.
+- **Not signed** — no signature is present.
+
+<Warning>
+**A valid signature proves issuance and integrity — not correctness.** It proves MeshQu signed *these exact bytes* and they haven't changed since. It does **not** prove the decision was the right one, that the inputs you were given were truthful, or that the policy was the policy you expected. MeshQu hashes and signs **what it was given**. If a caller submitted a misleading context, the receipt over that context is still perfectly valid — it faithfully attests to a decision made on bad inputs. Verification is a tamper-evidence and authenticity check, not an audit of the decision's merits.
+</Warning>
+
+<Warning>
+**Trust roots must come from a channel MeshQu does not control.** The verifier authenticates signatures against keys it pins out-of-band — never against any key list carried inside the receipt or bundle. If a verifier ever authenticated a receipt using keys the receipt itself supplied, an operator could self-sign anything and have it "pass." Confirm the public key fingerprints through MeshQu's published JWKS (`GET /v1/.well-known/signing-keys`) or your own pinned copy.
+</Warning>
+
+### 3. Transparency anchor (when present)
+
+If the receipt was anchored, it carries a `transparency_anchor` referencing an entry in the public [Sigstore Rekor](https://rekor.sigstore.dev) log. The verifier surfaces one of several outcomes. The two you most need to distinguish:
+
+- **Verified** — the entry exists, its inclusion proof checks out, **and** the entry is cryptographically *bound to this receipt*: the DSSE envelope's subject digest equals the receipt's integrity hash, `sha256(envelope)` matches the logged entry body, and Rekor's Signed Entry Timestamp (SET) verifies against a pinned Rekor log key. This binding requires the receipt to carry the full set of anchor fields.
+- **Entry found (partial)** — an entry exists at the claimed index, but the receipt predates capture of the binding fields, so the verifier can confirm *that an entry exists* but **not that it is the entry for this receipt**. This is honestly reported as a partial attestation, not a clean pass.
+
+<Warning>
+**"Anchored to a public log" is not the same as live third-party witness verification.** The cryptographic guarantee MeshQu stands behind is *offline* SET verification against a **pinned** Rekor log key — that works with no network call and survives MeshQu disappearing. The verifier may additionally make a live query to Rekor for convenience, but **independent online inclusion-proof verification against a co-signed log witness is not yet implemented.** Do not read a transparency result as "an independent witness has continuously attested this entry." Read it as: "this receipt is bound to a Rekor entry, verifiable offline against a pinned log key."
+</Warning>
+
+<Note>
+Anchoring happens *after* signing and is **not** part of the integrity hash. A receipt with no transparency anchor is still fully signed and verifiable — it simply has not been (or could not be) logged. The verifier reports `not_anchored` in that case, which is not a failure.
+</Note>
+
+## The tamper demo
+
+The fastest way to build confidence in the verifier is to break a receipt on purpose and watch it get caught.
+
+1. Verify a genuine receipt at [verify.meshqu.com](https://verify.meshqu.com) and confirm **Integrity: Valid** and **Signature: Valid**.
+2. Copy the receipt JSON into a text editor and change a single hashed field — flip the `decision` from `ALLOW` to `DENY`, edit a number inside `context.fields`, or delete a violation.
+3. Paste the modified receipt back in.
+
+You will see **two** checks change, and that pairing is the point:
+
+- **Integrity → Tampered.** The recomputed hash no longer matches the stored `integrity_hash`, because you changed a field the hash covers.
+- **Signature → Invalid.** The signature was made over the original integrity hash. Your edit invalidates it, and — crucially — you cannot forge a new valid signature without MeshQu's private key.
+
+<Note>
+**Why both, and why it matters.** If you edit a field, you might think to also rewrite the stored `integrity_hash` to match — and integrity alone would then "pass." But the signature is computed over the original hash with a private key you do not hold, so it will still fail. To make a tampered receipt pass *both* checks you would need MeshQu's signing key. That is exactly the property a regulator wants: tamper-evidence that cannot be papered over.
+</Note>
+
+Some fields are deliberately **not** covered by the integrity hash — for example the `transparency_anchor`, chain linkage, `evaluation_time_ms`, and source-artifact metadata such as filename and byte size. Editing one of those will **not** flip the integrity verdict, because they were never hashed. See [What Is and Isn't Bound](/concepts/receipt-reference) for the exact list. This is honest behaviour, not a gap: the verifier only claims integrity over what it actually hashed.
+
+## Receipts vs. bundles
+
+This page covers verifying a single **Decision Receipt**. A **Verification Bundle** is the stronger artefact: a digest-addressed archive that adds the policy snapshot (so the rules can be re-run), chain proofs, and the transparency proof, all under one manifest — eight sub-claims instead of three. Use a bundle when you need to independently *replay* the decision, not just confirm the receipt wasn't altered.
+
+The web verifier has a dedicated bundle mode for this. For the full sub-claim contract, see [Verification Bundle](/concepts/verification-bundle).
+
+## What a clean verdict still asks you to trust
+
+Independent verification narrows what you must take on faith, but it does not eliminate it. A fully green receipt still rests on:
+
+- **MeshQu's custody of its signing private key.** A valid signature proves the key signed it; it cannot prove the key was never misused.
+- **The authenticity of the public-key channel.** You are trusting that the public keys you pinned (via the JWKS endpoint or bundled defaults) genuinely belong to MeshQu.
+- **The truthfulness of the submitted inputs.** MeshQu hashes the context and evidence references it is given. It does not independently authenticate that `actor.id`, evidence digests, or `source_artifact` hashes reflect reality.
+
+The [Trust Model](/security/trust-model) lays out the maturity levels (L1–L5) that progressively reduce these dependencies — including external co-attestation, which is in flight.
+
+## See also
+
+- [Verification Bundle](/concepts/verification-bundle) — the eight sub-claims and the offline archive format.
+- [Receipt Reference](/concepts/receipt-reference) — exactly which fields are bound into the hash and signature.
+- [Trust Model](/security/trust-model) — the L1–L5 maturity scheme and what each level proves.

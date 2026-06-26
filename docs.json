@@ -55,6 +55,7 @@
               "guides/decision-chains",
               "guides/actor-attribution",
               "guides/manual-checks",
+              "guides/verifying-offline",
               "guides/webhooks"
             ]
           },

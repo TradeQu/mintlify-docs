@@ -48,6 +48,10 @@ console.log(result.result.decision); // 'ALLOW' | 'REVIEW' | 'DENY' | 'ALERT'
 console.log(result.result.violations); // [] if ALLOW
 ```
 
+<Note>
+  The SDK returns the full evaluate envelope, so the verdict lives at `result.result.decision`. When you call the REST API directly (Option B), the same envelope is the JSON body itself, so the verdict is at `result.decision`. Both are correct — the extra `result.` in the SDK path is just the response object wrapping the envelope.
+</Note>
+
 ### 3. Act on the decision
 
 ```typescript
@@ -107,7 +111,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
     "cached": true
   },
   "duration_ms": 12.7,
-  "advisory_mode": {
+  "shadow_mode": {
     "enabled": false
   },
   "governance_source": {

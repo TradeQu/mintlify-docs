@@ -130,9 +130,9 @@ async function executeOrder(order: Order): Promise<OrderResult> {
 
 When introducing a new policy, start in **advisory** mode. Advisory policies are evaluated but their `DENY` decisions are downgraded to `ALERT`. This lets you observe what the policy _would_ do without affecting production.
 
-1. Create the policy with `advisory_mode: true`.
+1. Create the policy with `shadow_mode: true`.
 2. Monitor decisions and alerts.
-3. When confident, switch to `advisory_mode: false`.
+3. When confident, switch to `shadow_mode: false`.
 
 ```typescript
 // Create in advisory mode
@@ -140,12 +140,12 @@ await meshqu.createPolicy({
   code: 'concentration-limit-v2',
   name: 'New Concentration Limit',
   decision_type: 'trade_execution',
-  advisory_mode: true,
+  shadow_mode: true,
   rules: [ /* ... */ ],
 });
 
 // Later, promote to enforcing
-await meshqu.updatePolicy(policyId, { advisory_mode: false });
+await meshqu.updatePolicy(policyId, { shadow_mode: false });
 ```
 
 ---
