@@ -39,6 +39,7 @@
           },
           {
             "group": "API Reference",
+            "openapi": "api/openapi.json",
             "pages": [
               "api/reference",
               "api/errors"
