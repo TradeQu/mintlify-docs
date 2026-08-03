@@ -13,15 +13,19 @@ time — without trusting MeshQu's live database or dashboard.
 MeshQu is in **early access** — no customer is running production traffic against MeshQu yet. The statuses below describe what is implemented and verifiable in our pre-GA deployments.
 </Info>
 
-## Maturity model
+## The assurance ladder
 
-| Level | What it proves | Status |
+| Rung | What it means | What carries it |
 | --- | --- | --- |
-| **L1** Logged | Something happened, MeshQu's UI shows it. | Implemented |
-| **L2** Hashed | Decision data hasn't drifted from what was originally evaluated. | Implemented |
-| **L3** Signed | MeshQu attested to this hash. Ed25519. | Implemented (default behaviour) |
-| **L4** Bundled | Self-contained, offline-verifiable archive — receipt + policy snapshot + chain proofs + transparency proof + trust roots — under a digest-of-digests manifest. **8 sub-claims.** | Implemented |
-| **L5** Externally co-attested | Evidence custodians, ratifiers, and external auditors signed off; receipt-v2 binds their digests into the receipt's signed payload. | In flight |
+| **L1** Recorded | A structured decision record exists | The recorded decision — context, frozen policy snapshot, verdict |
+| **L2** Integrity protected | Signed content can be checked for alteration | SHA-256 integrity hash over canonical JSON; Ed25519 signature (v2 signs a canonical envelope) |
+| **L3** Context bound | Policy, evidence and decision context are cryptographically bound | `context_hash`, `policy_snapshot_id` + `evaluated_rules_hash`, `policy_snapshot_digest`, `evidence_manifest_digest`, `source_artifact.hash` |
+| **L4** Lineage verified | Approval, custodian and chain relationships can be checked | Approval receipts, custodian item signatures, chain proofs and seal, offline transparency proof |
+| **L5** Independently governed trust | Verification relies on independently distributed trust roots, operational key governance and deployment-specific external assurance | Operating architecture around the artefact — not a receipt field |
+
+**L1 to L4 are properties of the artefact**, carried by the receipt v2 envelope and checked by the offline bundle verifier — **10 sub-claims**, at parity between the Node and browser implementations.
+
+**L5 is a property of a deployment.** It is not a missing receipt feature; it is reached through how trust roots are distributed and how keys are governed. See [Implemented mechanics vs deployment responsibilities](#implemented-mechanics-vs-deployment-responsibilities) below, and the [Trust Model](/security/trust-model) for the long form.
 
 ## Trust roots — the load-bearing rule
 
@@ -36,8 +40,12 @@ verification.
 | --- | --- | --- |
 | MeshQu signing keys | Receipt, chain-link, chain-seal signatures | `GET /v1/.well-known/signing-keys` (JWKS); bundled defaults in `verify.meshqu.com` |
 | Rekor log keys | Rekor `signedEntryTimestamp` (SET) on transparency anchors | Sigstore-published; bundled as `c0d23d6ad406…` for production |
-| Custodian keys *(planned)* | External evidence custodian signatures | Per-deployment env-var pattern |
-| Ratifier keys *(planned)* | Policy approval receipts | Per-tenant env-var pattern |
+| Custodian keys | External evidence custodian signatures on manifest items | Supplied to the verifier as `custodianTrustedRoots`; per-deployment distribution |
+| Ratifier keys | Policy approval receipts | Supplied to the verifier as `ratifierTrustedRoots`; per-tenant distribution |
+
+<Note>
+Custodian and ratifier verification are implemented and run in both the Node and browser verifiers. What is deployment-specific is **key distribution** — MeshQu never holds custodian or ratifier private keys, so the roots must reach the verifier out-of-band.
+</Note>
 
 ## What an offline verifier proves today
 
@@ -46,11 +54,13 @@ verification.
 | `bundle_manifest` | File presence, per-file SHA-256, manifest digest | — |
 | `integrity` | Recomputed integrity hash matches the receipt | — |
 | `signature` | Ed25519 verifies against external trust root | — |
-| `snapshot_replay` | Bundled `snapshot.id` matches receipt; rule replay reproduces integrity hash | `policy_versions` informational until receipt-v2 |
+| `snapshot_replay` | Bundled `snapshot.id` matches receipt; rule replay reproduces integrity hash; v2 also checks `policy_snapshot_digest` | On v1 receipts `policy_versions` and `created_at` stay informational; v2 binds them via `policy_snapshot_digest` |
 | `transparency` | DSSE subject + envelope-body hash + Rekor SET | Pre-PR-5b receipts → partial attestation |
 | `chain_link` | Chain proof identifies *this* receipt; signature verifies | — |
 | `chain_seal` | Seal covers this receipt; signature verifies | — |
 | `canonicalization` | `meshqu-canonical/v0` profile | — |
+| `evidence` | Bundled evidence manifest re-digests to `evidence_manifest_digest`; custodian item signatures verify | v2 receipts; `not_applicable` for v1 or a null digest |
+| `approval_lineage` | Per-version approval-receipt digest, ratifier signature, `policy_rules_hash` | Needs `ratifierTrustedRoots` out-of-band |
 
 See [Verification Bundle](/concepts/verification-bundle) for the full
 sub-claim taxonomy and failure codes.
@@ -72,26 +82,54 @@ MeshQu enforces immutability at the storage layer:
   post-record mutation is `result.transparency_anchor` (the async-Rekor
   patch path).
 - Forging a new receipt still requires the signing key. Rekor anchoring
-  + future external-attestor signatures (L5) are the next layer.
+  and external attestor signatures narrow that further; independent
+  custody of the signing key itself is an L5 concern.
+
+## Implemented mechanics vs deployment responsibilities
+
+**Implemented mechanics** — shipped, tested, and checked by the offline
+verifier in both runtimes. Statuses are source-grounded in the
+[Receipt Reference status matrix](/concepts/receipt-reference).
+
+| Mechanic | Rung | Sub-claim |
+| --- | --- | --- |
+| Receipt v2 envelope — canonical signed envelope, `policy_snapshot_digest`, `evidence_manifest_digest` | L2, L3 | `integrity`, `signature` |
+| Evidence manifests — digest binding to the bundled manifest | L3 | `evidence` |
+| Custodian signatures on evidence items | L4 | `evidence` |
+| Approval lineage — per-version digest, ratifier signature, rules hash | L4 | `approval_lineage` |
+| Chain verification — hash-linked proofs and completeness seal | L4 | `chain_link`, `chain_seal` |
+| Offline transparency proof checks — DSSE subject binding, envelope-body hash, SET against a pinned log key | L4 | `transparency` |
+
+**Deployment or governance responsibilities** — an operator arranges
+these; no release delivers them.
+
+| Responsibility | Owned by |
+| --- | --- |
+| How verifiers obtain trusted roots | The verifying party's pinning policy, not the operator's endpoint |
+| Key rotation and revocation | Operator key-management process |
+| Independent custody of evidence and ratification | Organisational separation between operator, custodians and ratifiers |
+| External log availability and monitoring | Sigstore Rekor (or the configured log) plus whoever monitors it |
+| Organisational controls | Operator, evidenced by audit rather than cryptography |
+| Retention and publication policy | Operator — determines who can obtain a bundle at all |
 
 ## Roadmap
 
-**P1 (in flight):**
+Everything above under *implemented mechanics* has shipped. What remains
+open is a genuine roadmap, not a backlog of receipt structure:
 
-- **Receipt-v2 envelope** — bind canonical snapshot digest, evidence
-  manifest digest, and approval receipt digest into the signed
-  `integrity_hash`. Closes the `policy_versions` informational gap.
-  Dual-hash migration window: v1 receipts continue verifying forever.
-- **Evidence Manifest v1** — first-class evidence artifact: multi-item,
-  optionally signed by external custodians.
-- **Policy Approval Receipts** — cryptographic ratification receipts;
-  ratifier-signed.
-
-**P2:** AI provenance envelope · RFC 3161 timestamps · multi-log
-transparency · counterfactual replay · RFC 8785 / canonical-v1.
+- **Recursive governance** — `governance_source.level` is always `0`; do
+  not describe MeshQu as offering tiered or hierarchical governance.
+- **Online Rekor inclusion-proof verification** against a co-signed log
+  witness — anchoring and offline SET verification are implemented; live
+  witness verification is not.
+- **RFC 8785 canonical JSON** (`meshqu-canonical/v1`) — today the frozen
+  profile is `meshqu-canonical/v0`.
+- AI provenance envelope · RFC 3161 timestamps · multi-log transparency ·
+  counterfactual replay.
 
 ## See also
 
-- [Verification Bundle](/concepts/verification-bundle) — the L4 contract in full.
+- [Verification Bundle](/concepts/verification-bundle) — the L2–L4 contract in full.
+- [Trust Model](/security/trust-model) — the same ladder, at length.
 - [Verifying Bundles](/guides/verifying-offline) — auditor workflow.
 - [Bundles API](/api/reference) — endpoint reference.

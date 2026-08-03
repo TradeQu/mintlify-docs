@@ -27,7 +27,7 @@ signatures.
 | Canonicalization profile | `meshqu-canonical/v0` |
 | Signature algorithm | Ed25519 |
 | Transparency log | Sigstore Rekor (configurable) |
-| Sub-claims verified offline | 8 |
+| Sub-claims verified offline | 10 |
 | Verifier runtimes | Node + browser |
 
 ## Bundle layout
@@ -40,10 +40,12 @@ bundle.tar
 ├── trusted_keys.json          — public-key snapshot (INFORMATIONAL ONLY)
 ├── transparency_proof.json    — Rekor anchor + DSSE envelope (OPTIONAL)
 ├── chain_proof.json           — chain-link proof (OPTIONAL)
-└── chain_seal.json            — chain-completeness seal (OPTIONAL)
+├── chain_seal.json            — chain-completeness seal (OPTIONAL)
+├── evidence_manifest.json     — v2 evidence manifest (OPTIONAL)
+└── policy_approval_receipts.json — ratifier-signed approvals (OPTIONAL)
 ```
 
-## The 8 sub-claims
+## The 10 sub-claims
 
 `verifyBundle()` returns one structured result per sub-claim. Every
 relevant sub-claim is reported — the verifier never short-circuits past
@@ -83,10 +85,11 @@ Failure codes: `snapshot_replay.snapshot_id_mismatch`,
 `snapshot_replay.skipped_in_browser` (advisory).
 
 <Note>
-  Today `snapshot_replay.status === 'valid'` binds `snapshot.id` and
-  `snapshot.rules`. It does NOT bind `snapshot.policy_versions` or
-  `snapshot.created_at` — those are informational in v1.
-  Receipt-v2 will close this gap.
+  On a **v1** receipt, `snapshot_replay.status === 'valid'` binds
+  `snapshot.id` and `snapshot.rules` only — `snapshot.policy_versions`
+  and `snapshot.created_at` are informational. On a **v2** receipt the
+  sub-claim additionally checks `policy_snapshot_digest`, which covers
+  `id`, `rules`, `policy_versions` and `created_at` together.
 </Note>
 
 ### 5. `transparency`
@@ -130,9 +133,38 @@ Manifest's canonicalization profile is one the verifier accepts
 Failure codes: `canonicalization.profile_mismatch`,
 `canonicalization.vector_failure`.
 
+### 9. `evidence`
+
+For a v2 receipt carrying an `evidence_manifest_digest`: the bundled
+`evidence_manifest.json` re-digests to the value stored on the receipt,
+and any custodian signatures on its items verify against the
+caller-supplied `custodianTrustedRoots`. Reports `not_applicable` for v1
+receipts and for v2 receipts with a null digest.
+
+Failure codes: `evidence.digest_mismatch`,
+`evidence.bundled_manifest_invalid`, `evidence.custodian_unknown_kid`,
+`evidence.custodian_signature_invalid`,
+`evidence.custodian_signature_malformed`.
+
+### 10. `approval_lineage`
+
+Activates when the receipt is v2 **and** the bundled snapshot has at
+least one non-null `policy_versions[i].approval_receipt_digest`. For each
+such version the verifier checks that the approval receipt is present in
+`policy_approval_receipts.json`, that its recomputed digest matches the
+snapshot entry, that `policy_rules_hash` matches by string equality, and
+that the ratifier's Ed25519 signature verifies against the
+caller-supplied `ratifierTrustedRoots`. Reports `not_applicable`
+otherwise.
+
+Failure codes: `approval_lineage.digest_mismatch`,
+`approval_lineage.signature_invalid`,
+`approval_lineage.unknown_ratifier`,
+`approval_lineage.policy_rules_hash_mismatch`.
+
 ## How `verified` is determined
 
-The browser UI's headline verdict collapses 8 sub-claim results into one
+The browser UI's headline verdict collapses 10 sub-claim results into one
 of three states:
 
 - **Valid** — every sub-claim passes cleanly.
@@ -161,6 +193,10 @@ const result = await verifyBundle(archive, [
   rekorTrustedRoots: [
     { log_id: 'c0d23d6ad406…', public_key_base64: '…' },
   ],
+  // Optional: out-of-band kid → base64 public key maps for the
+  // evidence and approval_lineage sub-claims
+  custodianTrustedRoots: { 'custodian-acme-2026': '…' },
+  ratifierTrustedRoots: { 'meshqu-ratifier-2026-06': '…' },
 });
 ```
 
@@ -183,6 +219,6 @@ sub-claim verdicts on every released archive.
 
 ## See also
 
-- [Decision Assurance](/concepts/decision-assurance) — maturity model.
+- [Decision Assurance](/concepts/decision-assurance) — the assurance ladder.
 - [Bundles API](/api/reference) — endpoint reference.
 - [Verifying Bundles](/guides/verifying-offline) — auditor workflow.

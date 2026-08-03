@@ -13,6 +13,14 @@ MeshQu is not intended for feature flagging, application permissions, or consume
 
 MeshQu provides governance infrastructure for automated and AI-assisted decisions that must follow explicit policy. Integrate MeshQu into your application to evaluate transactions, operations, or events against configurable policies and receive structured decisions.
 
+## What a Decision Receipt is
+
+A Decision Receipt is a signed, replayable record of how a consequential decision was made, created at the moment it happens and independently verifiable afterwards.
+
+It records the policy in force, relevant decision context, the outcome and the integrity information needed to determine later whether the signed record has changed.
+
+See the [Receipt Reference](concepts/receipt-reference) for the field-level contract, and [Verifying Offline](guides/verifying-offline) to check one yourself.
+
 > **Mental model:** MeshQu sits at the decision boundary. You send context, it returns a governed verdict and a verifiable receipt. You own enforcement.
 
 ## Why MeshQu exists
@@ -113,7 +121,7 @@ All endpoints are prefixed with `/v1`.
 
 ## OpenAPI
 
-A machine-readable OpenAPI 3.0 spec is available at:
+A machine-readable OpenAPI 3.1 spec is available at:
 
 ```
 GET /openapi.json
