@@ -647,3 +647,39 @@ the structured `actor` row, decision outcomes.
    against the live transparency log" or "live witness verification".
    "Anchored to a public transparency log; verifiable offline against a
    pinned log key" is accurate.
+
+## 18. Publication order for wire-format changes
+
+When the receipt wire format changes, the surfaces that describe it must be
+updated in a fixed order. **Each step gates the next** — nothing at a given step
+may describe a change until every step above it is complete.
+
+| Step | Surface |
+| --- | --- |
+| 1 | Implementation and tests |
+| 2 | Migration and compatibility tests |
+| 3 | Signed public fixture |
+| 4 | **Receipt Reference — this page** |
+| 5 | Developer guides |
+| 6 | Website summaries and visuals |
+| 7 | Sales and conference assets |
+
+This page is **step 4**, which cuts both ways:
+
+- **Nothing downstream of it may run ahead.** Developer guides, website copy and
+  visuals, decks, event pages and sales collateral must not describe a
+  wire-format change before this page describes it.
+- **This page may not run ahead either.** It may not describe a wire-format
+  change before the signed public fixture (step 3) exists. Receipt-shaped
+  examples are generated from, or explicitly checked against, a valid fixture;
+  hand-authored ones are not permitted on any public surface.
+
+**Standing embargo — receipt v3.** No public surface may describe receipt v3
+fields, semantics or timelines until steps 1–4 are complete. That includes this
+page. Until then, v3 is not a public roadmap item and no date may be given for
+it. Today's wire format is `receipt_schema_version` v1 and v2 only (§1.1).
+
+The same order is recorded as a standing rule alongside the implementation, so
+that engineering and documentation cannot drift apart; this section is its
+docs-side statement, and this page remains the authority for what public
+surfaces may claim.
