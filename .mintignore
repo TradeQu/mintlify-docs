@@ -1,0 +1,5 @@
+# Files that must never be served as documentation pages.
+# Unlike hidden pages, .mintignore entries are removed from the site
+# entirely — not reachable by direct URL. Mintlify ignores README.md,
+# CHANGELOG.md and dot-directories by default, but NOT this file:
+CLAUDE.md
