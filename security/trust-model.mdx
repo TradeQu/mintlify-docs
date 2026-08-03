@@ -176,6 +176,8 @@ When a decision is recorded with an `actor`, the following trust layers apply:
 
 The `actor.id` field is included in the integrity hash and is therefore **cryptographically bound** to the receipt. Altering `actor.id` after the fact invalidates the integrity hash.
 
+The binding is *transitive*, which is why the [Receipt Reference](/concepts/receipt-reference) states that the structured `actor` row is not itself hashed: on the record path the API copies `actor.id` into `context.metadata.actor_id` before evaluation, and it is that context value which enters the integrity hash via `context_hash`. Both statements describe the same mechanism.
+
 Other actor fields (`type`, `role`, `authority`, `display_name`) are stored and displayed for audit convenience but are **not** part of the cryptographic proof — they can be viewed as application-level annotations.
 
 <Warning>

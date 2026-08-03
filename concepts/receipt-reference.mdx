@@ -323,10 +323,21 @@ What works today:
   fields; emits `transparency.inclusion_proof_invalid` when present and
   broken.
 
-What's **not** implemented:
+Online Rekor access splits into three layers. Read them separately — the
+differences are where public copy usually goes wrong:
 
-- **Online Rekor lookups** (live witness fetching): Planned. Only offline SET
-  verification today.
+- **Online entry-existence lookup: Implemented.** `verifyRekorInclusion()`
+  queries the log by entry UUID and reports whether an entry exists there. It
+  is exported from `@meshqu/core` and tested. The shipped browser verifier
+  also makes live, host-allowlisted calls to Rekor when validating an anchor.
+  This confirms *an entry is present*; it does not verify an inclusion proof.
+- **Bundle-verifier wiring: Inert.** `BundleVerificationOptions.online` exists
+  but is documented as "reserved for future wiring". Bundle verification is
+  offline by default and setting the flag changes nothing today.
+- **Co-signed-witness inclusion-proof verification: Planned.** Verifying an
+  inclusion proof against an independently co-signed log witness is not
+  implemented. Offline SET verification against a pinned Rekor log key remains
+  the guarantee MeshQu stands behind.
 
 Pre-PR-5b/5f anchors (no `dsse_envelope` / `signed_entry_timestamp` /
 `integrated_time` / `log_id`) report `transparency: not_applicable`.
@@ -591,7 +602,8 @@ the structured `actor` row, decision outcomes.
 | Source artifact hash binding | Implemented | "Document binding" — safe |
 | Rekor anchoring | Implemented | "Anchored to a public transparency log" — safe with footnote |
 | Offline SET verification | Implemented | "Verifiable without contacting the log" — safe |
-| Online Rekor inclusion-proof lookup | **Planned** | Don't claim live witness verification |
+| Online Rekor entry-existence lookup | Implemented (primitive; inert in the bundle verifier) | "We can check the log still has the entry" — safe. Not an inclusion proof |
+| Online inclusion-proof verification against a co-signed witness | **Planned** | Don't claim live witness verification |
 | Approval lineage verified by bundle (per-version digest + ratifier signature + rules-hash) | Implemented (APR-008 / APR-009 / APR-010) | "Approval lineage verified" — safe. Requires `ratifierTrustedRoots` supplied out-of-band. |
 | Recursive governance (`governance_source.level > 0`) | **Planned** (`level` always 0) | Don't market hierarchical / tiered governance |
 | RFC 8785 canonical JSON | **Planned** (`v1` profile) | Today the spec is `meshqu-canonical/v0` |
