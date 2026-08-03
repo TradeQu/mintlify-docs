@@ -75,15 +75,11 @@ The fastest way to build confidence in the verifier is to break a receipt on pur
 
 1. Verify a genuine receipt at [verify.meshqu.com](https://verify.meshqu.com) and confirm **Integrity: Valid** and **Signature: Valid**.
 2. Copy the receipt JSON into a text editor and change a single hashed field — flip the `decision` from `ALLOW` to `DENY`, edit a number inside `context.fields`, or delete a violation.
-3. Paste the modified receipt back in.
-
-You will see **two** checks change, and that pairing is the point:
-
-- **Integrity → Tampered.** The recomputed hash no longer matches the stored `integrity_hash`, because you changed a field the hash covers.
-- **Signature → Invalid.** The signature was made over the original integrity hash. Your edit invalidates it, and — crucially — you cannot forge a new valid signature without MeshQu's private key.
+3. Paste the modified receipt back in. **Integrity → Tampered.** The recomputed hash no longer matches the stored `integrity_hash`, because you changed a field the hash covers. **Signature → still Valid** — and that is correct behaviour, not a gap. The signature was made over the *stored* integrity hash, which you have not touched; it proves MeshQu attested to that hash. Binding the hash to the content is the integrity check's job.
+4. Now try to paper over the edit: rewrite the stored `integrity_hash` so the integrity check passes again. Paste it back. **Signature → Invalid.** The signature covers the hash you just rewrote, and you cannot forge a new valid signature without MeshQu's private key.
 
 <Note>
-**Why both, and why it matters.** If you edit a field, you might think to also rewrite the stored `integrity_hash` to match — and integrity alone would then "pass." But the signature is computed over the original hash with a private key you do not hold, so it will still fail. To make a tampered receipt pass *both* checks you would need MeshQu's signing key. That is exactly the property a regulator wants: tamper-evidence that cannot be papered over.
+**Why the pairing matters.** Neither check alone is tamper-evidence: a content edit leaves the signature intact, and a hash rewrite leaves the content self-consistent. Together they close the loop — no single-field alteration survives both checks, and making a tampered receipt pass *both* would require MeshQu's signing key. That is exactly the property a regulator wants: tamper-evidence that cannot be papered over.
 </Note>
 
 Some fields are deliberately **not** covered by the integrity hash — for example the `transparency_anchor`, chain linkage, `evaluation_time_ms`, and source-artifact metadata such as filename and byte size. Editing one of those will **not** flip the integrity verdict, because they were never hashed. See [What Is and Isn't Bound](/concepts/receipt-reference) for the exact list. This is honest behaviour, not a gap: the verifier only claims integrity over what it actually hashed.
