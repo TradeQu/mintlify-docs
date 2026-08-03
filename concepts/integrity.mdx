@@ -8,7 +8,7 @@ Every decision MeshQu evaluates is bound to a **SHA-256 integrity hash**: a sing
 > **Mental model:** the integrity hash is a fingerprint of the whole decision. The Ed25519 signature is MeshQu attesting "this fingerprint is mine." Verification recomputes the fingerprint and checks the signature — no trust in MeshQu's database required.
 
 <Info>
-This page covers the hashing and signing primitives — the **L2 (hashed)** and **L3 (signed)** layers of the [Decision Assurance](/concepts/decision-assurance) maturity model. For the full offline-verifiable contract — bundles, transparency anchoring, and the per-sub-claim taxonomy — see [Verification Bundle](/concepts/verification-bundle) and the [Receipt Reference](/concepts/receipt-reference).
+This page covers the hashing and signing primitives — **L2 (integrity protected)** on the [Decision Assurance](/concepts/decision-assurance) ladder. For the full offline-verifiable contract — bundles, transparency anchoring, and the per-sub-claim taxonomy — see [Verification Bundle](/concepts/verification-bundle) and the [Receipt Reference](/concepts/receipt-reference).
 </Info>
 
 ## Canonical JSON
@@ -166,7 +166,7 @@ The remaining trust requirement is **signing-key custody** and the authenticity 
 
 ## See also
 
-- [Decision Assurance](/concepts/decision-assurance) — the maturity model and what an offline verifier proves.
+- [Decision Assurance](/concepts/decision-assurance) — the assurance ladder and what an offline verifier proves.
 - [Policy Snapshots](/concepts/policy-snapshots) — how the rules that governed a decision are frozen and hashed.
 - [Snapshot Pinning](/concepts/snapshot-pinning) — how a recorded decision replays to the same verdict.
 - [Receipt Reference](/concepts/receipt-reference) — every receipt field and exactly what each binds.

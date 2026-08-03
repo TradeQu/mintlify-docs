@@ -85,10 +85,11 @@ Failure codes: `snapshot_replay.snapshot_id_mismatch`,
 `snapshot_replay.skipped_in_browser` (advisory).
 
 <Note>
-  Today `snapshot_replay.status === 'valid'` binds `snapshot.id` and
-  `snapshot.rules`. It does NOT bind `snapshot.policy_versions` or
-  `snapshot.created_at` — those are informational in v1.
-  Receipt-v2 will close this gap.
+  On a **v1** receipt, `snapshot_replay.status === 'valid'` binds
+  `snapshot.id` and `snapshot.rules` only — `snapshot.policy_versions`
+  and `snapshot.created_at` are informational. On a **v2** receipt the
+  sub-claim additionally checks `policy_snapshot_digest`, which covers
+  `id`, `rules`, `policy_versions` and `created_at` together.
 </Note>
 
 ### 5. `transparency`
@@ -218,6 +219,6 @@ sub-claim verdicts on every released archive.
 
 ## See also
 
-- [Decision Assurance](/concepts/decision-assurance) — maturity model.
+- [Decision Assurance](/concepts/decision-assurance) — the assurance ladder.
 - [Bundles API](/api/reference) — endpoint reference.
 - [Verifying Bundles](/guides/verifying-offline) — auditor workflow.

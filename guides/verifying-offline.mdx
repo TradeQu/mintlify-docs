@@ -102,10 +102,10 @@ Independent verification narrows what you must take on faith, but it does not el
 - **The authenticity of the public-key channel.** You are trusting that the public keys you pinned (via the JWKS endpoint or bundled defaults) genuinely belong to MeshQu.
 - **The truthfulness of the submitted inputs.** MeshQu hashes the context and evidence references it is given. It does not independently authenticate that `actor.id`, evidence digests, or `source_artifact` hashes reflect reality.
 
-The [Trust Model](/security/trust-model) lays out the maturity levels (L1–L5) that progressively reduce these dependencies — including external co-attestation, which is in flight.
+The [Trust Model](/security/trust-model) lays out the assurance ladder (L1–L5) that progressively reduces these dependencies. The top rung — independently governed trust — is a property of how a deployment distributes and governs its trust roots, not a receipt feature still being built.
 
 ## See also
 
 - [Verification Bundle](/concepts/verification-bundle) — the ten sub-claims and the offline archive format.
 - [Receipt Reference](/concepts/receipt-reference) — exactly which fields are bound into the hash and signature.
-- [Trust Model](/security/trust-model) — the L1–L5 maturity scheme and what each level proves.
+- [Trust Model](/security/trust-model) — the L1–L5 assurance ladder and what each rung proves.
