@@ -59,18 +59,20 @@ L3 proves a receipt is signed, but verification still depends on out-of-band pub
 
 A Verification Bundle contains the receipt, its policy snapshot, chain proofs, transparency proof, and a `trusted_keys.json` listing of public keys — all under a digest-of-digests manifest. The bundle is itself self-describing and can be verified without contacting MeshQu.
 
-The bundle binds **eight sub-claims** under one manifest:
+The bundle binds **ten sub-claims** under one manifest:
 
 | Sub-claim | What's bound |
 | --- | --- |
 | `bundle_manifest` | File presence, per-file SHA-256, manifest digest |
 | `integrity` | Recomputed integrity hash matches the receipt |
 | `signature` | Ed25519 verifies against an external trust root |
-| `snapshot_replay` | Bundled `snapshot.id` matches the receipt; rule replay reproduces the integrity hash |
+| `snapshot_replay` | Bundled `snapshot.id` matches the receipt; rule replay reproduces the integrity hash; v2 also checks `policy_snapshot_digest` |
 | `transparency` | DSSE subject + envelope-body hash + Rekor SET |
 | `chain_link` | Chain proof identifies *this* receipt and its signature verifies |
 | `chain_seal` | Seal covers this receipt and its signature verifies |
 | `canonicalization` | `meshqu-canonical/v0` profile |
+| `evidence` | v2: `evidence_manifest_digest` matches the bundled `evidence_manifest.json`, plus any custodian signatures on its items; `not_applicable` for v1 or a null digest |
+| `approval_lineage` | v2: per-version approval-receipt digest, ratifier signature and `policy_rules_hash`; `not_applicable` when the snapshot carries no approval-receipt digests |
 
 <Warning>
 **Trust roots are out-of-band.** `trusted_keys.json` inside the bundle is informational — useful for fingerprint UIs — but never used to authenticate a signature. Otherwise a self-signed bundle (operator-controlled keys listed as "trusted" in the bundle) would pass verification. Verifiers must pin trust roots from a channel the operator does not control.

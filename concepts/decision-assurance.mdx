@@ -20,7 +20,7 @@ MeshQu is in **early access** — no customer is running production traffic agai
 | **L1** Logged | Something happened, MeshQu's UI shows it. | Implemented |
 | **L2** Hashed | Decision data hasn't drifted from what was originally evaluated. | Implemented |
 | **L3** Signed | MeshQu attested to this hash. Ed25519. | Implemented (default behaviour) |
-| **L4** Bundled | Self-contained, offline-verifiable archive — receipt + policy snapshot + chain proofs + transparency proof + trust roots — under a digest-of-digests manifest. **8 sub-claims.** | Implemented |
+| **L4** Bundled | Self-contained, offline-verifiable archive — receipt + policy snapshot + chain proofs + transparency proof + trust roots — under a digest-of-digests manifest. **10 sub-claims.** | Implemented |
 | **L5** Externally co-attested | Evidence custodians, ratifiers, and external auditors signed off; receipt-v2 binds their digests into the receipt's signed payload. | In flight |
 
 ## Trust roots — the load-bearing rule
@@ -51,6 +51,8 @@ verification.
 | `chain_link` | Chain proof identifies *this* receipt; signature verifies | — |
 | `chain_seal` | Seal covers this receipt; signature verifies | — |
 | `canonicalization` | `meshqu-canonical/v0` profile | — |
+| `evidence` | Bundled evidence manifest re-digests to `evidence_manifest_digest`; custodian item signatures verify | v2 receipts; `not_applicable` for v1 or a null digest |
+| `approval_lineage` | Per-version approval-receipt digest, ratifier signature, `policy_rules_hash` | Needs `ratifierTrustedRoots` out-of-band |
 
 See [Verification Bundle](/concepts/verification-bundle) for the full
 sub-claim taxonomy and failure codes.

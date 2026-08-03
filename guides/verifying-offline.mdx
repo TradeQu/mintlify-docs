@@ -90,7 +90,7 @@ Some fields are deliberately **not** covered by the integrity hash — for examp
 
 ## Receipts vs. bundles
 
-This page covers verifying a single **Decision Receipt**. A **Verification Bundle** is the stronger artefact: a digest-addressed archive that adds the policy snapshot (so the rules can be re-run), chain proofs, and the transparency proof, all under one manifest — eight sub-claims instead of three. Use a bundle when you need to independently *replay* the decision, not just confirm the receipt wasn't altered.
+This page covers verifying a single **Decision Receipt**. A **Verification Bundle** is the stronger artefact: a digest-addressed archive that adds the policy snapshot (so the rules can be re-run), chain proofs, and the transparency proof, all under one manifest — ten sub-claims instead of three. Use a bundle when you need to independently *replay* the decision, not just confirm the receipt wasn't altered.
 
 The web verifier has a dedicated bundle mode for this. For the full sub-claim contract, see [Verification Bundle](/concepts/verification-bundle).
 
@@ -106,6 +106,6 @@ The [Trust Model](/security/trust-model) lays out the maturity levels (L1–L5) 
 
 ## See also
 
-- [Verification Bundle](/concepts/verification-bundle) — the eight sub-claims and the offline archive format.
+- [Verification Bundle](/concepts/verification-bundle) — the ten sub-claims and the offline archive format.
 - [Receipt Reference](/concepts/receipt-reference) — exactly which fields are bound into the hash and signature.
 - [Trust Model](/security/trust-model) — the L1–L5 maturity scheme and what each level proves.

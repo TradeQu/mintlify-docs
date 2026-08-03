@@ -65,6 +65,7 @@ All endpoints are prefixed with `/v1`. When a new major version is released, the
   - `policy_snapshot_digest` — canonical SHA-256 of the bound policy snapshot.
   - `evidence_manifest_digest` — canonical SHA-256 of the evidence manifest, when present.
 - **Policy Approval Receipts** — cryptographic ratifier signatures on the policy version that governed a decision. The offline verifier now accepts ratifier and custodian public-key sets as additional trust roots.
+- Two new bundle verifier sub-claims — `evidence` (bundled evidence manifest matches `evidence_manifest_digest`) and `approval_lineage` (per-version approval-receipt digest, ratifier signature and `policy_rules_hash`) — taking the sub-claim set from eight to **ten**.
 - All v1 receipts remain verifiable indefinitely — schema v2 fields are additive.
 
 ---
@@ -79,7 +80,7 @@ All endpoints are prefixed with `/v1`. When a new major version is released, the
   - `GET /v1/chains/:chainId/verify` — verify a chain proof.
   - `GET /v1/chains/:chainId/seal` — read a chain seal.
   - `GET /v1/chains/:chainId/bundle` — download a chain Verification Bundle.
-- **Verification Bundles** — self-contained, offline-verifiable archives covering 8 sub-claims under a digest-of-digests manifest (receipt, policy snapshot, chain proofs, transparency proof, trust roots, canonicalisation).
+- **Verification Bundles** — self-contained, offline-verifiable archives under a digest-of-digests manifest, with a sub-claim reported per artefact (receipt, policy snapshot, chain proofs, transparency proof, trust roots, canonicalisation). Two further sub-claims (`evidence`, `approval_lineage`) arrived in v1.6.0, bringing the set to **ten**.
 
 ---
 
