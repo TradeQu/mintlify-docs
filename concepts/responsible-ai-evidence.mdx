@@ -1,0 +1,162 @@
+---
+title: "Responsible AI: Evidence and Intent"
+description: "Which responsible-AI commitments are statements of intent, which are evidenceable at the moment a decision executes, and what a Decision Receipt does and does not evidence."
+---
+
+Most responsible-AI commitments are written before anything runs. They describe how a
+system *should* behave — fairly, transparently, with a person able to intervene.
+
+Operationally, those commitments divide into kinds, and the division decides what can
+ever be shown to a third party. **Some are statements of intent**: they describe a
+disposition, and the only way to check them is to inspect the system, test it, or trust
+the organisation that wrote them. **Some are evidenceable at execution time**: at the
+moment a specific decision is made, a record can be produced showing the claim held for
+*that* decision, and checked later by someone who was not there.
+
+This page is about the second kind, and about being precise regarding how narrow it is.
+
+<Info>
+MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement.
+</Info>
+
+## Three shapes, not two
+
+The intent/evidence split is the useful one, but a straight binary hides a third shape:
+commitments that are genuinely evidenceable, by a different artefact, at a different
+time. Calling those "intent" would be wrong.
+
+| A commitment of this shape | What could evidence it | Evidenceable at execution time? |
+| --- | --- | --- |
+| "We use AI responsibly" · "we are committed to fairness" | Nothing in particular — it describes a disposition | **No.** Statement of intent |
+| "Our models are evaluated for bias before release" | An evaluation run, a test report, a model card | **No** — evidenceable, but by a different artefact, at a different time |
+| "Consequential decisions are made under an approved policy" | A record of which policy version was in force when the decision executed | **Yes** |
+| "Decisions can be reconstructed afterwards" | A replayable record of the inputs, the rules and the outcome | **Yes** |
+| "Our records have not been quietly rewritten" | Integrity information bound to the record when it was created | **Yes** |
+| "A named party is accountable for each decision" | A record of the actor the calling system supplied | **Partly** — see [what it does not evidence](#what-a-decision-receipt-does-not-evidence) |
+
+A commitment in the first two rows is not weaker than one in the last three. It is a
+different claim, and reaching for a decision-time record to support it is a category
+error that produces confident-looking evidence for something nobody measured.
+
+## What a Decision Receipt evidences
+
+A Decision Receipt is a signed, replayable record of how a consequential decision was made, created at the moment it happens and independently verifiable afterwards.
+
+It records the policy in force, relevant decision context, the outcome and the integrity information needed to determine later whether the signed record has changed.
+
+Taken one at a time, and with the status of each mechanic grounded in the
+[Receipt Reference](/concepts/receipt-reference) status matrix (§15):
+
+- **The policy in force.** The version of the ruleset that actually evaluated this
+  decision, frozen and bound to the record — not the version that happened to be current
+  when someone last read the policy document. Snapshot replay is implemented:
+  the same inputs against the same snapshot reproduce the same result.
+- **The decision context supplied.** The inputs the calling application submitted, bound
+  by hash. MeshQu hashes what it is given; that the submitted references and hashes are
+  truthful remains a property of the caller, not of the receipt
+  ([Decision Assurance](/concepts/decision-assurance)).
+- **The outcome recorded.** The verdict the policy produced. MeshQu returns a verdict and
+  the calling application owns enforcement
+  ([Integration Patterns](/guides/integration-patterns)), so the receipt evidences what
+  was decided, not what was subsequently done about it.
+- **The integrity information.** Offline integrity and signature verification are
+  implemented (§15) and run without contacting MeshQu at all.
+
+Tamper evidence is **two checks together**. A content edit leaves the Ed25519 signature
+valid — the signature covers the stored integrity hash, which the edit did not touch —
+and it is the integrity check that binds the content and catches it. Rewriting the hash
+to paper over the edit then fails the signature. Never attribute edit-detection to the
+signature alone. [Integrity and Hashing](/concepts/integrity) has the primitives;
+[Verifying a Receipt Offline](/guides/verifying-offline) has the honest two-step demo.
+
+The field-level contract — every field, what each one binds, the ten verification
+sub-claims — belongs to the [Receipt Reference](/concepts/receipt-reference), and the
+five-rung assurance ladder belongs to [Decision Assurance](/concepts/decision-assurance)
+and the [Trust Model](/security/trust-model). This page does not restate either.
+
+## What a Decision Receipt does not evidence
+
+This is the load-bearing section. Read it before writing anything public that rests a
+responsible-AI claim on a receipt.
+
+- **Fairness.** A receipt evidences that a decision was evaluated against a particular
+  ruleset. Whether that ruleset encodes a defensible standard of fairness is a question
+  about the policy, answered by whoever wrote and approved it — not by the artefact that
+  records its use.
+- **Accuracy.** Nothing in the record establishes that the inputs described the world
+  correctly. The receipt binds the context that was supplied; it cannot bind the context
+  that was true.
+- **Model behaviour.** Where a model produced a recommendation upstream of a governed
+  decision, the receipt evidences the decision, not the model — no account of how the
+  model reached its output, or how it behaves on any other input.
+- **The correctness of the decision.** Verification proves issuance and integrity, never
+  correctness. A passing verdict means these bytes are mathematically consistent and were
+  signed by the key they claim. It does not mean the decision was right, the inputs
+  truthful, or any external requirement discharged.
+- **The identity of the actor.** MeshQu records and cryptographically binds whatever
+  actor identifier the calling system supplies; it does **not** authenticate actor
+  identities against an identity provider
+  ([Actor Attribution](/guides/actor-attribution)). Of the actor fields, only `actor.id`
+  is inside the integrity hash — `type` (`human` or `automated`), role and authority are
+  display annotations. So a receipt evidences *which actor the calling system claimed*,
+  bound such that the claim cannot be altered afterwards. It does not evidence *who or
+  what actually acted*. The safe term is **Actor**, not "Approver": the receipt records
+  who acted, not necessarily who approved (§16).
+
+This is why the accountability row in the table above reads *partly*. Binding an
+unverified claim is still worth doing — it converts a mutable log line into something
+that cannot be edited after the outcome is known — but it is a narrower thing than
+attribution, and describing it as attribution is the single easiest way to overstate a
+receipt.
+
+## Evidence mechanics, and what the organisation still owns
+
+The same split [Decision Assurance](/concepts/decision-assurance) draws between
+implemented mechanics and deployment responsibilities applies to responsible-AI claims,
+and it falls in a place people find unintuitive.
+
+**Carried by the artefact** — implemented, checked by the offline verifier, statuses
+source-grounded in §15:
+
+| Carried | Rests on |
+| --- | --- |
+| Which policy version evaluated this decision | Snapshot replay |
+| The decision context, bound by hash | Integrity binding over canonical JSON |
+| The outcome the policy produced | The recorded verdict |
+| Whether the signed record has since changed | Integrity check plus signature check, together |
+| Approval lineage for the policy version | Ratifier trust roots supplied out-of-band |
+
+**Owned by the organisation** — no release delivers these, and none of them becomes
+evidenceable because a receipt exists:
+
+| Responsibility | Why it stays outside the artefact |
+| --- | --- |
+| Whether the policy encodes a defensible standard | A judgement about the ruleset, not about its execution |
+| Whether the supplied actor is the accountable party | Identity is asserted by the caller and bound, not authenticated |
+| The quality of any model or human upstream | Evidenced, if at all, by evaluation artefacts of a different kind |
+| Retention, publication and who can obtain a record at all | Operator policy |
+| How verifying parties obtain trusted roots, and how keys are governed | Deployment and key-management architecture |
+
+The remaining gap here is organisational, not unfinished receipt structure — the same
+conclusion the assurance ladder reaches from the other direction.
+
+## Using the distinction
+
+When a responsible-AI commitment is drafted, the practical question is which of the three
+shapes it has, and therefore what would satisfy someone who did not take it on trust. A
+commitment that is evidenceable at execution time is worth phrasing so its evidence can
+actually be produced and checked. One that is not should say plainly what *would* satisfy
+it — an evaluation, an inspection, an audit of the ruleset — rather than borrowing the
+credibility of a record that answers a different question.
+
+The failure this page exists to prevent is the quiet substitution: describing an
+intent-shaped or evaluation-shaped commitment as though a decision-time record discharged
+it. The record is narrow, and its value comes from being exactly as narrow as it says.
+
+## See also
+
+- [Decision Assurance](/concepts/decision-assurance) — implemented mechanics versus deployment and governance responsibilities.
+- [Trust Model](/security/trust-model) — where the trust boundaries fall, at length.
+- [Actor Attribution](/guides/actor-attribution) — what the actor fields record, and what they do not.
+- [Verifying a Receipt Offline](/guides/verifying-offline) — what a passing verdict does and does not prove.
+- [Receipt Reference](/concepts/receipt-reference) — the field-level contract, the status matrix (§15) and the safe-term glossary (§16).
