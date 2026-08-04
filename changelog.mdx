@@ -7,7 +7,7 @@ description: "API and SDK version history"
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog documents API and SDK functionality shipped into those deployments. Console UI changes are not tracked here.
 </Info>
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.9.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.10.0**.
 
 ## Versioning policy
 
@@ -24,6 +24,18 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract ve
 ## API version header
 
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
+
+---
+
+## v1.10.0
+
+**Case-insensitive policy `when` gates**
+- `when` gates with `equals` or `in` accept an opt-in `case_sensitive: false`, which folds string-vs-string comparisons only. Booleans and numbers always compare strictly, and gates never coerce types — a boolean `true` is never matched by the string `"true"`.
+- An absent key means strict comparison, exactly as before: every previously authored rule and every ratified policy version evaluates byte-identically. There is no schema default — absence is the canonical strict spelling.
+- Note the default is deliberately the opposite of the list-*condition* `case_sensitive` (which defaults to `false`): gates match ratified domains, list conditions match free text.
+
+**OpenAPI spec refresh**
+- The published spec now also reflects earlier shipped work it had lagged behind: the signed `/v1/.well-known/trust-registry` endpoint and the matching `signing-keys` deprecation notice, boolean members in `when.in` lists, and admin member invitations by email with `actor_email` in audit views.
 
 ---
 
