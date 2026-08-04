@@ -29,6 +29,7 @@
             "pages": [
               "concepts/overview",
               "concepts/decision-assurance",
+              "concepts/responsible-ai-evidence",
               "concepts/integrity",
               "concepts/policy-lifecycle",
               "concepts/policy-snapshots",
