@@ -219,6 +219,13 @@ const policy = await client.createPolicy({
   ],
 });
 
+// A `when` gate compares strictly by default — 'Equity' would NOT match the
+// gate above. To accept any casing of a string value, opt in per gate:
+//   when: { field: 'instrument_type', equals: 'equity', case_sensitive: false }
+// Folding is string-vs-string only (booleans and numbers always compare
+// strictly), and omitting the key keeps the strict behaviour every existing
+// rule already relies on. Available from API release 1.10.0.
+
 // Get
 const fetched = await client.getPolicy(policy.id);
 
