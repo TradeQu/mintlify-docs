@@ -536,8 +536,10 @@ The endpoints exposed by the MeshQu API:
 | `POST /v1/decisions/evaluate` | API key + tenant | tenant-tier | Implemented |
 | `POST /v1/decisions/record` | API key + tenant | tenant-tier; `idempotency_key` required | Implemented |
 | `POST /v1/decisions/replay` | API key + tenant | tenant-tier | Implemented |
-| `GET /v1/receipts/:decisionId` | **Public, unauth** | 300 req/min per IP | Implemented |
+| `GET /v1/receipts/:decisionId` | **Public, unauth** | 300 req/min per IP | Implemented. Also resolves approval-receipt and agent-licence ids (§19) |
 | `GET /v1/receipts/:decisionId/bundle?format=json\|tar` | Public, unauth | 60 req/min per IP | Implemented; may be disabled by the operator |
+| `POST /v1/agent-licences` (issue) · `POST /v1/agent-licences/:id/revoke` | **Human session only** (`humanGovernanceAct` — an API key receives 403) | tenant-tier | Implemented |
+| `GET /v1/agent-licences` (list) · `GET /v1/agent-licences/:id` | API key + tenant | tenant-tier | Implemented |
 | `GET /v1/chains/:chainId/bundle?format=json\|tar` | Public, unauth | 30 req/min per IP | Implemented |
 
 Public receipt response shape: `{ context, result, chain_id, chain_step }`.
@@ -611,6 +613,9 @@ the structured `actor` row, decision outcomes.
 | Online Rekor entry-existence lookup | Implemented (primitive; inert in the bundle verifier) | "We can check the log still has the entry" — safe. Not an inclusion proof |
 | Online inclusion-proof verification against a co-signed witness | **Planned** | Don't claim live witness verification |
 | Approval lineage verified by bundle (per-version digest + ratifier signature + rules-hash) | Implemented (APR-008 / APR-009 / APR-010) | "Approval lineage verified" — safe. Requires `ratifierTrustedRoots` supplied out-of-band. |
+| Agent licence record — signed grant + superseding revocation (§19) | Implemented (AGD-003) | "A named person granted this credential a scoped, expiring, revocable licence" — safe. **Never** "discharges/transfers accountability", **never** "proves which model acted". |
+| Licence admissibility on receipt-minting calls (`off` / `record_only` / `enforce`) | Implemented (AGD-003) | Claims must name the mode. `record_only` deployments claim issue/display/verify only — the enforcement claim is per-deployment, not a product property. |
+| Licence page in the public verifier (`/l/:id`) | Implemented, behind a release flag | Do not claim or link until the flag is flipped (AGD-007 release gate). |
 | Recursive governance (`governance_source.level > 0`) | **Planned** (`level` always 0) | Don't market hierarchical / tiered governance |
 | RFC 8785 canonical JSON | **Planned** (`v1` profile) | Today the spec is `meshqu-canonical/v0` |
 | Decision outcome tracking | Implemented | Safe on detail UIs; not part of the signed receipt |
@@ -689,3 +694,72 @@ The same order is recorded as a standing rule alongside the implementation, so
 that engineering and documentation cannot drift apart; this section is its
 docs-side statement, and this page remains the authority for what public
 surfaces may claim.
+
+## 19. Agent Licences
+
+A first-class signed record answering: *which named person authorised this API
+credential to act, under which ratified policy version, for which decision
+types, until when — and has that authorisation been withdrawn?*
+
+Everything in this section is validated against the committed public fixture —
+a real grant issued 2026-08-25 in a purpose-made demo tenant, captured from the
+public lookup and verified with the open verifier:
+`packages/meshqu-core/test-vectors/public-agent-licence-fixture/` in the
+platform repository. The field contract is
+`docs/architecture/0004-agent-licence-digest-contract.md` (ADR 0004).
+
+### 19.1 The record
+
+Two record types share one shape and one table: a **grant**, and a
+**revocation** that supersedes it. Revocation is a new signed record naming the
+grant — never an edit or a deletion. The store is append-only.
+
+The signed preimage is exactly 14 fields (ADR 0004 §3): `id`, `tenant_id`,
+`record_type`, `key_id` (the subject — an API key, not a person and not a
+model), `revokes_licence_id`, `granted_by` (the authenticated user id captured
+at issue), `grant_authority` (free text, stored verbatim), `policy_id`,
+`policy_version_id`, `policy_version_number`, `scope` (decision types, matched
+exactly), `valid_from`, `valid_until`, `issued_at`.
+
+`licence_digest` = SHA-256 over the canonical JSON of that preimage.
+`grantor_signature` is Ed25519 over the digest, under a **ratifier** key —
+policy-governance authority, disjoint from receipt-signing keys by
+construction. Verification recomputes the digest **before** checking the
+signature: a genuine signature over a stale digest proves nothing about an
+edited record.
+
+### 19.2 Lifecycle and admissibility
+
+Issue and revoke are human governance acts: the routes reject any API-key
+principal before the handler runs. A deployment resolves licence admissibility
+on every receipt-minting call under one of three modes — `off`,
+`record_only`, `enforce` — where the effective mode is the maximum of the
+deployment default and the tenant setting. In `record_only`, the admissibility
+status is stamped into the decision receipt's hashed context and nothing is
+refused; in `enforce`, an expired, out-of-scope, revoked or missing licence
+fails closed with a distinct error code and **no receipt is minted**. The mode
+itself is stamped into the hashed context, so a record-only receipt is
+distinguishable from an enforced one from the receipt alone.
+
+### 19.3 Verification and the public lookup
+
+`GET /v1/receipts/:id` (public, unauthenticated) resolves a licence id and
+returns the grant **with its superseding revocation inline** (or `null`), so a
+verifier can distinguish *verifiably issued* from *verifiably still in force*.
+The open verifier (`@meshqu/verify-lib/agent-licence`) recomputes the digest
+from the response bytes, checks the signature against the ratifier trust
+roots, verifies any revocation the same way including its binding to the
+grant, and reports cryptographic verdict and lifecycle as **two separate
+axes** — a revoked licence is normally cryptographically perfect, and one
+badge would have to lie about one of the two.
+
+### 19.4 What a licence does and does not establish
+
+- It **evidences governed delegation** by a named accountable person. It does
+  not discharge, transfer or dilute that person's accountability, and it is
+  not a regulator-granted permission.
+- Its subject is an API credential. It does **not** establish which model or
+  agent implementation acted behind that credential.
+- The signature is checked against the trust roots the verifier carries. The
+  stronger claim — verification *without trusting MeshQu* — awaits the
+  published signed key registry and may not be made until then.
