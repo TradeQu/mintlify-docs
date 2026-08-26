@@ -67,8 +67,18 @@ Failure code: `integrity.mismatch`.
 
 ### 3. `signature`
 
-Ed25519 signature over the integrity hash, verified against
-**out-of-band** trust roots.
+Ed25519 signature verified against **out-of-band** trust roots. What the
+signature covers depends on the receipt version: a **v1** receipt signs
+the bare `integrity_hash` string, while a **v2** receipt signs a
+canonical envelope of `evidence_manifest_digest`, `integrity_hash`,
+`policy_snapshot_digest`, `receipt_schema_version`,
+`signature_algorithm`, `signature_kid` and `timestamp`. Recorded
+receipts are v2. See [Receipt Reference
+§2.3](/concepts/receipt-reference) for the exact envelope.
+
+The verifier rebuilds the v2 envelope from the receipt's *stored*
+`signature_kid` and `signature_algorithm` rather than hardcoded values,
+so tampering with either field fails this sub-claim.
 
 Failure codes: `signature.unknown_kid`, `signature.invalid`,
 `signature.not_signed`, `signature.no_external_trust_root`.
