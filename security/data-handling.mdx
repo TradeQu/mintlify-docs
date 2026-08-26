@@ -101,7 +101,7 @@ Decision contexts (`fields`, `metadata`, `evidence`) are sent by your applicatio
 
 ## What MeshQu stores
 
-- **Evaluate** (`/v1/decisions/evaluate`): Nothing is persisted. The evaluation is stateless.
+- **Evaluate** (`/v1/decisions/evaluate`): No decision is recorded — the decision context, decision and violations are not stored, no decision id is returned, and nothing is retrievable as a decision afterwards. Resolving the active policies may, however, append one row to the tenant's append-only `policy_snapshots` table, and the response returns its id as `policy_snapshot_id`. That row holds the frozen policy rules and their version attribution — never any part of the decision context you sent. When the resolved policies match an existing snapshot, no row is appended.
 - **Record** (`/v1/decisions/record`): The decision context, decision, violations, and metadata are stored for audit.
 
 Retention periods are tenant-configurable and can be aligned with regulatory requirements.

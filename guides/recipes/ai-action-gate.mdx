@@ -45,7 +45,7 @@ The agent never reaches `EXEC` without passing through `MeshQu evaluates`. Your 
 
 ## Gate a low-risk action with `evaluate`
 
-For the hot path — gating thousands of routine tool calls — use **`evaluate`**. It is stateless and stores nothing, so it is cheap to call on every action. Persist only the consequential ones with `record` (next section).
+For the hot path — gating thousands of routine tool calls — use **`evaluate`**. It records no decision, so it is cheap to call on every action and leaves no decision to page through later. It is not a pure read: resolving the active policies may append one row to the tenant's append-only `policy_snapshots` table, returned as `policy_snapshot_id`. On a hot path that append is rare — a repeat call resolving to the same policies reuses the existing snapshot and appends nothing, so a steady policy set costs one row, not one per call. Persist only the consequential decisions with `record` (next section).
 
 <CodeGroup>
 
@@ -165,7 +165,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/DECISION_ID/outcome \
 ## Concept references
 
 - [Integration Patterns](/guides/integration-patterns) — the synchronous pre-execution gate, and fail-open vs fail-closed.
-- [Core Concepts — Evaluate vs Record](/concepts/overview#evaluate-vs-record) — when to use the stateless gate vs the persisted one.
+- [Core Concepts — Evaluate vs Record](/concepts/overview#evaluate-vs-record) — when to use the dry-run gate vs the recording one.
 - [Decision Assurance](/concepts/decision-assurance) — what the receipt proves about a recorded agent authorization.
 - [Actor Attribution](/guides/actor-attribution) — binding the agent identity into the receipt.
 - [Shadow Mode](/guides/shadow-mode) · [Webhooks](/guides/webhooks).

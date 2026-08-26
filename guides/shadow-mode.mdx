@@ -151,7 +151,7 @@ These are guidelines, not enforced limits.
 
 ## Comparing against your existing logic
 
-If you are replacing or supplementing a system that already makes the decision, you can run MeshQu *alongside* it before MeshQu becomes authoritative. This is a client-side pattern — it doesn't require any MeshQu feature beyond the stateless `evaluate` endpoint:
+If you are replacing or supplementing a system that already makes the decision, you can run MeshQu *alongside* it before MeshQu becomes authoritative. This is a client-side pattern — it doesn't require any MeshQu feature beyond the `evaluate` endpoint:
 
 ```typescript
 async function processPayment(payment: Payment) {
@@ -182,7 +182,7 @@ async function processPayment(payment: Payment) {
 Don't block your critical path on the comparison call — fire it and forget it, or push the context onto a queue. Tag the evaluation with a `correlation_id` and your existing verdict in `metadata` so you can line the two up later.
 
 <Note>
-  Use `evaluate` (not `record`) for throwaway comparisons — it persists nothing. Switch to `record` once you want a durable, replayable audit trail of each decision. See [Evaluate vs Record](concepts/overview#evaluate-vs-record).
+  Use `evaluate` (not `record`) for throwaway comparisons — it records no decision, so the comparison leaves no decision behind. It does not leave the tenant untouched, though: resolving the active policies may append one row to the append-only `policy_snapshots` table, returned as `policy_snapshot_id`; a repeat call resolving to the same policies appends nothing. Switch to `record` once you want a durable, replayable audit trail of each decision. See [Evaluate vs Record](concepts/overview#evaluate-vs-record).
 </Note>
 
 ## Related

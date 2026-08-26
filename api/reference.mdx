@@ -68,7 +68,11 @@ Clients should still set timeouts and fallback strategies.
 Two endpoints sit at the core of the API, and the difference matters for audit:
 
 - **`POST /v1/decisions/evaluate`** — dry-run. Evaluates a context against
-  active policies and returns a signed receipt. **Nothing is persisted.**
+  active policies and returns a signed receipt. **No decision is recorded** —
+  no decision id is returned and nothing is retrievable as a decision
+  afterwards. Resolving the active policies may still append one row to the
+  tenant's append-only `policy_snapshots` table, returned as
+  `policy_snapshot_id`; when an existing snapshot matches, nothing is appended.
 - **`POST /v1/decisions/record`** — evaluates *and* persists the result.
   Requires an `idempotency_key` for safe retries.
 

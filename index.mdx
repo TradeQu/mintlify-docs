@@ -79,7 +79,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
 </Warning>
 
 <Info>
-  **Evaluate vs Record** — `evaluate` is fast, stateless, nothing stored. `record` persists the result for audit. Most production systems use `evaluate` on the hot path and `record` for compliance-critical actions. See [Evaluate vs Record](concepts/overview#evaluate-vs-record).
+  **Evaluate vs Record** — `evaluate` is fast and records no decision; resolving the active policies may still append one row to the tenant's append-only `policy_snapshots` table, and a repeat call resolving to the same policies appends nothing. `record` persists the decision itself for audit. Most production systems use `evaluate` on the hot path and `record` for compliance-critical actions. See [Evaluate vs Record](concepts/overview#evaluate-vs-record).
 </Info>
 
 ## What happens after you integrate
