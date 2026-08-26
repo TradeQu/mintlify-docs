@@ -114,8 +114,10 @@ part of the integrity hash.
 
 Type: `ReceiptAction`. Shape: `{ type, reference_id, metadata? }`.
 
-**`type` and `reference_id` are bound into `integrity_hash`. `metadata` is
-not.**
+**The whole action object is bound into `integrity_hash` — `metadata`
+included.** The payload binds `action` as a single value, not a selection of
+its keys (§2.2), so changing any part of it changes the hash. This is unlike
+`context.source_artifact` (§1.3), where only `hash` is bound.
 
 ### 1.6 Shadow-mode fields (`result.is_shadow`, `result.shadow_converted`, `result.original_decision`)
 
@@ -171,7 +173,7 @@ alignment is a planned P1 follow-up that will introduce
 
 ```
 {
-  action,                           // ReceiptAction or null
+  action,                           // the whole ReceiptAction (metadata included), or null
   context_hash,                     // sha256(canonicalJson(context minus source_artifact))
   decision,
   policy_snapshot_hash,             // == result.evaluated_rules_hash (key kept for stability)
@@ -222,8 +224,8 @@ There is no cross-epoch fallback. Key order stays alphabetic however these keys
 are added (§2.1).
 
 **Not in the integrity hash:** `transparency_anchor` (computed after signing),
-chain fields, `evaluation_time_ms`, `rules_evaluated` / `rules_na`, the
-`actor` row, `action.metadata`, source artifact metadata.
+chain fields, `evaluation_time_ms`, `rules_evaluated` / `rules_na` /
+`na_rules`, the `actor` row, source artifact metadata.
 
 ### 2.3 Signing — what is signed
 
@@ -670,9 +672,10 @@ data belonging to its own tenant.
 
 ## 14. What Is and Isn't Bound — quick reference
 
-**Bound into v1 `integrity_hash`:** decision, violations, context (minus
-source_artifact metadata), `source_artifact.hash`, `action.{type,
-reference_id}`, `policy_snapshot_id`, `evaluated_rules_hash`, `timestamp`.
+**Bound into v1 `integrity_hash`:** `decision`, `violations`, context (minus
+`source_artifact`, which is stripped whole), `source_artifact.hash`, `action`
+in full — `metadata` included (§1.5) — `policy_snapshot_id`,
+`evaluated_rules_hash`, `timestamp`.
 
 **Additionally bound into v2 `integrity_hash`:** `receipt_schema_version`,
 `policy_snapshot_digest`, `evidence_manifest_digest` (or null).
@@ -682,14 +685,20 @@ is present on `result`:** `is_shadow`, `shadow_converted`, `original_decision`
 (§1.6). Presence-dispatched: absent field, absent key, unchanged legacy payload
 (§2.2).
 
-**Additionally bound into the v2 signed envelope (not the integrity hash):**
-`signature_kid`, `signature_algorithm`, `timestamp`. The envelope has seven
-fields in total; every other signed field, the shadow-mode fields included, is
-covered transitively via `integrity_hash` (§2.3).
+**In the v2 signed envelope (§2.3)** — seven fields exactly, in two groups:
+
+- **Envelope only, *not* in the integrity hash:** `signature_kid`,
+  `signature_algorithm`.
+- **In the envelope *and* in the integrity hash:** `timestamp` (bound by the
+  v1 and v2 hash alike), `receipt_schema_version`, `policy_snapshot_digest`,
+  `evidence_manifest_digest`.
+
+The seventh field is `integrity_hash` itself, which is what makes the
+signature's coverage of every other field transitive (§2.3).
 
 **Stored on the receipt but NOT hashed:** `transparency_anchor`, chain
 linkage, `evaluation_time_ms`, `rules_evaluated`, `rules_na`, `na_rules`,
-`action.metadata`, source artifact metadata (type / filename / byte_size),
+source artifact metadata (type / filename / byte_size / reference_id),
 the structured `actor` row, decision outcomes.
 
 **Bound transitively via `policy_snapshot_digest`:** all
