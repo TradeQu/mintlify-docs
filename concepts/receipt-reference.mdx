@@ -45,6 +45,9 @@ centre of gravity is `result` (the `EvaluationResult`).
 | `signature_algorithm` = `ed25519` | ✓ | ✓ |
 | `action` (ReceiptAction, optional) | ✓ | ✓ |
 | `transparency_anchor` (optional) | ✓ | ✓ |
+| `is_shadow` (boolean; **written only as `true`**, absent otherwise — see §1.6; distinct from `violations[].is_shadow`) | ✓ | ✓ |
+| `shadow_converted` (boolean; **written only as `true`**, absent otherwise — see §1.6) | ✓ | ✓ |
+| `original_decision` (`Decision \| null`; written together with `shadow_converted` — see §1.6) | ✓ | ✓ |
 | `receipt_schema_version` ∈ `1 \| 2` | optional/absent | **required = 2** |
 | `policy_snapshot_digest` (SHA-256 hex) | — | **required** |
 | `evidence_manifest_digest` (SHA-256 hex \| null) | — | optional (null when absent) |
@@ -57,6 +60,11 @@ Top-level (alongside the receipt, not inside `result`): `id` (UUID),
 **Migration semantics.** v1 receipts continue to verify forever. There is no
 cut-over date. Cross-version fallback is rejected — a v2 receipt **must**
 verify under the v2 path; a v1 receipt **must** verify under the v1 path.
+
+The same discipline governs the three shadow-mode fields, which joined the
+hash payload after both schema versions had shipped: a receipt is hashed over
+the keys it actually carries, so receipts minted before a field existed keep
+verifying unchanged (§1.6, §2.2).
 
 ### 1.2 Decision Context (the input)
 
@@ -109,6 +117,46 @@ Type: `ReceiptAction`. Shape: `{ type, reference_id, metadata? }`.
 **`type` and `reference_id` are bound into `integrity_hash`. `metadata` is
 not.**
 
+### 1.6 Shadow-mode fields (`result.is_shadow`, `result.shadow_converted`, `result.original_decision`)
+
+Three optional fields on `result` record how shadow-mode policies took part in
+the decision.
+
+```
+is_shadow          boolean?          true when at least one applicable rule carried a
+                                     shadow-mode stamp. Written only as `true`; never
+                                     written as `false`.
+shadow_converted   boolean?          true when shadow mode changed the verdict. Written
+                                     only as `true`; never written as `false`.
+original_decision  Decision | null   the verdict before conversion. Written together
+                                     with `shadow_converted`, never on its own.
+```
+
+**Conversion rule.** A `DENY` with at least one violation, where *every*
+violation carries `is_shadow: true`, is recorded as `ALERT`;
+`shadow_converted: true` and `original_decision: 'DENY'` are written alongside
+it. `DENY` is the only convertible verdict — an all-shadow `REVIEW` stays
+`REVIEW`. The conversion happens inside the evaluator, before the hash is
+computed, so the suppressed verdict is part of the signed surface rather than a
+note attached afterwards.
+
+**Participation is not suppression.** `is_shadow` says a shadow-mode rule was
+*applicable*; `shadow_converted` says a shadow-mode rule *changed the verdict*.
+A receipt can carry `is_shadow` on its own — a shadow rule ran, but the outcome
+was not an all-shadow `DENY`. `violations[i].is_shadow` (§1.1) is a third,
+separate field: it marks one violation as coming from a shadow-mode policy, and
+it is bound because the whole `violations` array is bound.
+
+**Where the stamp comes from.** Shadow status reaches the evaluator on the
+rules of the frozen policy snapshot, not from live policy state. Replaying a
+receipt against its own snapshot therefore re-derives the same conversion, and
+a snapshot whose shadow stamps were altered no longer reproduces the receipt.
+
+**Binding.** All three are bound into `integrity_hash` when present, on the v1
+and v2 paths alike (§2.2). None of them is named in the v2 signing envelope;
+the signature covers them **transitively**, because the envelope binds
+`integrity_hash` (§2.3).
+
 ## 2. Cryptographic Model
 
 ### 2.1 Canonicalisation profile
@@ -147,6 +195,32 @@ alignment is a planned P1 follow-up that will introduce
 }
 ```
 
+**Shadow-mode fields — presence-dispatched, identical on both paths.** Up to
+three further keys join the payload above, and the v1 and v2 builders dispatch
+them the same way (§1.6):
+
+```
+is_shadow,                          // included iff result.is_shadow !== undefined
+shadow_converted,                   // included iff result.shadow_converted !== undefined
+original_decision,                  // included with shadow_converted; undefined → null
+```
+
+Dispatch is on **presence, not value**: a key is included whenever its field is
+not `undefined`, and the value is then bound verbatim. `shadow_converted` and
+`original_decision` are a pair — the payload carries both keys or neither, and
+`original_decision` is coerced to `null` if the pair is written without it.
+`is_shadow` dispatches **independently** of that pair, because the two joined
+the payload at different times; a receipt may bind one, the other, both or
+neither.
+
+Where a field is absent, its key is absent. Receipts minted before a field
+joined the payload — and every receipt where MeshQu had nothing to write —
+therefore hash over the payloads exactly as listed above, unchanged, and go on
+verifying. Stripping a field from a receipt that carries it, or adding one to a
+receipt that does not, changes the recomputed hash and fails verification.
+There is no cross-epoch fallback. Key order stays alphabetic however these keys
+are added (§2.1).
+
 **Not in the integrity hash:** `transparency_anchor` (computed after signing),
 chain fields, `evaluation_time_ms`, `rules_evaluated` / `rules_na`, the
 `actor` row, `action.metadata`, source artifact metadata.
@@ -174,6 +248,14 @@ stored these alongside but not inside the signature. The verifier
 reconstructs envelope bytes using the receipt's *stored* `signature_kid` /
 `signature_algorithm` (not hardcoded) so any tampering of those fields fails
 the signature check.
+
+**Hash coverage is not envelope coverage.** The v2 envelope has exactly the
+seven fields listed above. Every other receipt field the signature covers —
+including the shadow-mode fields of §1.6 — is covered **transitively**, through
+`integrity_hash`: the signature attests to the hash, and the hash is computed
+over those fields. v1, which signs the bare `integrity_hash` string, covers
+them the same way. Being inside the integrity hash and being named in the
+signing envelope are separate properties; §14 lists which fields have which.
 
 Algorithm: Ed25519 only in v1+v2. Other algorithms require a manifest-version
 bump.
@@ -475,6 +557,17 @@ Every relevant sub-claim is reported (not just the first failure). Each has
 | `evidence` | v2: `evidence_manifest_digest` matches bundled `evidence_manifest.json`; `not_applicable` for v1 or null | Implemented |
 | `approval_lineage` | Per-version approval-receipt digest + ratifier signature + `policy_rules_hash` (string equality) | Implemented (APR-008 / APR-009) |
 
+**Shadow-mode fields and the two hash-comparing sub-claims.** `integrity` and
+`snapshot_replay` both recompute a hash, so both have to account for the
+presence dispatch of §2.2. A fresh replay re-derives shadow conversion from the
+shadow stamps on the bundled snapshot's rules, and the replay result is then
+normalised to the fields the *stored* receipt actually carries before the
+hashes are compared. The normalisation removes the shadow
+keys only — never the verdict — so a stored `decision` that disagrees with what
+the bundled snapshot produces still fails `snapshot_replay.hash_mismatch`, and
+a receipt whose shadow fields were stripped or added after signing fails
+`integrity.mismatch`.
+
 ### 10.4 Failure codes (full list)
 
 ```
@@ -584,8 +677,15 @@ reference_id}`, `policy_snapshot_id`, `evaluated_rules_hash`, `timestamp`.
 **Additionally bound into v2 `integrity_hash`:** `receipt_schema_version`,
 `policy_snapshot_digest`, `evidence_manifest_digest` (or null).
 
+**Conditionally bound into `integrity_hash` — v1 and v2 alike — when the field
+is present on `result`:** `is_shadow`, `shadow_converted`, `original_decision`
+(§1.6). Presence-dispatched: absent field, absent key, unchanged legacy payload
+(§2.2).
+
 **Additionally bound into the v2 signed envelope (not the integrity hash):**
-`signature_kid`, `signature_algorithm`, `timestamp`.
+`signature_kid`, `signature_algorithm`, `timestamp`. The envelope has seven
+fields in total; every other signed field, the shadow-mode fields included, is
+covered transitively via `integrity_hash` (§2.3).
 
 **Stored on the receipt but NOT hashed:** `transparency_anchor`, chain
 linkage, `evaluation_time_ms`, `rules_evaluated`, `rules_na`, `na_rules`,
