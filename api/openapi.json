@@ -9953,7 +9953,7 @@
                                 "type": "string"
                               },
                               "signature": {
-                                "description": "Base64url-encoded Ed25519 signature over the integrity hash",
+                                "description": "Receipt signature, base64url-encoded Ed25519. What the signature covers depends on the receipt envelope version. v2 receipts — every decision the platform records, through any route that records one — sign the canonical v2 envelope, the alphabetised JSON object { evidence_manifest_digest, integrity_hash, policy_snapshot_digest, receipt_schema_version, signature_algorithm, signature_kid, timestamp }. v1 receipts — legacy records, and any result carrying no envelope version — sign the bare integrity_hash string. Normative definition: Receipt Reference §2.3.",
                                 "type": "string"
                               },
                               "signature_kid": {
@@ -13205,7 +13205,7 @@
         "tags": [
           "Decisions"
         ],
-        "description": "Evaluates policies against a decision context without persisting.\n\nReturns:\n- **decision**: ALLOW, DENY, REVIEW, or ALERT\n- **violations**: Rule violations with details\n- **integrity_hash**: Cryptographic proof of evaluation\n- **snapshot**: Policy state used\n\nUse POST /v1/decisions/record to evaluate AND persist.",
+        "description": "Evaluates a decision context against the tenant's active policies and returns the verdict.\nThis is a preview. It is not a record, and its result is not a receipt.\n\n**No decision is recorded.** No decision id is returned, no audit event is written, and there\nis nothing to look up afterwards. Resolving the active policies may append one row to the\ntenant's append-only policy-snapshot table — that row records POLICY state, never the context\nyou submitted, and a repeat evaluation against unchanged policies appends nothing.\n\n**The result is deliberately unsigned.** `result.dry_run` is `true` and no `signature`,\n`signature_kid` or `signature_algorithm` is emitted, so the bytes of a dry-run result can\nnever be presented as a receipt — offline, by anyone, at any later date.\n\nReturns:\n- **result.dry_run**: always true on this endpoint, present on no recorded receipt\n- **result.decision**: ALLOW, DENY, REVIEW, or ALERT\n- **result.violations**: Rule violations with details\n- **result.integrity_hash**: SHA-256 over the canonical evaluation payload. Reproducible, so\n  you can recompute it yourself; unsigned, so on its own it attests nothing\n- **snapshot**: the policy state the verdict was read against\n\n`options.snapshot_id` carries the ratification guard with it: a snapshot pinning a policy\nversion that is not the active ratified one is refused. To re-derive a decision that was\nalready recorded, use POST /v1/decisions/{id}/replay.\n\nUse POST /v1/decisions/record to evaluate AND record.",
         "requestBody": {
           "required": true,
           "content": {
@@ -13377,12 +13377,12 @@
                     "properties": {
                       "snapshot_id": {
                         "format": "uuid",
-                        "description": "Use specific snapshot for replay (optional)",
+                        "description": "Evaluate against a stored policy snapshot instead of the tenant's currently active policies. Held to the same ratification guard as the active set: a snapshot pinning a policy version that is not the active ratified one — draft, submitted, superseded, or no longer resolvable — is refused. To re-derive a decision that was already recorded, use POST /v1/decisions/{id}/replay instead.",
                         "type": "string"
                       },
                       "evaluation_time": {
                         "format": "date-time",
-                        "description": "Override evaluation time for replay (optional)",
+                        "description": "Evaluate as of this instant instead of now, so date-sensitive rules read the context the way they would have at that moment. It sets the timestamp on the returned result, which is why this endpoint never signs: a back-dated result is a preview, not a record.",
                         "type": "string"
                       }
                     }
@@ -13433,7 +13433,7 @@
                   ],
                   "properties": {
                     "result": {
-                      "description": "Result of a policy evaluation",
+                      "description": "Result of a dry-run policy evaluation — a preview, never a receipt",
                       "type": "object",
                       "required": [
                         "decision",
@@ -13445,7 +13445,8 @@
                         "evaluated_rules_hash",
                         "integrity_hash",
                         "transparency_anchor",
-                        "action"
+                        "action",
+                        "dry_run"
                       ],
                       "properties": {
                         "decision": {
@@ -13715,7 +13716,7 @@
                           "type": "string"
                         },
                         "signature": {
-                          "description": "Base64url-encoded Ed25519 signature over the integrity hash",
+                          "description": "Receipt signature, base64url-encoded Ed25519. What the signature covers depends on the receipt envelope version. v2 receipts — every decision the platform records, through any route that records one — sign the canonical v2 envelope, the alphabetised JSON object { evidence_manifest_digest, integrity_hash, policy_snapshot_digest, receipt_schema_version, signature_algorithm, signature_kid, timestamp }. v1 receipts — legacy records, and any result carrying no envelope version — sign the bare integrity_hash string. Normative definition: Receipt Reference §2.3.",
                           "type": "string"
                         },
                         "signature_kid": {
@@ -13912,6 +13913,13 @@
                         "is_shadow": {
                           "description": "Whether one or more applicable shadow-policy rules participated in this decision. Bound into the integrity hash. Authoritative source: EvaluationResult.is_shadow in @meshqu/types.",
                           "type": "boolean"
+                        },
+                        "dry_run": {
+                          "description": "Always true on this endpoint, and present on no other. Marks the result as a preview that the platform has not recorded and has not signed: no signature, signature_kid or signature_algorithm is emitted, and integrity_hash is reproducible rather than attested. A result carrying this key is not a receipt and must not be presented as one.",
+                          "type": "boolean",
+                          "enum": [
+                            true
+                          ]
                         }
                       }
                     },
@@ -15137,7 +15145,7 @@
                               "type": "string"
                             },
                             "signature": {
-                              "description": "Base64url-encoded Ed25519 signature over the integrity hash",
+                              "description": "Receipt signature, base64url-encoded Ed25519. What the signature covers depends on the receipt envelope version. v2 receipts — every decision the platform records, through any route that records one — sign the canonical v2 envelope, the alphabetised JSON object { evidence_manifest_digest, integrity_hash, policy_snapshot_digest, receipt_schema_version, signature_algorithm, signature_kid, timestamp }. v1 receipts — legacy records, and any result carrying no envelope version — sign the bare integrity_hash string. Normative definition: Receipt Reference §2.3.",
                               "type": "string"
                             },
                             "signature_kid": {
@@ -16337,7 +16345,7 @@
                               "type": "string"
                             },
                             "signature": {
-                              "description": "Base64url-encoded Ed25519 signature over the integrity hash",
+                              "description": "Receipt signature, base64url-encoded Ed25519. What the signature covers depends on the receipt envelope version. v2 receipts — every decision the platform records, through any route that records one — sign the canonical v2 envelope, the alphabetised JSON object { evidence_manifest_digest, integrity_hash, policy_snapshot_digest, receipt_schema_version, signature_algorithm, signature_kid, timestamp }. v1 receipts — legacy records, and any result carrying no envelope version — sign the bare integrity_hash string. Normative definition: Receipt Reference §2.3.",
                               "type": "string"
                             },
                             "signature_kid": {
@@ -17832,7 +17840,7 @@
                                 "type": "string"
                               },
                               "signature": {
-                                "description": "Base64url-encoded Ed25519 signature over the integrity hash",
+                                "description": "Receipt signature, base64url-encoded Ed25519. What the signature covers depends on the receipt envelope version. v2 receipts — every decision the platform records, through any route that records one — sign the canonical v2 envelope, the alphabetised JSON object { evidence_manifest_digest, integrity_hash, policy_snapshot_digest, receipt_schema_version, signature_algorithm, signature_kid, timestamp }. v1 receipts — legacy records, and any result carrying no envelope version — sign the bare integrity_hash string. Normative definition: Receipt Reference §2.3.",
                                 "type": "string"
                               },
                               "signature_kid": {
@@ -18894,7 +18902,7 @@
                               "type": "string"
                             },
                             "signature": {
-                              "description": "Base64url-encoded Ed25519 signature over the integrity hash",
+                              "description": "Receipt signature, base64url-encoded Ed25519. What the signature covers depends on the receipt envelope version. v2 receipts — every decision the platform records, through any route that records one — sign the canonical v2 envelope, the alphabetised JSON object { evidence_manifest_digest, integrity_hash, policy_snapshot_digest, receipt_schema_version, signature_algorithm, signature_kid, timestamp }. v1 receipts — legacy records, and any result carrying no envelope version — sign the bare integrity_hash string. Normative definition: Receipt Reference §2.3.",
                               "type": "string"
                             },
                             "signature_kid": {
@@ -20586,7 +20594,7 @@
                               "type": "string"
                             },
                             "signature": {
-                              "description": "Base64url-encoded Ed25519 signature over the integrity hash",
+                              "description": "Receipt signature, base64url-encoded Ed25519. What the signature covers depends on the receipt envelope version. v2 receipts — every decision the platform records, through any route that records one — sign the canonical v2 envelope, the alphabetised JSON object { evidence_manifest_digest, integrity_hash, policy_snapshot_digest, receipt_schema_version, signature_algorithm, signature_kid, timestamp }. v1 receipts — legacy records, and any result carrying no envelope version — sign the bare integrity_hash string. Normative definition: Receipt Reference §2.3.",
                               "type": "string"
                             },
                             "signature_kid": {
@@ -21376,7 +21384,7 @@
                           "type": "string"
                         },
                         "signature": {
-                          "description": "Base64url-encoded Ed25519 signature over the integrity hash",
+                          "description": "Receipt signature, base64url-encoded Ed25519. What the signature covers depends on the receipt envelope version. v2 receipts — every decision the platform records, through any route that records one — sign the canonical v2 envelope, the alphabetised JSON object { evidence_manifest_digest, integrity_hash, policy_snapshot_digest, receipt_schema_version, signature_algorithm, signature_kid, timestamp }. v1 receipts — legacy records, and any result carrying no envelope version — sign the bare integrity_hash string. Normative definition: Receipt Reference §2.3.",
                           "type": "string"
                         },
                         "signature_kid": {
@@ -21577,7 +21585,7 @@
                       }
                     },
                     "matches": {
-                      "description": "True if integrity hashes match",
+                      "description": "True only when the re-evaluated integrity hash equals the stored one AND the stored receipt carries a signature that verifies against a trusted key. False for an unsigned receipt (CCR-201: absence is not a pass) — read `signature_verification` to tell an unsigned receipt from a tampered one.",
                       "type": "boolean"
                     },
                     "signature_verification": {
