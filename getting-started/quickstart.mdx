@@ -94,6 +94,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
 ```json
 {
   "result": {
+    "dry_run": true,
     "decision": "ALLOW",
     "violations": [],
     "rules_evaluated": 3,
@@ -121,6 +122,10 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
   }
 }
 ```
+
+<Note>
+`result.dry_run` is always `true` here, and appears on no recorded receipt. The result is deliberately unsigned — a preview the platform has not recorded and does not attest to. `integrity_hash` is reproducible, so you can recompute it, but on this endpoint nothing signs it.
+</Note>
 
 ### 3. Record a decision (persisted for audit)
 

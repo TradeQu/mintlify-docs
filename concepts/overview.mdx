@@ -222,6 +222,7 @@ No access to application code or models is required.
 | | **Evaluate** (`/v1/decisions/evaluate`) | **Record** (`/v1/decisions/record`) |
 | --- | --- | --- |
 | **Decision recorded** | No — no decision is stored, no decision id is returned, and nothing is retrievable as a decision afterwards | Yes — context, verdict, and metadata stored |
+| **Result signed** | No — the result carries `dry_run: true` and no signature fields at all. `integrity_hash` is reproducible, not attested | Yes — a signed Decision Receipt |
 | **Other writes** | Resolving the active policies may append one row to the tenant's append-only `policy_snapshots` table, whose id is returned as `policy_snapshot_id`. When an existing snapshot matches, nothing is appended | Same snapshot resolution, plus the decision itself |
 | **Idempotency key** | Not required | Required |
 | **Typical use** | Real-time gating, dry-run testing | Audit trail, compliance evidence |

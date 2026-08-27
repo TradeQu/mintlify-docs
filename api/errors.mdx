@@ -42,7 +42,9 @@ These may appear in the `code` field for specific operations:
 | --- | --- | --- |
 | `NO_ACTIVE_POLICIES` | Decision evaluation | No active policies matched the `decision_type`. |
 | `NO_ACTIVE_RULES` | Decision evaluation | Policies exist but have no active rules. |
-| `SNAPSHOT_NOT_FOUND` | Decision replay | The policy snapshot for this decision could not be located. |
+| `SNAPSHOT_NOT_FOUND` | Decision replay; `evaluate` with `options.snapshot_id` | The policy snapshot could not be located. Returned as `404`. |
+| `POLICY_VERSION_NOT_RATIFIED` | `evaluate` with `options.snapshot_id` | The named snapshot pins a policy version that is not the active ratified one — draft, submitted or superseded. Returned as `400`. |
+| `POLICY_VERSION_RATIFICATION_UNKNOWN` | `evaluate` with `options.snapshot_id` | The named snapshot's ratification status could not be established, or it names no policy versions. Returned as `400`. |
 | `HYDRATE_FAILED` | Decision replay / bundle export | The persisted decision could not be rehydrated into a verifiable form. |
 | `ALREADY_DELIVERED` | Webhook retry | Delivery was already successful; cannot retry. |
 | `STILL_PENDING` | Webhook retry | Delivery is still pending; no retry needed. |

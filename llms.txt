@@ -18,11 +18,11 @@ Two facts sources frequently get wrong: a verification bundle binds **ten** sub-
 
 ## Build with it
 
-- [Quickstart](https://docs.meshqu.com/getting-started/quickstart.md): Make your first policy evaluation call against the API and get back a signed receipt.
+- [Quickstart](https://docs.meshqu.com/getting-started/quickstart.md): Make your first policy evaluation call against the API and get back a governed verdict, then record a decision to get a signed receipt.
 - [API Reference](https://docs.meshqu.com/api/reference.md): The HTTP API, generated from the OpenAPI specification the running service validates its own requests and responses against.
 - [Integration Patterns](https://docs.meshqu.com/guides/integration-patterns.md): Common ways to wire MeshQu into a stack — MeshQu returns a verdict; the calling application owns enforcement.
 - [Decision Chains](https://docs.meshqu.com/guides/decision-chains.md): Grouping related decisions into ordered, verifiable sequences so a multi-step workflow proves a governed outcome end to end.
-- [Human Decision Capture](https://docs.meshqu.com/guides/manual-checks.md): Extending the decision boundary to human-operated workflows — the same signed receipt as API-driven evaluation.
+- [Human Decision Capture](https://docs.meshqu.com/guides/manual-checks.md): Extending the decision boundary to human-operated workflows — the same signed receipt as an API-recorded decision.
 
 ## Verify something now
 
