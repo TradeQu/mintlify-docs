@@ -44,11 +44,15 @@ const result = await client.evaluate({
 // result.result.violations: Violation[]
 // result.result.rules_na: number (rules skipped due to when clause)
 // result.result.na_rules: NaRule[] (details of skipped rules)
-// result.result.signature: string | null (Ed25519, if signing enabled)
-// result.result.signature_kid: string | null (e.g. 'msk_v1')
+// result.result.dry_run: true (always, on this call)
+// result.result.integrity_hash: string (SHA-256; reproducible, not signed)
 ```
 
 `client.dryRun()` is an alias for `client.evaluate()`.
+
+<Note>
+A dry-run result carries **no** `signature`, `signature_kid` or `signature_algorithm` — the fields are absent from the response, not null, and the client's `EvaluateResponse` type does not declare them. Do not branch on them here. Use `record` when you need a signed receipt.
+</Note>
 
 ### Record (evaluate + persist)
 
