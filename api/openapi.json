@@ -2984,6 +2984,9 @@
                           "message"
                         ],
                         "properties": {
+                          "code": {
+                            "type": "string"
+                          },
                           "rule_index": {
                             "type": "integer"
                           },
@@ -4617,6 +4620,45 @@
               }
             }
           },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "404": {
             "description": "Default Response",
             "content": {
@@ -4760,6 +4802,303 @@
           }
         },
         "operationId": "deleteV1PoliciesById"
+      }
+    },
+    "/v1/policies/{id}/activate": {
+      "post": {
+        "summary": "Activate a shadow policy",
+        "tags": [
+          "Policies"
+        ],
+        "description": "Transitions an active ratified policy from shadow to enforcing and emits a signed immutable activation receipt. Receipt fields and digest contract are validated by ADR 0003, Decision §5.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "policy_id",
+                    "policy_version_id",
+                    "policy_version_number",
+                    "activated_by",
+                    "activation_authority",
+                    "activated_at",
+                    "activation_receipt_digest",
+                    "activator_signature"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_number": {
+                      "type": "integer"
+                    },
+                    "activated_by": {
+                      "type": "string"
+                    },
+                    "activation_authority": {
+                      "type": "string"
+                    },
+                    "activated_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "activation_receipt_digest": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "activator_signature": {
+                      "type": "object",
+                      "required": [
+                        "signature",
+                        "signature_kid",
+                        "signature_algorithm"
+                      ],
+                      "properties": {
+                        "signature": {
+                          "type": "string"
+                        },
+                        "signature_kid": {
+                          "type": "string"
+                        },
+                        "signature_algorithm": {
+                          "type": "string",
+                          "enum": [
+                            "ed25519"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1PoliciesByIdActivate"
       }
     },
     "/v1/policies/{id}/versions": {
@@ -5662,6 +6001,45 @@
             }
           },
           "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -6925,6 +7303,45 @@
             }
           },
           "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -9729,6 +10146,10 @@
                                     "type": "null"
                                   }
                                 ]
+                              },
+                              "is_shadow": {
+                                "description": "Whether one or more applicable shadow-policy rules participated in this decision. Bound into the integrity hash. Authoritative source: EvaluationResult.is_shadow in @meshqu/types.",
+                                "type": "boolean"
                               }
                             }
                           },
@@ -11045,6 +11466,45 @@
             }
           },
           "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -13448,6 +13908,10 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "is_shadow": {
+                          "description": "Whether one or more applicable shadow-policy rules participated in this decision. Bound into the integrity hash. Authoritative source: EvaluationResult.is_shadow in @meshqu/types.",
+                          "type": "boolean"
                         }
                       }
                     },
@@ -13676,7 +14140,7 @@
         "tags": [
           "Decisions"
         ],
-        "description": "Evaluates policies AND persists the result with full audit trail.\n\nSupports idempotency: if the same idempotency_key is provided twice,\nreturns the original decision without re-evaluating.\n\nReturns:\n- **decision**: The recorded decision with full context\n- **is_new**: False if returned from idempotency cache\n- **duration_ms**: Total request duration",
+        "description": "Evaluates policies AND persists the result with full audit trail.\n\nSupports idempotency: if the same idempotency_key is provided twice,\nreturns the original decision without re-evaluating.\n\nReturns:\n- **decision**: The recorded decision with full context\n- **is_new**: False if returned from idempotency cache\n- **duration_ms**: Total request duration\n- **links.verify**: Verification page URL for this decision id. Response-envelope\n  metadata derived from deployment config — it is not part of the receipt and\n  is omitted entirely when no verify base URL is configured.",
         "requestBody": {
           "required": true,
           "content": {
@@ -14866,6 +15330,10 @@
                                   "type": "null"
                                 }
                               ]
+                            },
+                            "is_shadow": {
+                              "description": "Whether one or more applicable shadow-policy rules participated in this decision. Bound into the integrity hash. Authoritative source: EvaluationResult.is_shadow in @meshqu/types.",
+                              "type": "boolean"
                             }
                           }
                         },
@@ -15323,6 +15791,20 @@
                         "display_name": {
                           "maxLength": 255,
                           "description": "Human-readable name for UI/reports",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "links": {
+                      "description": "Links derived from server configuration. Not part of the receipt.",
+                      "type": "object",
+                      "required": [
+                        "verify"
+                      ],
+                      "properties": {
+                        "verify": {
+                          "format": "uri",
+                          "description": "Public verification page for this decision id. Built from the deployment verify base URL; the receipt itself is unchanged by its presence.",
                           "type": "string"
                         }
                       }
@@ -16048,6 +16530,10 @@
                                   "type": "null"
                                 }
                               ]
+                            },
+                            "is_shadow": {
+                              "description": "Whether one or more applicable shadow-policy rules participated in this decision. Bound into the integrity hash. Authoritative source: EvaluationResult.is_shadow in @meshqu/types.",
+                              "type": "boolean"
                             }
                           }
                         },
@@ -16505,6 +16991,20 @@
                         "display_name": {
                           "maxLength": 255,
                           "description": "Human-readable name for UI/reports",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "links": {
+                      "description": "Links derived from server configuration. Not part of the receipt.",
+                      "type": "object",
+                      "required": [
+                        "verify"
+                      ],
+                      "properties": {
+                        "verify": {
+                          "format": "uri",
+                          "description": "Public verification page for this decision id. Built from the deployment verify base URL; the receipt itself is unchanged by its presence.",
                           "type": "string"
                         }
                       }
@@ -17525,6 +18025,10 @@
                                     "type": "null"
                                   }
                                 ]
+                              },
+                              "is_shadow": {
+                                "description": "Whether one or more applicable shadow-policy rules participated in this decision. Bound into the integrity hash. Authoritative source: EvaluationResult.is_shadow in @meshqu/types.",
+                                "type": "boolean"
                               }
                             }
                           },
@@ -18583,6 +19087,10 @@
                                   "type": "null"
                                 }
                               ]
+                            },
+                            "is_shadow": {
+                              "description": "Whether one or more applicable shadow-policy rules participated in this decision. Bound into the integrity hash. Authoritative source: EvaluationResult.is_shadow in @meshqu/types.",
+                              "type": "boolean"
                             }
                           }
                         },
@@ -20271,6 +20779,10 @@
                                   "type": "null"
                                 }
                               ]
+                            },
+                            "is_shadow": {
+                              "description": "Whether one or more applicable shadow-policy rules participated in this decision. Bound into the integrity hash. Authoritative source: EvaluationResult.is_shadow in @meshqu/types.",
+                              "type": "boolean"
                             }
                           }
                         },
@@ -21057,6 +21569,10 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "is_shadow": {
+                          "description": "Whether one or more applicable shadow-policy rules participated in this decision. Bound into the integrity hash. Authoritative source: EvaluationResult.is_shadow in @meshqu/types.",
+                          "type": "boolean"
                         }
                       }
                     },
@@ -21096,6 +21612,45 @@
                     "duration_ms": {
                       "description": "Total replay duration in milliseconds",
                       "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
                     }
                   }
                 }
@@ -24268,6 +24823,1457 @@
         "operationId": "deleteV1ApiKeysById"
       }
     },
+    "/v1/agent-licences": {
+      "post": {
+        "summary": "Issue an agent licence",
+        "tags": [
+          "Agent Licences"
+        ],
+        "description": "Creates an agent licence record binding an API key to a policy version, a scope and a validity window. Requires a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "key_id",
+                  "policy_id",
+                  "policy_version_id",
+                  "policy_version_number",
+                  "grant_authority",
+                  "scope",
+                  "valid_from",
+                  "valid_until"
+                ],
+                "properties": {
+                  "key_id": {
+                    "format": "uuid",
+                    "description": "The API key this record refers to (meshqu.api_keys.id).",
+                    "type": "string"
+                  },
+                  "policy_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "policy_version_id": {
+                    "format": "uuid",
+                    "description": "A policy version id belonging to policy_id in this tenant.",
+                    "type": "string"
+                  },
+                  "policy_version_number": {
+                    "minimum": 1,
+                    "description": "The version number of policy_version_id.",
+                    "type": "integer"
+                  },
+                  "grant_authority": {
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "type": "string"
+                  },
+                  "scope": {
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "description": "decision_type values, matched byte-exactly and case-sensitively.",
+                    "type": "array",
+                    "items": {
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "type": "string"
+                    }
+                  },
+                  "valid_from": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "valid_until": {
+                    "format": "date-time",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "An agent licence record: a grant, or the revocation that supersedes one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "An agent licence record: a grant, or the revocation that supersedes one.",
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "record_type",
+                    "key_id",
+                    "revokes_licence_id",
+                    "granted_by",
+                    "grant_authority",
+                    "policy_id",
+                    "policy_version_id",
+                    "policy_version_number",
+                    "scope",
+                    "valid_from",
+                    "valid_until",
+                    "issued_at",
+                    "licence_digest",
+                    "grantor_signature",
+                    "created_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "record_type": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "grant"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "revocation"
+                          ]
+                        }
+                      ]
+                    },
+                    "key_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "revokes_licence_id": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "granted_by": {
+                      "type": "string"
+                    },
+                    "grant_authority": {
+                      "type": "string"
+                    },
+                    "policy_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_number": {
+                      "type": "integer"
+                    },
+                    "scope": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "valid_from": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "valid_until": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "issued_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "licence_digest": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "grantor_signature": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "signature",
+                        "signature_kid",
+                        "signature_algorithm"
+                      ],
+                      "properties": {
+                        "signature": {
+                          "type": "string"
+                        },
+                        "signature_kid": {
+                          "type": "string"
+                        },
+                        "signature_algorithm": {
+                          "type": "string",
+                          "enum": [
+                            "ed25519"
+                          ]
+                        }
+                      }
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1AgentLicences"
+      },
+      "get": {
+        "summary": "List agent licences",
+        "tags": [
+          "Agent Licences"
+        ],
+        "description": "Returns a paginated list of agent licence grants for the tenant, most recently issued first. Each item carries `revocation`: the record that supersedes it, or null. Revocations are never returned as separate items.",
+        "parameters": [
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "description": "Max items per page. Omitted means 50."
+          },
+          {
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "description": "Items to skip. Omitted means 0."
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "key_id",
+            "required": false,
+            "description": "Restrict to licences whose subject is this API key."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of agent licence grants, each with its revocation or null.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "Paginated list of agent licence grants, each with its revocation or null.",
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "total",
+                    "limit",
+                    "offset"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "additionalProperties": false,
+                        "description": "An agent licence record, with the record that supersedes it when one exists, or null.",
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "tenant_id",
+                          "record_type",
+                          "key_id",
+                          "revokes_licence_id",
+                          "granted_by",
+                          "grant_authority",
+                          "policy_id",
+                          "policy_version_id",
+                          "policy_version_number",
+                          "scope",
+                          "valid_from",
+                          "valid_until",
+                          "issued_at",
+                          "licence_digest",
+                          "grantor_signature",
+                          "created_at",
+                          "revocation"
+                        ],
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "tenant_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "record_type": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "grant"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "revocation"
+                                ]
+                              }
+                            ]
+                          },
+                          "key_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "revokes_licence_id": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "granted_by": {
+                            "type": "string"
+                          },
+                          "grant_authority": {
+                            "type": "string"
+                          },
+                          "policy_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "policy_version_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "policy_version_number": {
+                            "type": "integer"
+                          },
+                          "scope": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "valid_from": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "valid_until": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "issued_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "licence_digest": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "grantor_signature": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "signature",
+                              "signature_kid",
+                              "signature_algorithm"
+                            ],
+                            "properties": {
+                              "signature": {
+                                "type": "string"
+                              },
+                              "signature_kid": {
+                                "type": "string"
+                              },
+                              "signature_algorithm": {
+                                "type": "string",
+                                "enum": [
+                                  "ed25519"
+                                ]
+                              }
+                            }
+                          },
+                          "created_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "revocation": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "description": "An agent licence record: a grant, or the revocation that supersedes one.",
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "tenant_id",
+                                  "record_type",
+                                  "key_id",
+                                  "revokes_licence_id",
+                                  "granted_by",
+                                  "grant_authority",
+                                  "policy_id",
+                                  "policy_version_id",
+                                  "policy_version_number",
+                                  "scope",
+                                  "valid_from",
+                                  "valid_until",
+                                  "issued_at",
+                                  "licence_digest",
+                                  "grantor_signature",
+                                  "created_at"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "tenant_id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "record_type": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "grant"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "revocation"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "key_id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "revokes_licence_id": {
+                                    "anyOf": [
+                                      {
+                                        "format": "uuid",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "granted_by": {
+                                    "type": "string"
+                                  },
+                                  "grant_authority": {
+                                    "type": "string"
+                                  },
+                                  "policy_id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "policy_version_id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "policy_version_number": {
+                                    "type": "integer"
+                                  },
+                                  "scope": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "valid_from": {
+                                    "format": "date-time",
+                                    "type": "string"
+                                  },
+                                  "valid_until": {
+                                    "format": "date-time",
+                                    "type": "string"
+                                  },
+                                  "issued_at": {
+                                    "format": "date-time",
+                                    "type": "string"
+                                  },
+                                  "licence_digest": {
+                                    "pattern": "^[0-9a-f]{64}$",
+                                    "type": "string"
+                                  },
+                                  "grantor_signature": {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "signature",
+                                      "signature_kid",
+                                      "signature_algorithm"
+                                    ],
+                                    "properties": {
+                                      "signature": {
+                                        "type": "string"
+                                      },
+                                      "signature_kid": {
+                                        "type": "string"
+                                      },
+                                      "signature_algorithm": {
+                                        "type": "string",
+                                        "enum": [
+                                          "ed25519"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "created_at": {
+                                    "format": "date-time",
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "description": "Total grants matching the filter",
+                      "type": "integer"
+                    },
+                    "limit": {
+                      "type": "integer"
+                    },
+                    "offset": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1AgentLicences"
+      }
+    },
+    "/v1/agent-licences/{id}/revoke": {
+      "post": {
+        "summary": "Revoke an agent licence",
+        "tags": [
+          "Agent Licences"
+        ],
+        "description": "Creates a revocation record naming the given grant and returns it. Requires a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "grant_authority"
+                ],
+                "properties": {
+                  "grant_authority": {
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "An agent licence record: a grant, or the revocation that supersedes one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "An agent licence record: a grant, or the revocation that supersedes one.",
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "record_type",
+                    "key_id",
+                    "revokes_licence_id",
+                    "granted_by",
+                    "grant_authority",
+                    "policy_id",
+                    "policy_version_id",
+                    "policy_version_number",
+                    "scope",
+                    "valid_from",
+                    "valid_until",
+                    "issued_at",
+                    "licence_digest",
+                    "grantor_signature",
+                    "created_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "record_type": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "grant"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "revocation"
+                          ]
+                        }
+                      ]
+                    },
+                    "key_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "revokes_licence_id": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "granted_by": {
+                      "type": "string"
+                    },
+                    "grant_authority": {
+                      "type": "string"
+                    },
+                    "policy_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_number": {
+                      "type": "integer"
+                    },
+                    "scope": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "valid_from": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "valid_until": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "issued_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "licence_digest": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "grantor_signature": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "signature",
+                        "signature_kid",
+                        "signature_algorithm"
+                      ],
+                      "properties": {
+                        "signature": {
+                          "type": "string"
+                        },
+                        "signature_kid": {
+                          "type": "string"
+                        },
+                        "signature_algorithm": {
+                          "type": "string",
+                          "enum": [
+                            "ed25519"
+                          ]
+                        }
+                      }
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1AgentLicencesByIdRevoke"
+      }
+    },
+    "/v1/agent-licences/{id}": {
+      "get": {
+        "summary": "Get an agent licence",
+        "tags": [
+          "Agent Licences"
+        ],
+        "description": "Returns one agent licence record by id.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "An agent licence record: a grant, or the revocation that supersedes one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "An agent licence record: a grant, or the revocation that supersedes one.",
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "record_type",
+                    "key_id",
+                    "revokes_licence_id",
+                    "granted_by",
+                    "grant_authority",
+                    "policy_id",
+                    "policy_version_id",
+                    "policy_version_number",
+                    "scope",
+                    "valid_from",
+                    "valid_until",
+                    "issued_at",
+                    "licence_digest",
+                    "grantor_signature",
+                    "created_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "record_type": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "grant"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "revocation"
+                          ]
+                        }
+                      ]
+                    },
+                    "key_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "revokes_licence_id": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "granted_by": {
+                      "type": "string"
+                    },
+                    "grant_authority": {
+                      "type": "string"
+                    },
+                    "policy_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_number": {
+                      "type": "integer"
+                    },
+                    "scope": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "valid_from": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "valid_until": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "issued_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "licence_digest": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "grantor_signature": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "signature",
+                        "signature_kid",
+                        "signature_algorithm"
+                      ],
+                      "properties": {
+                        "signature": {
+                          "type": "string"
+                        },
+                        "signature_kid": {
+                          "type": "string"
+                        },
+                        "signature_algorithm": {
+                          "type": "string",
+                          "enum": [
+                            "ed25519"
+                          ]
+                        }
+                      }
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1AgentLicencesById"
+      }
+    },
     "/v1/audit-log": {
       "get": {
         "summary": "List audit events",
@@ -24339,6 +26345,12 @@
                   "type": "string",
                   "enum": [
                     "policy_deactivated"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "policy_activated"
                   ]
                 },
                 {
@@ -24471,6 +26483,18 @@
                   "type": "string",
                   "enum": [
                     "api_key_revoked"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "agent_licence_issued"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "agent_licence_revoked"
                   ]
                 },
                 {
@@ -24623,6 +26647,12 @@
                               {
                                 "type": "string",
                                 "enum": [
+                                  "policy_activated"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
                                   "policy_ratified"
                                 ]
                               },
@@ -24750,6 +26780,18 @@
                                 "type": "string",
                                 "enum": [
                                   "api_key_revoked"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "agent_licence_issued"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "agent_licence_revoked"
                                 ]
                               },
                               {
@@ -25004,6 +27046,12 @@
                           {
                             "type": "string",
                             "enum": [
+                              "policy_activated"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
                               "policy_ratified"
                             ]
                           },
@@ -25131,6 +27179,18 @@
                             "type": "string",
                             "enum": [
                               "api_key_revoked"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "agent_licence_issued"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "agent_licence_revoked"
                             ]
                           },
                           {
@@ -25934,7 +27994,7 @@
         "tags": [
           "Settings"
         ],
-        "description": "Merges the provided settings into the existing tenant settings.",
+        "description": "Merges the provided settings into the existing tenant settings. Keys that gate a governance control (currently `agent_licence_mode`) may only be changed by a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED. All other keys are unaffected.",
         "requestBody": {
           "required": true,
           "content": {
@@ -25975,6 +28035,45 @@
             }
           },
           "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -28428,13 +30527,13 @@
         "operationId": "getV1FormsByFormIdReceiptsByDecisionId"
       }
     },
-    "/v1/receipts/{decisionId}": {
+    "/v1/receipts/{receiptId}": {
       "get": {
         "summary": "Get receipt (public)",
         "tags": [
           "Receipts"
         ],
-        "description": "Returns the signed receipt for any recorded decision. Self-verifying — contains the integrity hash, signature, and transparency anchor.",
+        "description": "Returns a signed decision or policy-approval receipt, or an agent licence record. Decision and approval receipts are self-verifying — they contain the integrity hash, signature, and transparency anchor.",
         "parameters": [
           {
             "schema": {
@@ -28442,7 +30541,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "decisionId",
+            "name": "receiptId",
             "required": true
           }
         ],
@@ -28453,46 +30552,415 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "context",
-                    "result",
-                    "chain_id",
-                    "chain_step"
-                  ],
-                  "properties": {
-                    "context": {
+                  "anyOf": [
+                    {
                       "type": "object",
-                      "additionalProperties": {}
+                      "required": [
+                        "context",
+                        "result",
+                        "chain_id",
+                        "chain_step"
+                      ],
+                      "properties": {
+                        "context": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        },
+                        "result": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        },
+                        "chain_id": {
+                          "description": "Chain ID if this decision is part of a chain",
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "chain_step": {
+                          "description": "Step number within the chain",
+                          "anyOf": [
+                            {
+                              "type": "integer"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     },
-                    "result": {
+                    {
                       "type": "object",
-                      "additionalProperties": {}
-                    },
-                    "chain_id": {
-                      "description": "Chain ID if this decision is part of a chain",
-                      "anyOf": [
-                        {
+                      "required": [
+                        "id",
+                        "tenant_id",
+                        "policy_id",
+                        "policy_version_id",
+                        "policy_version_number",
+                        "ratifier_id",
+                        "ratifier_role",
+                        "ratified_at",
+                        "workflow_state",
+                        "approval_authority",
+                        "policy_rules_hash",
+                        "ratifier_signature",
+                        "approval_receipt_digest",
+                        "created_at"
+                      ],
+                      "properties": {
+                        "id": {
                           "format": "uuid",
                           "type": "string"
                         },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "chain_step": {
-                      "description": "Step number within the chain",
-                      "anyOf": [
-                        {
+                        "tenant_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "policy_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "policy_version_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "policy_version_number": {
+                          "minimum": 1,
                           "type": "integer"
                         },
-                        {
-                          "type": "null"
+                        "ratifier_id": {
+                          "type": "string"
+                        },
+                        "ratifier_role": {
+                          "type": "string"
+                        },
+                        "ratified_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "workflow_state": {
+                          "type": "string"
+                        },
+                        "approval_authority": {
+                          "type": "string"
+                        },
+                        "policy_rules_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 hex of activeRuleProjection(rules).",
+                          "type": "string"
+                        },
+                        "ratifier_signature": {
+                          "type": "object",
+                          "required": [
+                            "kid",
+                            "signature",
+                            "algorithm"
+                          ],
+                          "properties": {
+                            "kid": {
+                              "description": "Key ID of the ratifier signing key.",
+                              "type": "string"
+                            },
+                            "signature": {
+                              "description": "Base64url-encoded Ed25519 signature over the canonical pre-sig payload.",
+                              "type": "string"
+                            },
+                            "algorithm": {
+                              "type": "string",
+                              "enum": [
+                                "ed25519"
+                              ]
+                            }
+                          }
+                        },
+                        "approval_receipt_digest": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 hex self-describing digest.",
+                          "type": "string"
+                        },
+                        "created_at": {
+                          "format": "date-time",
+                          "type": "string"
                         }
-                      ]
+                      }
+                    },
+                    {
+                      "additionalProperties": false,
+                      "description": "An agent licence record, with the record that supersedes it when one exists, or null.",
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "tenant_id",
+                        "record_type",
+                        "key_id",
+                        "revokes_licence_id",
+                        "granted_by",
+                        "grant_authority",
+                        "policy_id",
+                        "policy_version_id",
+                        "policy_version_number",
+                        "scope",
+                        "valid_from",
+                        "valid_until",
+                        "issued_at",
+                        "licence_digest",
+                        "grantor_signature",
+                        "created_at",
+                        "revocation"
+                      ],
+                      "properties": {
+                        "id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "tenant_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "record_type": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "grant"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "revocation"
+                              ]
+                            }
+                          ]
+                        },
+                        "key_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "revokes_licence_id": {
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "granted_by": {
+                          "type": "string"
+                        },
+                        "grant_authority": {
+                          "type": "string"
+                        },
+                        "policy_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "policy_version_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "policy_version_number": {
+                          "type": "integer"
+                        },
+                        "scope": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "valid_from": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "valid_until": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "issued_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "licence_digest": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "grantor_signature": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "signature",
+                            "signature_kid",
+                            "signature_algorithm"
+                          ],
+                          "properties": {
+                            "signature": {
+                              "type": "string"
+                            },
+                            "signature_kid": {
+                              "type": "string"
+                            },
+                            "signature_algorithm": {
+                              "type": "string",
+                              "enum": [
+                                "ed25519"
+                              ]
+                            }
+                          }
+                        },
+                        "created_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "revocation": {
+                          "anyOf": [
+                            {
+                              "additionalProperties": false,
+                              "description": "An agent licence record: a grant, or the revocation that supersedes one.",
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "tenant_id",
+                                "record_type",
+                                "key_id",
+                                "revokes_licence_id",
+                                "granted_by",
+                                "grant_authority",
+                                "policy_id",
+                                "policy_version_id",
+                                "policy_version_number",
+                                "scope",
+                                "valid_from",
+                                "valid_until",
+                                "issued_at",
+                                "licence_digest",
+                                "grantor_signature",
+                                "created_at"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                "tenant_id": {
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                "record_type": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "grant"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "revocation"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "key_id": {
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                "revokes_licence_id": {
+                                  "anyOf": [
+                                    {
+                                      "format": "uuid",
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "granted_by": {
+                                  "type": "string"
+                                },
+                                "grant_authority": {
+                                  "type": "string"
+                                },
+                                "policy_id": {
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                "policy_version_id": {
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                "policy_version_number": {
+                                  "type": "integer"
+                                },
+                                "scope": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "valid_from": {
+                                  "format": "date-time",
+                                  "type": "string"
+                                },
+                                "valid_until": {
+                                  "format": "date-time",
+                                  "type": "string"
+                                },
+                                "issued_at": {
+                                  "format": "date-time",
+                                  "type": "string"
+                                },
+                                "licence_digest": {
+                                  "pattern": "^[0-9a-f]{64}$",
+                                  "type": "string"
+                                },
+                                "grantor_signature": {
+                                  "additionalProperties": false,
+                                  "type": "object",
+                                  "required": [
+                                    "signature",
+                                    "signature_kid",
+                                    "signature_algorithm"
+                                  ],
+                                  "properties": {
+                                    "signature": {
+                                      "type": "string"
+                                    },
+                                    "signature_kid": {
+                                      "type": "string"
+                                    },
+                                    "signature_algorithm": {
+                                      "type": "string",
+                                      "enum": [
+                                        "ed25519"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "created_at": {
+                                  "format": "date-time",
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
                     }
-                  }
+                  ]
                 }
               }
             }
@@ -28537,7 +31005,7 @@
             }
           }
         },
-        "operationId": "getV1ReceiptsByDecisionId"
+        "operationId": "getV1ReceiptsByReceiptId"
       }
     },
     "/v1/receipts/{decisionId}/bundle": {
@@ -30713,6 +33181,12 @@
                               {
                                 "type": "string",
                                 "enum": [
+                                  "policy_activated"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
                                   "policy_ratified"
                                 ]
                               },
@@ -30840,6 +33314,18 @@
                                 "type": "string",
                                 "enum": [
                                   "api_key_revoked"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "agent_licence_issued"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "agent_licence_revoked"
                                 ]
                               },
                               {

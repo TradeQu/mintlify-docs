@@ -44,7 +44,7 @@ Your payment service owns `SETTLE`, `DUAL`, and `BLOCK`. MeshQu owns the `MeshQu
 
 ## Gate and record the transaction
 
-Use **`record`** for settlement decisions — it evaluates *and* persists a signed receipt with an idempotency key, which is exactly what a compliance-critical path needs. (Use the stateless [`evaluate`](/concepts/overview#evaluate-vs-record) only for dry-run testing or non-settling previews.)
+Use **`record`** for settlement decisions — it evaluates *and* persists a signed receipt with an idempotency key, which is exactly what a compliance-critical path needs. (Use [`evaluate`](/concepts/overview#evaluate-vs-record), which records no decision, only for dry-run testing or non-settling previews.)
 
 <CodeGroup>
 

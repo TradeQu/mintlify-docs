@@ -8,7 +8,7 @@ When you record a decision, the network can fail *after* MeshQu has persisted it
 > **Mental model:** the idempotency key is a stable name for a business operation. The first request with that key records a decision; every later request with the same key returns the decision that already exists.
 
 <Info>
-  **Evaluate vs Record** — Idempotency applies to [`record`](concepts/overview#evaluate-vs-record), the endpoint that persists a decision. `evaluate` is stateless and stores nothing, so it has nothing to deduplicate.
+  **Evaluate vs Record** — Idempotency applies to [`record`](concepts/overview#evaluate-vs-record), the endpoint that persists a decision. `evaluate` records no decision, so it has no decision to deduplicate. It is not a no-op write, though: resolving the active policies may append one row to the tenant's append-only `policy_snapshots` table, returned as `policy_snapshot_id`. That append is content-addressed — a repeat call resolving to the same policies reuses the existing snapshot and appends nothing.
 </Info>
 
 ## How it works
