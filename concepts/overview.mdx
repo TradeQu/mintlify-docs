@@ -87,7 +87,7 @@ See the [Actor Attribution guide](../guides/actor-attribution) for patterns, PII
 
 ## Conditional rules
 
-Rules can include an optional `when` clause for conditional applicability. A rule with `when` is only evaluated when the clause matches the decision context — otherwise it returns NA (not applicable) and does not affect the outcome. NA rules still appear on the decision receipt with a human-readable reason, proving the system considered the rule and explaining why it didn't apply.
+Rules can include an optional `when` clause for conditional applicability. A rule with `when` is only evaluated when the clause matches the decision context — otherwise it returns NA (not applicable) and does not affect the outcome. NA rules still appear on the decision receipt with a human-readable reason recording that the rule was considered and why it didn't apply. That record is stored on the receipt but is not itself bound into the integrity hash — see [What Is and Isn't Bound](/concepts/receipt-reference) (§14).
 
 **Supported operators:**
 
