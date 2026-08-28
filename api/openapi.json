@@ -1007,6 +1007,106 @@
                                           "additionalProperties": false,
                                           "type": "object",
                                           "required": [
+                                            "field",
+                                            "min"
+                                          ],
+                                          "properties": {
+                                            "field": {
+                                              "type": "string"
+                                            },
+                                            "min": {
+                                              "type": "number"
+                                            },
+                                            "max": {
+                                              "type": "number"
+                                            },
+                                            "greater_than": {
+                                              "type": "number"
+                                            },
+                                            "less_than": {
+                                              "type": "number"
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "required": [
+                                            "field",
+                                            "max"
+                                          ],
+                                          "properties": {
+                                            "field": {
+                                              "type": "string"
+                                            },
+                                            "min": {
+                                              "type": "number"
+                                            },
+                                            "max": {
+                                              "type": "number"
+                                            },
+                                            "greater_than": {
+                                              "type": "number"
+                                            },
+                                            "less_than": {
+                                              "type": "number"
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "required": [
+                                            "field",
+                                            "greater_than"
+                                          ],
+                                          "properties": {
+                                            "field": {
+                                              "type": "string"
+                                            },
+                                            "min": {
+                                              "type": "number"
+                                            },
+                                            "max": {
+                                              "type": "number"
+                                            },
+                                            "greater_than": {
+                                              "type": "number"
+                                            },
+                                            "less_than": {
+                                              "type": "number"
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "required": [
+                                            "field",
+                                            "less_than"
+                                          ],
+                                          "properties": {
+                                            "field": {
+                                              "type": "string"
+                                            },
+                                            "min": {
+                                              "type": "number"
+                                            },
+                                            "max": {
+                                              "type": "number"
+                                            },
+                                            "greater_than": {
+                                              "type": "number"
+                                            },
+                                            "less_than": {
+                                              "type": "number"
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "required": [
                                             "all"
                                           ],
                                           "properties": {
@@ -1675,6 +1775,106 @@
                               "additionalProperties": false,
                               "type": "object",
                               "required": [
+                                "field",
+                                "min"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "max"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "greater_than"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "less_than"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
                                 "all"
                               ],
                               "properties": {
@@ -2177,6 +2377,106 @@
                                       },
                                       "exists": {
                                         "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "min"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "max"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "greater_than"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "less_than"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
                                       }
                                     }
                                   },
@@ -2899,6 +3199,106 @@
                               "additionalProperties": false,
                               "type": "object",
                               "required": [
+                                "field",
+                                "min"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "max"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "greater_than"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "less_than"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
                                 "all"
                               ],
                               "properties": {
@@ -3486,6 +3886,106 @@
                                       },
                                       "exists": {
                                         "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "min"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "max"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "greater_than"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "less_than"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
                                       }
                                     }
                                   },
@@ -4323,6 +4823,106 @@
                                       },
                                       "exists": {
                                         "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "min"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "max"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "greater_than"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "less_than"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
                                       }
                                     }
                                   },
@@ -5400,6 +6000,106 @@
                               "additionalProperties": false,
                               "type": "object",
                               "required": [
+                                "field",
+                                "min"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "max"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "greater_than"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "less_than"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
                                 "all"
                               ],
                               "properties": {
@@ -5777,6 +6477,106 @@
                                   },
                                   "exists": {
                                     "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "min"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "max"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "greater_than"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "less_than"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
                                   }
                                 }
                               },
@@ -6411,6 +7211,106 @@
                                   "additionalProperties": false,
                                   "type": "object",
                                   "required": [
+                                    "field",
+                                    "min"
+                                  ],
+                                  "properties": {
+                                    "field": {
+                                      "type": "string"
+                                    },
+                                    "min": {
+                                      "type": "number"
+                                    },
+                                    "max": {
+                                      "type": "number"
+                                    },
+                                    "greater_than": {
+                                      "type": "number"
+                                    },
+                                    "less_than": {
+                                      "type": "number"
+                                    }
+                                  }
+                                },
+                                {
+                                  "additionalProperties": false,
+                                  "type": "object",
+                                  "required": [
+                                    "field",
+                                    "max"
+                                  ],
+                                  "properties": {
+                                    "field": {
+                                      "type": "string"
+                                    },
+                                    "min": {
+                                      "type": "number"
+                                    },
+                                    "max": {
+                                      "type": "number"
+                                    },
+                                    "greater_than": {
+                                      "type": "number"
+                                    },
+                                    "less_than": {
+                                      "type": "number"
+                                    }
+                                  }
+                                },
+                                {
+                                  "additionalProperties": false,
+                                  "type": "object",
+                                  "required": [
+                                    "field",
+                                    "greater_than"
+                                  ],
+                                  "properties": {
+                                    "field": {
+                                      "type": "string"
+                                    },
+                                    "min": {
+                                      "type": "number"
+                                    },
+                                    "max": {
+                                      "type": "number"
+                                    },
+                                    "greater_than": {
+                                      "type": "number"
+                                    },
+                                    "less_than": {
+                                      "type": "number"
+                                    }
+                                  }
+                                },
+                                {
+                                  "additionalProperties": false,
+                                  "type": "object",
+                                  "required": [
+                                    "field",
+                                    "less_than"
+                                  ],
+                                  "properties": {
+                                    "field": {
+                                      "type": "string"
+                                    },
+                                    "min": {
+                                      "type": "number"
+                                    },
+                                    "max": {
+                                      "type": "number"
+                                    },
+                                    "greater_than": {
+                                      "type": "number"
+                                    },
+                                    "less_than": {
+                                      "type": "number"
+                                    }
+                                  }
+                                },
+                                {
+                                  "additionalProperties": false,
+                                  "type": "object",
+                                  "required": [
                                     "all"
                                   ],
                                   "properties": {
@@ -6927,6 +7827,106 @@
                                       },
                                       "exists": {
                                         "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "min"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "max"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "greater_than"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "less_than"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
                                       }
                                     }
                                   },
@@ -7722,6 +8722,106 @@
                                 "additionalProperties": false,
                                 "type": "object",
                                 "required": [
+                                  "field",
+                                  "min"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "max"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "greater_than"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "less_than"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
                                   "all"
                                 ],
                                 "properties": {
@@ -8381,6 +9481,106 @@
                                 "additionalProperties": false,
                                 "type": "object",
                                 "required": [
+                                  "field",
+                                  "min"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "max"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "greater_than"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "less_than"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
                                   "all"
                                 ],
                                 "properties": {
@@ -9010,6 +10210,106 @@
                                   },
                                   "exists": {
                                     "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "min"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "max"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "greater_than"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "less_than"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
                                   }
                                 }
                               },
@@ -10855,6 +12155,106 @@
                               "additionalProperties": false,
                               "type": "object",
                               "required": [
+                                "field",
+                                "min"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "max"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "greater_than"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "less_than"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
                                 "all"
                               ],
                               "properties": {
@@ -11242,6 +12642,106 @@
                                   },
                                   "exists": {
                                     "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "min"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "max"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "greater_than"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "less_than"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
                                   }
                                 }
                               },
@@ -12026,6 +13526,106 @@
                                   },
                                   "exists": {
                                     "type": "boolean"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "min"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "max"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "greater_than"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "field",
+                                  "less_than"
+                                ],
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "min": {
+                                    "type": "number"
+                                  },
+                                  "max": {
+                                    "type": "number"
+                                  },
+                                  "greater_than": {
+                                    "type": "number"
+                                  },
+                                  "less_than": {
+                                    "type": "number"
                                   }
                                 }
                               },
@@ -14099,7 +15699,85 @@
               }
             }
           },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -17061,6 +18739,45 @@
               }
             }
           },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "404": {
             "description": "Default Response",
             "content": {
@@ -17101,6 +18818,45 @@
             }
           },
           "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -21665,7 +23421,85 @@
               }
             }
           },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -29461,6 +31295,45 @@
               }
             }
           },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "404": {
             "description": "Default Response",
             "content": {
@@ -29731,6 +31604,45 @@
               }
             }
           },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "404": {
             "description": "Default Response",
             "content": {
@@ -29833,6 +31745,45 @@
                           "type": "string"
                         }
                       }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
                     }
                   }
                 }
@@ -30372,6 +32323,45 @@
             }
           },
           "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
             "description": "Default Response",
             "content": {
               "application/json": {
