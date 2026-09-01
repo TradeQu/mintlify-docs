@@ -51,7 +51,7 @@ Every signed receipt carries an Ed25519 signature and a `signature_kid` (key ide
 </Warning>
 
 <Warning>
-**Trust roots must come from a channel MeshQu does not control.** The verifier authenticates signatures against keys it pins out-of-band — never against any key list carried inside the receipt or bundle. If a verifier ever authenticated a receipt using keys the receipt itself supplied, an operator could self-sign anything and have it "pass." Confirm the public key fingerprints through MeshQu's published JWKS (`GET /v1/.well-known/signing-keys`) or your own pinned copy.
+**Trust roots must come from a channel MeshQu does not control.** The verifier authenticates signatures against keys it pins out-of-band — never against any key list carried inside the receipt or bundle. If a verifier ever authenticated a receipt using keys the receipt itself supplied, an operator could self-sign anything and have it "pass." Pin the public key fingerprints through a channel your policy accepts and treat that pinned copy as the root. Do **not** use `GET /v1/.well-known/signing-keys` as a trust root: it is deprecated and self-asserted — the producer vouching for itself — so authenticating against it proves only that the producer signed what the producer published.
 </Warning>
 
 ### 3. Transparency anchor (when present)

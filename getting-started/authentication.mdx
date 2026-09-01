@@ -18,12 +18,15 @@ each hosts its own access control, and offline verification and hosted forms
 depend on them being reachable without a key. But the exception is wider than
 "health checks", so it is set out in full:
 
-**Infrastructure** — no tenant data:
+**Infrastructure:**
 
 - `GET /v1/health`, `GET /v1/ready`
-- `GET /metrics`
 - `GET /v1/.well-known/signing-keys`, `GET /v1/.well-known/trust-registry`
 - the OpenAPI document and docs UI, when the operator enables them
+- `GET /metrics` — **not** free of tenant data. Many metric families carry a
+  `tenant` label, so the endpoint exposes per-tenant volumes and outcomes. It
+  is guarded by a bearer token (`METRICS_BEARER_TOKEN`, required in
+  production), not by an API key — which is why it sits on this list at all.
 
 **Tenant-scoped, unauthenticated** — these *do* reach tenant data, addressed by
 an unguessable identifier rather than by a key:

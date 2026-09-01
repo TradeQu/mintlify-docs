@@ -768,9 +768,13 @@ The endpoints exposed by the MeshQu API:
 | `GET /v1/forms/:formId/receipts/:decisionId` | Public, unauth | 300 req/min | Implemented |
 | `POST /v1/forms/:formId/submit` | **Public, unauth — and a write** | 100 req/min per (form, IP) | Implemented. Evaluates and **mints a signed receipt** with no API key presented |
 
-Nine route patterns are reachable without an API key or tenant header, eight of
-them reads and one — the form submit — a write. They are listed in full, with
-what "unauthenticated" does and does not mean, under
+**Fourteen** path patterns are reachable with no API key and no tenant header —
+eighteen when the operator enables the OpenAPI document and docs UI. **Nine of
+them reach tenant data**: the eight reads in the table above plus one write, the
+form submit. The remaining five are infrastructure, with one caveat worth
+stating — `/metrics` exposes per-tenant time series and is guarded by a bearer
+token rather than by the API key. All of them are listed, with what
+"unauthenticated" does and does not mean, under
 [Authentication → Public paths](/getting-started/authentication#public-paths).
 
 Public receipt response shape: `{ context, result, chain_id, chain_step }`.
@@ -796,13 +800,20 @@ an application-level tenant predicate on every query, a per-transaction
 `SET LOCAL` of the tenant id, and Postgres row-level security with `FORCE` — so
 a request carrying a tenant header can only ever reach that tenant's data.
 
-**What that does not say.** Nine route patterns are reachable with **no** tenant
-header and no API key (§11), and they do read and write tenant data — addressed
-by an unguessable identifier rather than by an authenticated principal. A
+**What that does not say.** Of the fourteen path patterns reachable with **no**
+tenant header and no API key (§11), nine reach tenant data — and they read and
+write it, addressed by an unguessable identifier rather than by an
+authenticated principal. A
 receipt id, chain id or form id is therefore a **capability**: whoever holds one
 can read what it names, and in the case of `POST /v1/forms/:formId/submit`
-cause a signed receipt to be minted under that form's tenant. Isolation is
-between tenants; it is not, on those paths, authentication of the caller.
+cause a signed receipt to be minted under that form's tenant.
+
+On those paths the four layers are not what separates one tenant from another,
+because they are not in the request at all — `GET /v1/receipts/:decisionId`
+resolves through a `SECURITY DEFINER` lookup that takes a receipt id and no
+tenant predicate. What keeps one tenant's receipts out of another's reach there
+is the unguessability of the identifier, and nothing else. Publish an id and you
+have published what it names.
 
 ## 13. Key Management
 
@@ -814,12 +825,18 @@ between tenants; it is not, on those paths, authentication of the caller.
   itself. The verifier refuses instead: with no external roots supplied it
   emits `signature.no_external_trust_root` (§10.4) rather than falling back to
   the bundled listing.
-- **Production verification pins trust roots out-of-band**, from a channel the
-  bundle's issuer does not control — the published JWKS at
-  `GET /v1/.well-known/signing-keys`, fingerprint-pinned by the verifying
-  party. The /verify demo is the one exception: it verifies against a bundled
-  demo key (`msk_demo_v1`) because it is a demo, and makes no trust-rooted
-  claim.
+- **Production verification requires trust roots supplied out-of-band.** The
+  verifier resolves a receipt's `signature_kid` only against roots its caller
+  passes in; with none supplied it emits `signature.no_external_trust_root`
+  rather than falling back to anything. How a verifying party obtains and pins
+  those roots is that party's own policy — it is not something the issuer's own
+  API can settle, and this page does not tell you to fetch them from one.
+  `GET /v1/.well-known/signing-keys` in particular is **deprecated and
+  self-asserted** — the producer vouching for itself — and **must not be
+  treated as a trust root.**
+- The /verify demo is not an exception to that rule so much as a demonstration
+  of it: it verifies against a bundled demo key (`msk_demo_v2`) and makes no
+  trust-rooted claim.
 - **Key rotation does not retroactively invalidate bundles** — a rotated-out
   key still verifies a receipt it signed, provided the verifier's out-of-band
   root set still carries it. The bundle's `trusted_keys.json` records which
