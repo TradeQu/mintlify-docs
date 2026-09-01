@@ -18,13 +18,56 @@ When you call `POST /v1/decisions/record` with an `idempotency_key`, MeshQu chec
 | Outcome | Status | `is_new` | What happens |
 | --- | --- | --- | --- |
 | Key not seen before | `201 Created` | `true` | Policies are evaluated, a decision is recorded and returned. |
-| Key already used | `200 OK` | `false` | The original decision is returned immediately — no re-evaluation. |
+| Key already used, **same content** | `200 OK` | `false` | The original decision is returned immediately — no re-evaluation. |
+| Key already used, **different content** | `409 Conflict` | — | Refused. Nothing is recorded, and the stored decision is **not** returned. |
 
-The second call returns the stored decision without running policies again, so retries are both safe and cheap.
+The second case returns the stored decision without running policies again, so retries are both safe and cheap.
+
+<Warning>
+  **A key is bound permanently to the first request recorded under it.** Sending a *different* request under a key that is already in use is refused with `409` and the error code `IDEMPOTENCY_KEY_REUSED` — MeshQu will not hand you a receipt for content you did not submit, and will not silently record your request under someone else's key.
+
+  The `409` body tells you which of the two things to do:
+
+  ```json
+  {
+    "error": {
+      "code": "IDEMPOTENCY_KEY_REUSED",
+      "message": "This idempotency_key is already bound to a different request for this tenant. The submitted request was NOT recorded, and the previously recorded decision was NOT returned.",
+      "details": {
+        "existing_decision_id": "…",
+        "existing_recorded_at": "…",
+        "submitted_request_fingerprint": "…",
+        "recorded_request_fingerprint": "…",
+        "fingerprint_covers": ["context.decision_type", "context.fields", "…"],
+        "fingerprint_excludes": ["correlation_id", "…"],
+        "fingerprint_ignores": ["evidence_manifest", "evidence_manifest_digest", "action", "options.chain"],
+        "remedy": {
+          "to_record_this_request": "Resubmit with a NEW idempotency_key. …",
+          "to_replay_the_recorded_decision": "Resubmit the ORIGINAL request body unchanged under this key, …"
+        }
+      }
+    }
+  }
+  ```
+
+  Retrying the same mismatched pair will fail the same way — this is not a transient error.
+</Warning>
+
+### What counts as "the same content"
+
+The comparison is over the **decision context**: `decision_type`, `fields`, `evidence`, `source_artifact`, and `metadata`.
+
+Values the server writes into the context for you are **excluded**, so an ordinary network retry can never conflict:
+
+- `metadata.correlation_id` — regenerated per request when you send no `X-Correlation-Id` header.
+- The `agent_licence_*` metadata keys — resolved server-side from your API key, so a re-issued licence does not conflict.
+
+Request inputs that live **outside** the context are **not compared at all**: `evidence_manifest`, `evidence_manifest_digest`, `action` and `options.chain`. Changing only one of those under an existing key returns the stored decision (`200`) rather than a `409`. The 409 body publishes this list as `fingerprint_ignores`.
 
 ```
-First request:  POST /record { idempotency_key: "payment-12345" } → 201, is_new: true
-Retry request:  POST /record { idempotency_key: "payment-12345" } → 200, is_new: false
+First request:  POST /record { idempotency_key: "payment-12345", …context A } → 201, is_new: true
+Retry request:  POST /record { idempotency_key: "payment-12345", …context A } → 200, is_new: false
+Reused key:     POST /record { idempotency_key: "payment-12345", …context B } → 409, IDEMPOTENCY_KEY_REUSED
 ```
 
 ## Recording with an idempotency key
@@ -103,7 +146,7 @@ ${random()}       # different on every retry — never deduplicates
 | Case sensitivity | Case-sensitive (`ABC` ≠ `abc`) |
 | Scope | Unique **per tenant** — the same key may exist in different tenants |
 
-A key, once used, is bound to that decision permanently within the tenant. There is no expiry, so a retry months later still returns the original decision. If a decision genuinely needs to be re-made (for example after corrected input data), use a new key with a version suffix:
+A key, once used, is bound to that decision permanently within the tenant. There is no expiry, so a retry months later still returns the original decision. If a decision genuinely needs to be re-made (for example after corrected input data), use a new key with a version suffix — this is **enforced**, not merely advised: reusing the old key with the corrected data is refused with `409`.
 
 ```
 invoice-123-validation-v1   # original
@@ -112,7 +155,7 @@ invoice-123-validation-v2   # after data correction — a new, distinct decision
 
 ## Safe-retry pattern
 
-Treat both `200` and `201` as success. Retry only on server errors (`5xx`) and network failures — never on client errors (`4xx`), which indicate a request that won't succeed on retry.
+Treat both `200` and `201` as success. Retry only on server errors (`5xx`) and network failures — never on client errors (`4xx`), which indicate a request that won't succeed on retry. `409 IDEMPOTENCY_KEY_REUSED` is one of those: it means the key is already bound to different content, so retrying unchanged will fail identically. Choose a new key, or restore the original request body.
 
 ```typescript
 import { MeshQuError } from '@meshqu/client';
