@@ -15826,7 +15826,7 @@
         "tags": [
           "Decisions"
         ],
-        "description": "Evaluates policies AND persists the result with full audit trail.\n\nSupports idempotency: if the same idempotency_key is provided twice,\nreturns the original decision without re-evaluating.\n\nReturns:\n- **decision**: The recorded decision with full context\n- **is_new**: False if returned from idempotency cache\n- **duration_ms**: Total request duration\n- **links.verify**: Verification page URL for this decision id. Response-envelope\n  metadata derived from deployment config — it is not part of the receipt and\n  is omitted entirely when no verify base URL is configured.",
+        "description": "Evaluates policies AND persists the result with full audit trail.\n\nSupports idempotency. Replaying an idempotency_key returns the decision already\nrecorded under it, without re-evaluating — but only when the request content is\nunchanged. Reusing a key with DIFFERENT content is refused with\n409 `IDEMPOTENCY_KEY_REUSED`: nothing is recorded, and the previously recorded\ndecision is not returned. The 409 body names the decision holding the key, the\ntwo fingerprints that differed, which parts of the request were compared, and\nthe two ways to proceed.\n\nContent is compared over the decision context — decision_type, fields, evidence,\nsource_artifact and metadata. Server-written metadata (correlation_id, the\nagent-licence keys) is excluded so an honest network retry cannot conflict.\nInputs outside the context — evidence_manifest, evidence_manifest_digest, action\nand options.chain — are not compared; see `fingerprint_ignores` in the 409 body.\n\nReturns:\n- **decision**: The recorded decision with full context\n- **is_new**: False when the key already held an identical request and the\n  stored decision was returned instead of a new one being recorded\n- **duration_ms**: Total request duration\n- **links.verify**: Verification page URL for this decision id. Response-envelope\n  metadata derived from deployment config — it is not part of the receipt and\n  is omitted entirely when no verify base URL is configured.",
         "requestBody": {
           "required": true,
           "content": {
@@ -17331,7 +17331,7 @@
                       }
                     },
                     "is_new": {
-                      "description": "False if returned from idempotency cache",
+                      "description": "False when this idempotency_key already held an identical request and the decision recorded under it was returned instead of a new one. A key reused with different content is refused with 409 IDEMPOTENCY_KEY_REUSED rather than returning either value.",
                       "type": "boolean"
                     },
                     "duration_ms": {
@@ -18531,7 +18531,7 @@
                       }
                     },
                     "is_new": {
-                      "description": "False if returned from idempotency cache",
+                      "description": "False when this idempotency_key already held an identical request and the decision recorded under it was returned instead of a new one. A key reused with different content is refused with 409 IDEMPOTENCY_KEY_REUSED rather than returning either value.",
                       "type": "boolean"
                     },
                     "duration_ms": {
