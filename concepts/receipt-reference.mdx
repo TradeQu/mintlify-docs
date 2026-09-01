@@ -635,8 +635,8 @@ a receipt whose shadow fields were stripped or added after signing fails
 These are the codes this page describes. **It is not the complete set.** The
 gap is stated here rather than left to be discovered:
 
-- `@meshqu/types` declares **48** `BundleFailureCode` members. **40** are listed
-  below. The other **8** are emitted by the shipped verifier and are not yet
+- `@meshqu/types` declares **54** `BundleFailureCode` members. **40** are listed
+  below. The other **14** are emitted by the shipped verifier and are not yet
   described on any public surface; they belong to legs that have not reached
   step 4 of §18.
 - `@meshqu/verify-lib` — the browser verifier, a deliberately independent
@@ -645,8 +645,13 @@ gap is stated here rather than left to be discovered:
   that the browser has no evaluator and skipped that sub-claim there. The other
   16 belong to a separate verifier leg (CCR-403) whose capability §15 does not
   list; until §15 lists it, no public surface may claim it.
-- Across both packages the union is **65** codes, of which **25** are not listed
+- Across both packages the union is **71** codes, of which **31** are not listed
   below.
+
+These five numbers are no longer prose. `docs-parity.invariant.test.ts` in the
+`tradequ` repository parses them out of this section and compares them with the
+declared unions, so a code added to either package and not reflected here turns
+that check red. Its limits are stated in the test itself.
 
 A code's absence from this list is a documentation gap, not evidence that the
 verifier cannot emit it. Do not treat the list as an exhaustive contract, and do
@@ -756,6 +761,21 @@ The endpoints exposed by the MeshQu API:
 | `POST /v1/agent-licences` (issue) · `POST /v1/agent-licences/:id/revoke` | **Human session only** (`humanGovernanceAct` — an API key receives 403) | tenant-tier | Implemented |
 | `GET /v1/agent-licences` (list) · `GET /v1/agent-licences/:id` | API key + tenant | tenant-tier | Implemented |
 | `GET /v1/chains/:chainId/bundle?format=json\|tar` | Public, unauth | 30 req/min per IP | Implemented |
+| `GET /v1/chains/:chainId/verify` | Public, unauth | 100 req/min per IP | Implemented |
+| `GET /v1/chains/:chainId/seal` | Public, unauth | 300 req/min per IP | Implemented |
+| `GET /v1/forms/:formId/schema` | Public, unauth | 60 req/min | Implemented |
+| `GET /v1/forms/:formId/api-contract` | Public, unauth | 60 req/min | Implemented |
+| `GET /v1/forms/:formId/receipts/:decisionId` | Public, unauth | 300 req/min | Implemented |
+| `POST /v1/forms/:formId/submit` | **Public, unauth — and a write** | 100 req/min per (form, IP) | Implemented. Evaluates and **mints a signed receipt** with no API key presented |
+
+**Fourteen** path patterns are reachable with no API key and no tenant header —
+eighteen when the operator enables the OpenAPI document and docs UI. **Nine of
+them reach tenant data**: the eight reads in the table above plus one write, the
+form submit. The remaining five are infrastructure, with one caveat worth
+stating — `/metrics` exposes per-tenant time series and is guarded by a bearer
+token rather than by the API key. All of them are listed, with what
+"unauthenticated" does and does not mean, under
+[Authentication → Public paths](/getting-started/authentication#public-paths).
 
 Public receipt response shape: `{ context, result, chain_id, chain_step }`.
 The API normalises legacy `policy_snapshot_hash` → `evaluated_rules_hash` on
@@ -775,17 +795,53 @@ REST API and verification bundles:
 - **Policy approval receipts** — ratifier-signed approval records.
 - **Audit events** — an append-only, hash-chained audit log.
 
-Each tenant's data is strictly isolated; a request can only ever read or write
-data belonging to its own tenant.
+Tenant isolation is enforced in four layers — the request's tenant header,
+an application-level tenant predicate on every query, a per-transaction
+`SET LOCAL` of the tenant id, and Postgres row-level security with `FORCE` — so
+a request carrying a tenant header can only ever reach that tenant's data.
+
+**What that does not say.** Of the fourteen path patterns reachable with **no**
+tenant header and no API key (§11), nine reach tenant data — and they read and
+write it, addressed by an unguessable identifier rather than by an
+authenticated principal. A
+receipt id, chain id or form id is therefore a **capability**: whoever holds one
+can read what it names, and in the case of `POST /v1/forms/:formId/submit`
+cause a signed receipt to be minted under that form's tenant.
+
+On those paths the four layers are not what separates one tenant from another,
+because they are not in the request at all — `GET /v1/receipts/:decisionId`
+resolves through a `SECURITY DEFINER` lookup that takes a receipt id and no
+tenant predicate. What keeps one tenant's receipts out of another's reach there
+is the unguessability of the identifier, and nothing else. Publish an id and you
+have published what it names.
 
 ## 13. Key Management
 
 - Signing key kid format: `msk_v{N}` (e.g. `msk_v1`).
 - Algorithm: Ed25519 only.
-- **Key rotation does not retroactively invalidate bundles** — each bundle
-  pins its trusted keys at export time in `trusted_keys.json`.
-- The /verify demo uses bundled `msk_demo_v1`; production verification uses
-  `trusted_keys.json` from the bundle.
+- **`trusted_keys.json` inside a bundle is informational only and is never
+  used as a trust root.** Treating it as one would let a self-signed bundle —
+  operator-controlled keys listed in the bundle as "trusted" — verify against
+  itself. The verifier refuses instead: with no external roots supplied it
+  emits `signature.no_external_trust_root` (§10.4) rather than falling back to
+  the bundled listing.
+- **Production verification requires trust roots supplied out-of-band.** The
+  verifier resolves a receipt's `signature_kid` only against roots its caller
+  passes in; with none supplied it emits `signature.no_external_trust_root`
+  rather than falling back to anything. How a verifying party obtains and pins
+  those roots is that party's own policy — it is not something the issuer's own
+  API can settle, and this page does not tell you to fetch them from one.
+  `GET /v1/.well-known/signing-keys` in particular is **deprecated and
+  self-asserted** — the producer vouching for itself — and **must not be
+  treated as a trust root.**
+- The /verify demo is not an exception to that rule so much as a demonstration
+  of it: it verifies against a bundled demo key (`msk_demo_v2`) and makes no
+  trust-rooted claim.
+- **Key rotation does not retroactively invalidate bundles** — a rotated-out
+  key still verifies a receipt it signed, provided the verifier's out-of-band
+  root set still carries it. The bundle's `trusted_keys.json` records which
+  keys were current at export time, which is useful for a fingerprint UI; it
+  is not what makes the old signature verify.
 - Custodian (evidence) keys and ratifier (approval) keys are supplied to the
   verifier out-of-band via `custodianTrustedRoots` / `ratifierTrustedRoots`.
   MeshQu never holds them.
