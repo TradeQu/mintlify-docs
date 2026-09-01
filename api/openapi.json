@@ -29964,7 +29964,7 @@
         "tags": [
           "Rule Creation Logs"
         ],
-        "description": "Appends a rule creation feedback entry for the data flywheel and audit trail.",
+        "description": "Records one caller-supplied telemetry entry about a natural-language rule-drafting interaction, for product analytics and model improvement (the \"data flywheel\").\n\nEvery value stored comes from the request body. The API keeps what it is given — JSON payloads are key-sorted on write, and nothing else is derived or re-computed. It does not re-run the reported model output, outcome or corrections against anything it evaluated; it does not identify the submitting user (`anonymised_user_id` is whatever the caller sends); it stores no prompt template or prompt version; and it does not link the entry to a policy version. Entries are held in an ordinary application table that the API role may subsequently UPDATE or DELETE.\n\nPolicy changes are recorded by the policy endpoints under `/v1/policies`, and evaluations by the decision endpoints under `/v1/decisions`.",
         "requestBody": {
           "required": true,
           "content": {
