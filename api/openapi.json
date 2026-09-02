@@ -9126,7 +9126,7 @@
         "tags": [
           "Policies"
         ],
-        "description": "Transitions a submitted policy version back to draft with a required human-readable reason. Blocks when actor == maker and maker-checker enforcement is enabled.",
+        "description": "Transitions a submitted policy version back to draft with a required human-readable reason. Requires a verified human-session principal: an API-key principal receives 403 HUMAN_PRINCIPAL_REQUIRED. Blocks when actor == maker and maker-checker enforcement is enabled.",
         "requestBody": {
           "required": true,
           "content": {
