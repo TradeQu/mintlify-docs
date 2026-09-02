@@ -36060,7 +36060,7 @@
         "tags": [
           "Settings"
         ],
-        "description": "Merges the provided settings into the existing tenant settings. Keys that gate a governance control (`agent_licence_mode`, `maker_checker_enforced`, `source_retention_months`) may only be changed by a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED, and the change is recorded in the audit chain. All other keys are unaffected.\n\n`source_retention_months` is a whole number of months and must be at least 12, the platform minimum. There is no maximum. It RECORDS how long this tenant asks MeshQu to keep exact source bytes; nothing in this release deletes an object when a window elapses, so it is a recorded setting and not yet an enforced one.",
+        "description": "Merges the provided settings into the existing tenant settings. Keys that gate a governance control (`agent_licence_mode`, `maker_checker_enforced`, `source_retention_months`, `feedback_retention_days`) may only be changed by a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED, and the change is recorded in the audit chain. All other keys are unaffected.\n\n`source_retention_months` is a whole number of months and must be at least 12, the platform minimum. There is no maximum. It RECORDS how long this tenant asks MeshQu to keep exact source bytes; nothing in this release deletes an object when a window elapses, so it is a recorded setting and not yet an enforced one.\n\n`feedback_retention_days` is a whole number of days between 30 and 730; the default when unset is 90. A value outside those bounds is refused with 400 rather than clamped. It governs authoring-feedback telemetry only, on a separate clock from the source-byte setting above and in the opposite direction: shortening it brings every existing unexpired row forward, measured from that row's own creation time, and lengthening it applies only to rows created afterwards and never extends an existing one.",
         "requestBody": {
           "required": true,
           "content": {
@@ -36338,6 +36338,847 @@
           }
         },
         "operationId": "postV1RuleCreationLogs"
+      }
+    },
+    "/v1/authoring-feedback": {
+      "post": {
+        "summary": "Append one authoring feedback telemetry entry",
+        "tags": [
+          "Authoring Feedback"
+        ],
+        "description": "Appends one observation about a model-proposed candidate rule: the proposal, the correction or rejection, and the reason.\n\n**RECORDS** what a model proposed for one stable candidate, what a person corrected or rejected, the reason from a closed vocabulary, and — where the observation was made against a sealed subject — exactly which subject and optionally which recorded human finding it corresponds to.\n\n**PROVES** only that the observation was appended, by a principal holding `policies:write` in this tenant. This is **telemetry, not governance evidence**. Appending here establishes nothing about whether anyone examined the candidate, nothing about the candidate's status or authority, and nothing that any verification path consults: no row, label or count this endpoint produces is read by any check anywhere in the platform. Ruling B6 also keeps this material outside the sealed review package by construction — anything a reviewer relies on has to be copied into a new sealed component with its own identity, under that component's own retention term.\n\n**Append-only.** There is no update path and no delete path at any URL. Rows are removed only when their retention period has elapsed, by a retention function that runs outside the request path.\n\n**Links must resolve exactly.** A `review_record_id` must name a recorded human review of the SAME sealed subject — a record about a different submission, revision or package digest is refused with 409 — and a `review_finding_id` must name an item that exists inside that record, or the request is a 422.\n\n**Retention.** Each row stores the tenant period in force when it was created, in days. Effective retention is the SHORTER of that period and the tenant's current one, so shortening the tenant period brings existing rows forward and lengthening it never extends them. The period is a tenant setting changed only by a verified human principal.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "description": "One appended telemetry observation about one model-proposed candidate. TELEMETRY, NOT GOVERNANCE EVIDENCE.",
+                "type": "object",
+                "required": [
+                  "proposal_id",
+                  "subject_kind",
+                  "feedback_kind",
+                  "reason",
+                  "model_proposal"
+                ],
+                "properties": {
+                  "proposal_id": {
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]{1,200}$",
+                    "description": "The STABLE candidate identity — the proposal id minted by the editor at the moment the model answered. This is the join key. Rule code is display identity and is recorded separately: a rename moves the code and would re-point every row filed under it.",
+                    "type": "string"
+                  },
+                  "candidate_rule_code": {
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "The rule code as it stood. Display only; never a join key.",
+                    "type": "string"
+                  },
+                  "subject_kind": {
+                    "description": "Which subject the observation was made against. `SEALED_SUBMISSION` requires `submission_id`, `candidate_revision` and `review_package_digest` together (the ruling B1 currentness triple). `PRE_SUBMISSION_DRAFT` forbids all three AND forbids a review-record link, because a recorded human judgment exists only against a sealed subject. Absence is spelled as a value, not inferred from nulls.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "SEALED_SUBMISSION"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "PRE_SUBMISSION_DRAFT"
+                        ]
+                      }
+                    ]
+                  },
+                  "submission_id": {
+                    "format": "uuid",
+                    "description": "Leg one of the sealed subject. Required when `subject_kind` is `SEALED_SUBMISSION`, forbidden otherwise.",
+                    "type": "string"
+                  },
+                  "candidate_revision": {
+                    "minimum": 1,
+                    "description": "Leg two of the sealed subject.",
+                    "type": "integer"
+                  },
+                  "review_package_digest": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "description": "Leg three of the sealed subject.",
+                    "type": "string"
+                  },
+                  "review_record_id": {
+                    "format": "uuid",
+                    "description": "The recorded human review (PWB-022b) this correction corresponds to. Bound by a five-column foreign key to a record written against THIS EXACT sealed subject, so a row naming a record about a different submission, revision or package digest is refused at the database as well as at the route.",
+                    "type": "string"
+                  },
+                  "review_finding_id": {
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9._:-]{1,200}$",
+                    "description": "One item id inside that record's `findings` or `corrections`. It must RESOLVE: an id naming no item in that record is refused, at the route and by a database trigger, because findings are JSON array elements that no foreign key can reach.",
+                    "type": "string"
+                  },
+                  "feedback_kind": {
+                    "description": "What the person did to the proposal: changed it (`CORRECTION`) or removed it (`REJECTION`). There is no `ACCEPTED` value — this store records corrections and rejections, and a row asserting acceptance would be one step from reading as an approval.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "CORRECTION"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "REJECTION"
+                        ]
+                      }
+                    ]
+                  },
+                  "reason": {
+                    "description": "Why the proposal was corrected or rejected, from a CLOSED vocabulary. An unknown value is refused with 400, and there is deliberately no `OTHER`: an open residual would make the vocabulary a suggestion and the distribution meaningless.\n\n`SOURCE_FIDELITY` (the proposal misstates the source) and `UNSUPPORTED_SEMANTICS` (the product cannot express what the source requires) are kept distinct because one is fixed by re-reading the source and the other by changing the product.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "SOURCE_FIDELITY"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "SOURCE_OMISSION"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "RULE_SHAPE"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "RULE_SEVERITY"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "UNSUPPORTED_SEMANTICS"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "DISPLAY_ONLY"
+                        ]
+                      }
+                    ]
+                  },
+                  "model_proposal": {
+                    "description": "What the model proposed, verbatim. Stored as evidence of what was said; the server never acts on it, re-runs it or checks it against anything.",
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "correction_text": {
+                    "minLength": 1,
+                    "maxLength": 8000,
+                    "description": "The correction or rejection text, verbatim. Optional: a rejection with no stated text is a real thing a person does, and a placeholder would put words in their mouth.",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "One appended telemetry observation about one model-proposed candidate. TELEMETRY, NOT GOVERNANCE EVIDENCE."
+        },
+        "responses": {
+          "201": {
+            "description": "One appended telemetry row. RECORDS what a model proposed and what a person corrected or rejected. PROVES only that the observation was appended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "One appended telemetry row. RECORDS what a model proposed and what a person corrected or rejected. PROVES only that the observation was appended.",
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "proposal_id",
+                    "candidate_rule_code",
+                    "subject_kind",
+                    "submission_id",
+                    "candidate_revision",
+                    "review_package_digest",
+                    "review_record_id",
+                    "review_finding_id",
+                    "feedback_kind",
+                    "reason",
+                    "model_proposal",
+                    "correction_text",
+                    "period_at_creation_days",
+                    "created_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "proposal_id": {
+                      "type": "string"
+                    },
+                    "candidate_rule_code": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "subject_kind": {
+                      "description": "Which subject the observation was made against. `SEALED_SUBMISSION` requires `submission_id`, `candidate_revision` and `review_package_digest` together (the ruling B1 currentness triple). `PRE_SUBMISSION_DRAFT` forbids all three AND forbids a review-record link, because a recorded human judgment exists only against a sealed subject. Absence is spelled as a value, not inferred from nulls.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "SEALED_SUBMISSION"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "PRE_SUBMISSION_DRAFT"
+                          ]
+                        }
+                      ]
+                    },
+                    "submission_id": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "candidate_revision": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "review_package_digest": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "review_record_id": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "review_finding_id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "feedback_kind": {
+                      "description": "What the person did to the proposal: changed it (`CORRECTION`) or removed it (`REJECTION`). There is no `ACCEPTED` value — this store records corrections and rejections, and a row asserting acceptance would be one step from reading as an approval.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "CORRECTION"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "REJECTION"
+                          ]
+                        }
+                      ]
+                    },
+                    "reason": {
+                      "description": "Why the proposal was corrected or rejected, from a CLOSED vocabulary. An unknown value is refused with 400, and there is deliberately no `OTHER`: an open residual would make the vocabulary a suggestion and the distribution meaningless.\n\n`SOURCE_FIDELITY` (the proposal misstates the source) and `UNSUPPORTED_SEMANTICS` (the product cannot express what the source requires) are kept distinct because one is fixed by re-reading the source and the other by changing the product.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "SOURCE_FIDELITY"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "SOURCE_OMISSION"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "RULE_SHAPE"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "RULE_SEVERITY"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "UNSUPPORTED_SEMANTICS"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "DISPLAY_ONLY"
+                          ]
+                        }
+                      ]
+                    },
+                    "model_proposal": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "correction_text": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "period_at_creation_days": {
+                      "minimum": 30,
+                      "maximum": 730,
+                      "description": "The tenant retention period in force when this row was created, in DAYS. Stored so a later lengthening of the tenant period cannot extend what was collected under a shorter one. Effective expiry is `created_at + min(this, the tenant's current period)` and is derived, never stored.",
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1AuthoringFeedback"
+      }
+    },
+    "/v1/authoring-feedback/{proposalId}": {
+      "get": {
+        "summary": "List the authoring feedback for one stable candidate",
+        "tags": [
+          "Authoring Feedback"
+        ],
+        "description": "Every observation appended about one `proposal_id`, newest first.\n\n**RECORDS** what a model proposed for one stable candidate, what a person corrected or rejected, the reason from a closed vocabulary, and — where the observation was made against a sealed subject — exactly which subject and optionally which recorded human finding it corresponds to.\n\n**PROVES** only that the observation was appended, by a principal holding `policies:write` in this tenant. This is **telemetry, not governance evidence**. Appending here establishes nothing about whether anyone examined the candidate, nothing about the candidate's status or authority, and nothing that any verification path consults: no row, label or count this endpoint produces is read by any check anywhere in the platform. Ruling B6 also keeps this material outside the sealed review package by construction — anything a reviewer relies on has to be copied into a new sealed component with its own identity, under that component's own retention term.\n\nAn empty list means nothing was appended. It does not mean the proposal was accepted, and it does not mean the candidate was reviewed — a recorded human review lives at `GET /v1/policies/{id}/review-submissions/{submissionId}/review-record`, which is a different object with a different retention term.\n\nRows disappear from this list when their retention period elapses. Their absence is not evidence that they never existed and is not evidence of erasure from backups, replicas, logs or prior exports.",
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^[A-Za-z0-9._:-]{1,200}$",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "proposalId",
+            "required": true,
+            "description": "The stable candidate identity to read observations for. Not a rule code: rule code is mutable display identity."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "total"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "description": "One appended telemetry row. RECORDS what a model proposed and what a person corrected or rejected. PROVES only that the observation was appended.",
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "tenant_id",
+                          "proposal_id",
+                          "candidate_rule_code",
+                          "subject_kind",
+                          "submission_id",
+                          "candidate_revision",
+                          "review_package_digest",
+                          "review_record_id",
+                          "review_finding_id",
+                          "feedback_kind",
+                          "reason",
+                          "model_proposal",
+                          "correction_text",
+                          "period_at_creation_days",
+                          "created_at"
+                        ],
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "tenant_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "proposal_id": {
+                            "type": "string"
+                          },
+                          "candidate_rule_code": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "subject_kind": {
+                            "description": "Which subject the observation was made against. `SEALED_SUBMISSION` requires `submission_id`, `candidate_revision` and `review_package_digest` together (the ruling B1 currentness triple). `PRE_SUBMISSION_DRAFT` forbids all three AND forbids a review-record link, because a recorded human judgment exists only against a sealed subject. Absence is spelled as a value, not inferred from nulls.",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "SEALED_SUBMISSION"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "PRE_SUBMISSION_DRAFT"
+                                ]
+                              }
+                            ]
+                          },
+                          "submission_id": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "candidate_revision": {
+                            "anyOf": [
+                              {
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "review_package_digest": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "review_record_id": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "review_finding_id": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "feedback_kind": {
+                            "description": "What the person did to the proposal: changed it (`CORRECTION`) or removed it (`REJECTION`). There is no `ACCEPTED` value — this store records corrections and rejections, and a row asserting acceptance would be one step from reading as an approval.",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "CORRECTION"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "REJECTION"
+                                ]
+                              }
+                            ]
+                          },
+                          "reason": {
+                            "description": "Why the proposal was corrected or rejected, from a CLOSED vocabulary. An unknown value is refused with 400, and there is deliberately no `OTHER`: an open residual would make the vocabulary a suggestion and the distribution meaningless.\n\n`SOURCE_FIDELITY` (the proposal misstates the source) and `UNSUPPORTED_SEMANTICS` (the product cannot express what the source requires) are kept distinct because one is fixed by re-reading the source and the other by changing the product.",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "SOURCE_FIDELITY"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "SOURCE_OMISSION"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "RULE_SHAPE"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "RULE_SEVERITY"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "UNSUPPORTED_SEMANTICS"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "DISPLAY_ONLY"
+                                ]
+                              }
+                            ]
+                          },
+                          "model_proposal": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "correction_text": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "period_at_creation_days": {
+                            "minimum": 30,
+                            "maximum": 730,
+                            "description": "The tenant retention period in force when this row was created, in DAYS. Stored so a later lengthening of the tenant period cannot extend what was collected under a shorter one. Effective expiry is `created_at + min(this, the tenant's current period)` and is derived, never stored.",
+                            "type": "integer"
+                          },
+                          "created_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1AuthoringFeedbackByProposalId"
       }
     },
     "/v1/.well-known/signing-keys": {
@@ -43340,6 +44181,10 @@
     {
       "name": "Rule Creation Logs",
       "description": "Rule authoring telemetry"
+    },
+    {
+      "name": "Authoring Feedback",
+      "description": "Appended observations about model-proposed candidate rules — what was proposed, what a person corrected or rejected, and why. Telemetry, not governance evidence: appending here establishes nothing about whether anyone examined the candidate, nothing about its status or authority, and nothing that any verification path consults. Append-and-read only, and retained for a bounded, tenant-set period."
     }
   ]
 }
