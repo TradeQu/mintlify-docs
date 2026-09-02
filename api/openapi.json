@@ -27372,7 +27372,8 @@
                                 "api-keys:admin",
                                 "members:read",
                                 "members:write",
-                                "tenants:provision"
+                                "tenants:provision",
+                                "authoring:capability"
                               ]
                             }
                           },
@@ -27537,7 +27538,8 @@
                         "audit:admin",
                         "api-keys:admin",
                         "members:read",
-                        "members:write"
+                        "members:write",
+                        "authoring:capability"
                       ]
                     }
                   },
@@ -27622,7 +27624,8 @@
                               "api-keys:admin",
                               "members:read",
                               "members:write",
-                              "tenants:provision"
+                              "tenants:provision",
+                              "authoring:capability"
                             ]
                           }
                         },
@@ -27861,7 +27864,8 @@
                           "api-keys:admin",
                           "members:read",
                           "members:write",
-                          "tenants:provision"
+                          "tenants:provision",
+                          "authoring:capability"
                         ]
                       }
                     },
@@ -29496,6 +29500,1747 @@
         "operationId": "getV1AgentLicencesById"
       }
     },
+    "/v1/authoring-capabilities": {
+      "post": {
+        "summary": "Issue an authoring capability",
+        "tags": [
+          "Authoring Capabilities"
+        ],
+        "description": "Creates an authoring capability record binding an API key to one policy version, a closed set of authoring actions, a set of granted source items and a validity window. Requires a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED. The subject key must hold the authoring:capability scope and must not hold policies:read or policies:write.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "key_id",
+                  "policy_id",
+                  "policy_version_id",
+                  "policy_version_number",
+                  "grant_authority",
+                  "allowed_actions",
+                  "valid_from",
+                  "valid_until"
+                ],
+                "properties": {
+                  "key_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "policy_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "policy_version_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "policy_version_number": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "grant_authority": {
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "type": "string"
+                  },
+                  "allowed_actions": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "policy.read",
+                        "draft.edit",
+                        "draft.validate",
+                        "review.submit",
+                        "review.withdraw_request",
+                        "review.retrieve",
+                        "case.preview"
+                      ]
+                    }
+                  },
+                  "source_item_ids": {
+                    "type": "array",
+                    "items": {
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "type": "string"
+                    }
+                  },
+                  "valid_from": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "valid_until": {
+                    "format": "date-time",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "An authoring capability record: a grant, or the revocation that supersedes one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "An authoring capability record: a grant, or the revocation that supersedes one.",
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "record_type",
+                    "key_id",
+                    "revokes_capability_id",
+                    "granted_by",
+                    "grant_authority",
+                    "policy_id",
+                    "policy_version_id",
+                    "policy_version_number",
+                    "allowed_actions",
+                    "source_item_ids",
+                    "valid_from",
+                    "valid_until",
+                    "issued_at",
+                    "capability_digest",
+                    "grantor_signature",
+                    "created_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "record_type": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "grant"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "revocation"
+                          ]
+                        }
+                      ]
+                    },
+                    "key_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "revokes_capability_id": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "granted_by": {
+                      "type": "string"
+                    },
+                    "grant_authority": {
+                      "type": "string"
+                    },
+                    "policy_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_number": {
+                      "type": "integer"
+                    },
+                    "allowed_actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "policy.read",
+                          "draft.edit",
+                          "draft.validate",
+                          "review.submit",
+                          "review.withdraw_request",
+                          "review.retrieve",
+                          "case.preview"
+                        ]
+                      }
+                    },
+                    "source_item_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "valid_from": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "valid_until": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "issued_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "capability_digest": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "grantor_signature": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "signature",
+                        "signature_kid",
+                        "signature_algorithm"
+                      ],
+                      "properties": {
+                        "signature": {
+                          "type": "string"
+                        },
+                        "signature_kid": {
+                          "type": "string"
+                        },
+                        "signature_algorithm": {
+                          "type": "string",
+                          "enum": [
+                            "ed25519"
+                          ]
+                        }
+                      }
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1AuthoringCapabilities"
+      },
+      "get": {
+        "summary": "List authoring capabilities",
+        "tags": [
+          "Authoring Capabilities"
+        ],
+        "description": "Returns a paginated list of authoring capability grants for the tenant, most recently issued first. Each item carries `revocation`: the record that supersedes it, or null. Revocations are never returned as separate items. Records that would not verify are returned as stored, not hidden.",
+        "parameters": [
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "key_id",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "total",
+                    "limit",
+                    "offset"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "additionalProperties": false,
+                        "description": "An authoring capability grant, with the record that supersedes it when one exists, or null.",
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "tenant_id",
+                          "record_type",
+                          "key_id",
+                          "revokes_capability_id",
+                          "granted_by",
+                          "grant_authority",
+                          "policy_id",
+                          "policy_version_id",
+                          "policy_version_number",
+                          "allowed_actions",
+                          "source_item_ids",
+                          "valid_from",
+                          "valid_until",
+                          "issued_at",
+                          "capability_digest",
+                          "grantor_signature",
+                          "created_at",
+                          "revocation"
+                        ],
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "tenant_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "record_type": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "grant"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "revocation"
+                                ]
+                              }
+                            ]
+                          },
+                          "key_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "revokes_capability_id": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "granted_by": {
+                            "type": "string"
+                          },
+                          "grant_authority": {
+                            "type": "string"
+                          },
+                          "policy_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "policy_version_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "policy_version_number": {
+                            "type": "integer"
+                          },
+                          "allowed_actions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "policy.read",
+                                "draft.edit",
+                                "draft.validate",
+                                "review.submit",
+                                "review.withdraw_request",
+                                "review.retrieve",
+                                "case.preview"
+                              ]
+                            }
+                          },
+                          "source_item_ids": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "valid_from": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "valid_until": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "issued_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "capability_digest": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "grantor_signature": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "signature",
+                              "signature_kid",
+                              "signature_algorithm"
+                            ],
+                            "properties": {
+                              "signature": {
+                                "type": "string"
+                              },
+                              "signature_kid": {
+                                "type": "string"
+                              },
+                              "signature_algorithm": {
+                                "type": "string",
+                                "enum": [
+                                  "ed25519"
+                                ]
+                              }
+                            }
+                          },
+                          "created_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "revocation": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "description": "An authoring capability record: a grant, or the revocation that supersedes one.",
+                                "type": "object",
+                                "required": [
+                                  "id",
+                                  "tenant_id",
+                                  "record_type",
+                                  "key_id",
+                                  "revokes_capability_id",
+                                  "granted_by",
+                                  "grant_authority",
+                                  "policy_id",
+                                  "policy_version_id",
+                                  "policy_version_number",
+                                  "allowed_actions",
+                                  "source_item_ids",
+                                  "valid_from",
+                                  "valid_until",
+                                  "issued_at",
+                                  "capability_digest",
+                                  "grantor_signature",
+                                  "created_at"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "tenant_id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "record_type": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "grant"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "revocation"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "key_id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "revokes_capability_id": {
+                                    "anyOf": [
+                                      {
+                                        "format": "uuid",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "granted_by": {
+                                    "type": "string"
+                                  },
+                                  "grant_authority": {
+                                    "type": "string"
+                                  },
+                                  "policy_id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "policy_version_id": {
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "policy_version_number": {
+                                    "type": "integer"
+                                  },
+                                  "allowed_actions": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "policy.read",
+                                        "draft.edit",
+                                        "draft.validate",
+                                        "review.submit",
+                                        "review.withdraw_request",
+                                        "review.retrieve",
+                                        "case.preview"
+                                      ]
+                                    }
+                                  },
+                                  "source_item_ids": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "valid_from": {
+                                    "format": "date-time",
+                                    "type": "string"
+                                  },
+                                  "valid_until": {
+                                    "format": "date-time",
+                                    "type": "string"
+                                  },
+                                  "issued_at": {
+                                    "format": "date-time",
+                                    "type": "string"
+                                  },
+                                  "capability_digest": {
+                                    "pattern": "^[0-9a-f]{64}$",
+                                    "type": "string"
+                                  },
+                                  "grantor_signature": {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "signature",
+                                      "signature_kid",
+                                      "signature_algorithm"
+                                    ],
+                                    "properties": {
+                                      "signature": {
+                                        "type": "string"
+                                      },
+                                      "signature_kid": {
+                                        "type": "string"
+                                      },
+                                      "signature_algorithm": {
+                                        "type": "string",
+                                        "enum": [
+                                          "ed25519"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "created_at": {
+                                    "format": "date-time",
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "limit": {
+                      "type": "integer"
+                    },
+                    "offset": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1AuthoringCapabilities"
+      }
+    },
+    "/v1/authoring-capabilities/{id}/revoke": {
+      "post": {
+        "summary": "Revoke an authoring capability",
+        "tags": [
+          "Authoring Capabilities"
+        ],
+        "description": "Creates a revocation record naming the given grant and returns it. The grant row is left exactly as issued. Requires a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "grant_authority"
+                ],
+                "properties": {
+                  "grant_authority": {
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "An authoring capability record: a grant, or the revocation that supersedes one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "An authoring capability record: a grant, or the revocation that supersedes one.",
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "record_type",
+                    "key_id",
+                    "revokes_capability_id",
+                    "granted_by",
+                    "grant_authority",
+                    "policy_id",
+                    "policy_version_id",
+                    "policy_version_number",
+                    "allowed_actions",
+                    "source_item_ids",
+                    "valid_from",
+                    "valid_until",
+                    "issued_at",
+                    "capability_digest",
+                    "grantor_signature",
+                    "created_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "record_type": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "grant"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "revocation"
+                          ]
+                        }
+                      ]
+                    },
+                    "key_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "revokes_capability_id": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "granted_by": {
+                      "type": "string"
+                    },
+                    "grant_authority": {
+                      "type": "string"
+                    },
+                    "policy_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_number": {
+                      "type": "integer"
+                    },
+                    "allowed_actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "policy.read",
+                          "draft.edit",
+                          "draft.validate",
+                          "review.submit",
+                          "review.withdraw_request",
+                          "review.retrieve",
+                          "case.preview"
+                        ]
+                      }
+                    },
+                    "source_item_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "valid_from": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "valid_until": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "issued_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "capability_digest": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "grantor_signature": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "signature",
+                        "signature_kid",
+                        "signature_algorithm"
+                      ],
+                      "properties": {
+                        "signature": {
+                          "type": "string"
+                        },
+                        "signature_kid": {
+                          "type": "string"
+                        },
+                        "signature_algorithm": {
+                          "type": "string",
+                          "enum": [
+                            "ed25519"
+                          ]
+                        }
+                      }
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1AuthoringCapabilitiesByIdRevoke"
+      }
+    },
+    "/v1/authoring-capabilities/{id}": {
+      "get": {
+        "summary": "Get an authoring capability",
+        "tags": [
+          "Authoring Capabilities"
+        ],
+        "description": "Returns one authoring capability record by id.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "An authoring capability record: a grant, or the revocation that supersedes one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "An authoring capability record: a grant, or the revocation that supersedes one.",
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "record_type",
+                    "key_id",
+                    "revokes_capability_id",
+                    "granted_by",
+                    "grant_authority",
+                    "policy_id",
+                    "policy_version_id",
+                    "policy_version_number",
+                    "allowed_actions",
+                    "source_item_ids",
+                    "valid_from",
+                    "valid_until",
+                    "issued_at",
+                    "capability_digest",
+                    "grantor_signature",
+                    "created_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "record_type": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "grant"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "revocation"
+                          ]
+                        }
+                      ]
+                    },
+                    "key_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "revokes_capability_id": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "granted_by": {
+                      "type": "string"
+                    },
+                    "grant_authority": {
+                      "type": "string"
+                    },
+                    "policy_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_number": {
+                      "type": "integer"
+                    },
+                    "allowed_actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "policy.read",
+                          "draft.edit",
+                          "draft.validate",
+                          "review.submit",
+                          "review.withdraw_request",
+                          "review.retrieve",
+                          "case.preview"
+                        ]
+                      }
+                    },
+                    "source_item_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "valid_from": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "valid_until": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "issued_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "capability_digest": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "grantor_signature": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "signature",
+                        "signature_kid",
+                        "signature_algorithm"
+                      ],
+                      "properties": {
+                        "signature": {
+                          "type": "string"
+                        },
+                        "signature_kid": {
+                          "type": "string"
+                        },
+                        "signature_algorithm": {
+                          "type": "string",
+                          "enum": [
+                            "ed25519"
+                          ]
+                        }
+                      }
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1AuthoringCapabilitiesById"
+      }
+    },
+    "/v1/review-submissions/{submissionId}/withdrawal-requests": {
+      "post": {
+        "summary": "Request human disposal of a sealed review submission",
+        "tags": [
+          "Policy Review"
+        ],
+        "description": "Appends an immutable record that the caller asked for this submission to be withdrawn from review.\n\n**RECORDS** who asked, for which sealed submission, when, and why.\n\n**CHANGES NOTHING.** The sealed submission is untouched, nothing is unsealed, and no policy version changes status. This is not a recall: disposal is a human act that this route neither performs nor schedules.\n\n**Reachable only by a credential holding the `authoring:capability` scope**, bound by the server to one assigned policy version. A `policies:write` key and a human session both receive 403: this route is the machine's way to ask, and a human disposes of a submission directly rather than requesting it.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "submissionId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A recorded request that a human dispose of a sealed review submission. Records the request; changes no state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "A recorded request that a human dispose of a sealed review submission. Records the request; changes no state.",
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "submission_id",
+                    "reason",
+                    "requested_by",
+                    "requested_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "submission_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "requested_by": {
+                      "type": "string"
+                    },
+                    "requested_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1ReviewSubmissionsBySubmissionIdWithdrawalRequests"
+      }
+    },
     "/v1/audit-log": {
       "get": {
         "summary": "List audit events",
@@ -29723,6 +31468,18 @@
                   "type": "string",
                   "enum": [
                     "agent_licence_revoked"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "authoring_capability_issued"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "authoring_capability_revoked"
                   ]
                 },
                 {
@@ -30026,6 +31783,18 @@
                                 "type": "string",
                                 "enum": [
                                   "agent_licence_revoked"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "authoring_capability_issued"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "authoring_capability_revoked"
                                 ]
                               },
                               {
@@ -30431,6 +32200,18 @@
                             "type": "string",
                             "enum": [
                               "agent_licence_revoked"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "authoring_capability_issued"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "authoring_capability_revoked"
                             ]
                           },
                           {
@@ -36733,6 +38514,18 @@
                               {
                                 "type": "string",
                                 "enum": [
+                                  "authoring_capability_issued"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "authoring_capability_revoked"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
                                   "tenant_member_invited"
                                 ]
                               },
@@ -37110,7 +38903,8 @@
                                 "api-keys:admin",
                                 "members:read",
                                 "members:write",
-                                "tenants:provision"
+                                "tenants:provision",
+                                "authoring:capability"
                               ]
                             }
                           },
@@ -37275,7 +39069,8 @@
                         "audit:admin",
                         "api-keys:admin",
                         "members:read",
-                        "members:write"
+                        "members:write",
+                        "authoring:capability"
                       ]
                     }
                   },
@@ -37360,7 +39155,8 @@
                               "api-keys:admin",
                               "members:read",
                               "members:write",
-                              "tenants:provision"
+                              "tenants:provision",
+                              "authoring:capability"
                             ]
                           }
                         },
@@ -37599,7 +39395,8 @@
                           "api-keys:admin",
                           "members:read",
                           "members:write",
-                          "tenants:provision"
+                          "tenants:provision",
+                          "authoring:capability"
                         ]
                       }
                     },
@@ -37791,7 +39588,8 @@
                           "api-keys:admin",
                           "members:read",
                           "members:write",
-                          "tenants:provision"
+                          "tenants:provision",
+                          "authoring:capability"
                         ]
                       }
                     },
