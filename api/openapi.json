@@ -14805,7 +14805,7 @@
         "tags": [
           "Policy Review"
         ],
-        "description": "Assembles the ten ruled review-package components from a declared source corpus, a TOTAL disposition ledger and a bidirectional source-to-rule map, then seals them as an immutable review subject together with their exact canonical bytes.\n\n**RECORDS** which bytes a reviewer will be shown, in which named slot, under which policy version, in what order, at what time, attributed to which principal.\n\n**PROVES** byte equality under `meshqu-review-package/v1`, and nothing else. It does not prove source truth, source completeness, correct interpretation, human review or authority. Source items are described by digests, lengths and locators the CALLER asserts: MeshQu does not fetch, hash or hold those bytes in this wave, and records their availability as `NOT_CHECKED`.\n\n**Resubmission creates a NEW subject.** Posting identical bytes again returns a different `id` with the next `submission_sequence`; it never returns or updates the earlier one. A judgment recorded against one subject can never be applied to another.\n\nAssembly failures return 422 carrying every violation found, each with its own distinct code (`unit_without_disposition`, `mapped_unit_without_rule`, `internal_control_claims_source_mapping`, and the rest of the closed set) and the offending identifier, so a defect class is diagnosable rather than reported as \"validation failed\".\n\nThis route ratifies nothing, activates nothing and records no decision. It is not a receipt and no receipt binds its output.",
+        "description": "Assembles the ten ruled review-package components from a declared source corpus, a TOTAL disposition ledger and a bidirectional source-to-rule map, then seals them as an immutable review subject together with their exact canonical bytes.\n\n**RECORDS** which bytes a reviewer will be shown, in which named slot, under which policy version, in what order, at what time, attributed to which principal.\n\n**PROVES** byte equality under `meshqu-review-package/v1`, and nothing else. It does not prove source truth, source completeness, correct interpretation, human review or authority.\n\n**Source custody.** A manifest item naming custodian `urn:meshqu:custodian:meshqu` asserts that MeshQu HOLDS those bytes, and the seal refuses unless it does: the server looks for a finalised, read-back-verified object at that tenant's content address, in the same transaction that seals, and returns `source_item_not_finalised_in_custody` if there is none or `source_custody_attestation_disagrees_with_manifest` if the digest or length disagrees. Custody is MeshQu-controlled and tenant-scoped; upload the bytes through `/v1/source-uploads` first. Items naming any other custodian are unchecked here — MeshQu resolves no external locator and makes no claim about a custodian's store.\n\nThe `availability` field sealed into the manifest stays `NOT_CHECKED` in every case, deliberately: availability is a CHECKED OBSERVATION made at a moment, and sealing one would freeze a time-varying fact into an immutable subject. Current availability is reported separately by `GET /v1/review-submissions/{submissionId}?check_source_availability=true`.\n\n**Resubmission creates a NEW subject.** Posting identical bytes again returns a different `id` with the next `submission_sequence`; it never returns or updates the earlier one. A judgment recorded against one subject can never be applied to another.\n\nAssembly failures return 422 carrying every violation found, each with its own distinct code (`unit_without_disposition`, `mapped_unit_without_rule`, `internal_control_claims_source_mapping`, and the rest of the closed set) and the offending identifier, so a defect class is diagnosable rather than reported as \"validation failed\".\n\nThis route ratifies nothing, activates nothing and records no decision. It is not a receipt and no receipt binds its output.",
         "requestBody": {
           "required": true,
           "content": {
@@ -15786,7 +15786,7 @@
         "tags": [
           "Policy Review"
         ],
-        "description": "The sealed subject plus the ten components in the ruled registry order, each carrying the EXACT canonical bytes that were sealed into that slot.\n\n**RECORDS** which bytes occupied each named slot of this submission.\n\n**PROVES BYTE EQUALITY ONLY.** `component_digest` is `sha256(UTF8(canonical_bytes))`, and the envelope of those ten reproduces `subject.review_package_digest` under `meshqu-review-package/v1`. That is the whole of the claim: it says these are the bytes that were sealed. It does not say the content is true, complete, correctly interpreted, reviewed by a human or authorised, and for `source_manifest` it says nothing about whether the source items it names still exist or can be retrieved — this wave records their availability as `NOT_CHECKED` and never checked it.\n\nThe bytes are returned verbatim and are not re-serialised, re-ordered or pretty-printed; any of those would produce a string whose digest no longer matches.\n\nSupply `expected_id`, `expected_revision` and `expected_digest` together to assert the identity a judgment was recorded against. All three or none — a partial expectation is refused with 400 rather than half-checked. A disagreeing leg returns 409 with a code naming THAT leg, so \"a different submission\" is never reported as \"the bytes changed\". A match means the judgment names the same subject; it does not mean the judgment is correct.",
+        "description": "The sealed subject plus the ten components in the ruled registry order, each carrying the EXACT canonical bytes that were sealed into that slot.\n\n**RECORDS** which bytes occupied each named slot of this submission.\n\n**PROVES BYTE EQUALITY ONLY.** `component_digest` is `sha256(UTF8(canonical_bytes))`, and the envelope of those ten reproduces `subject.review_package_digest` under `meshqu-review-package/v1`. That is the whole of the claim: it says these are the bytes that were sealed. It does not say the content is true, complete, correctly interpreted, reviewed by a human or authorised.\n\n**Source availability is reported SEPARATELY, and only when asked.** Pass `check_source_availability=true` and each MeshQu-custody item in the sealed `source_manifest` is retrieved from custody and re-hashed against the digest the manifest sealed; the result appears in `source_availability`, one entry per item, bound to the exact resolution entry that was checked. Without the parameter every entry is `NOT_CHECKED`, which states that no check ran — it is not a finding about the bytes.\n\n`AVAILABLE_VERIFIED` is the only state that follows a hash comparison, and it means the bytes were retrievable AT THAT MOMENT. It is not a guarantee of future availability and it says nothing about whether the source is the right source. `NOT_FOUND`, `ACCESS_DENIED`, `DIGEST_MISMATCH`, `ERASED`, `OPERATIONAL_FAILURE` and `NOT_CHECKED` are six distinct answers that never collapse into one another, and none of them is an approval. An unavailable source does not rewrite the sealed subject: the historical digest is unchanged and the current status sits beside it.\n\nThese observations are not part of any component and are in no digest. The bytes themselves are never returned by this or any other route.\n\nThe bytes are returned verbatim and are not re-serialised, re-ordered or pretty-printed; any of those would produce a string whose digest no longer matches.\n\nSupply `expected_id`, `expected_revision` and `expected_digest` together to assert the identity a judgment was recorded against. All three or none — a partial expectation is refused with 400 rather than half-checked. A disagreeing leg returns 409 with a code naming THAT leg, so \"a different submission\" is never reported as \"the bytes changed\". A match means the judgment names the same subject; it does not mean the judgment is correct.",
         "parameters": [
           {
             "schema": {
@@ -15817,6 +15817,15 @@
           },
           {
             "schema": {
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "check_source_availability",
+            "required": false,
+            "description": "When true, each MeshQu-custody source item is retrieved from custody and re-hashed against the digest the manifest sealed, and the result is reported in `source_availability`. When absent or false, every item is reported as `NOT_CHECKED` — which is a statement that no check ran, not a statement about the bytes. Items whose custodian is not MeshQu are always `NOT_CHECKED`: this API resolves no external locator and makes no claim about a custodian's store."
+          },
+          {
+            "schema": {
               "format": "uuid",
               "type": "string"
             },
@@ -15836,7 +15845,8 @@
                   "type": "object",
                   "required": [
                     "subject",
-                    "components"
+                    "components",
+                    "source_availability"
                   ],
                   "properties": {
                     "subject": {
@@ -16052,6 +16062,113 @@
                           }
                         }
                       }
+                    },
+                    "source_availability": {
+                      "description": "One observation per source item of the sealed `source_manifest`. NOT part of any component and NOT in any digest — this is the separate CURRENT availability status that sits beside the unchanged historical record.\n\nEvery entry is `NOT_CHECKED` unless `check_source_availability=true` was supplied, and `NOT_CHECKED` means exactly that: nothing ran. An unavailable source does not rewrite the sealed subject or the judgment recorded against it; it is reported here and nowhere else.",
+                      "type": "array",
+                      "items": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "source_item_id",
+                          "state",
+                          "bound_byte_digest",
+                          "digest_profile",
+                          "resolution_entry_id",
+                          "checked_at",
+                          "detail"
+                        ],
+                        "properties": {
+                          "source_item_id": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "description": "AVAILABLE_VERIFIED — bytes were returned from MeshQu custody AND re-hashed to the digest the manifest sealed. It is the only state that follows a hash comparison and the only one whose name contains the word \"verified\".\n\nNOT_CHECKED — nothing was checked. The default, and the value for an item whose custodian is not MeshQu.\n\nNOT_FOUND — no object was found at the bound address in this tenant.\n\nACCESS_DENIED — an object may exist; this principal was refused the read. Not the same statement as NOT_FOUND.\n\nDIGEST_MISMATCH — bytes came back and are NOT the sealed bytes. A mismatch, never a new version of the same review subject.\n\nERASED — an authorised erasure is recorded for this object.\n\nOPERATIONAL_FAILURE — the check itself did not complete. It says nothing about whether the bytes exist.\n\nThese seven never collapse into one another, and none of them is an approval.",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "AVAILABLE_VERIFIED"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "NOT_CHECKED"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "NOT_FOUND"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "ACCESS_DENIED"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "DIGEST_MISMATCH"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "ERASED"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "OPERATIONAL_FAILURE"
+                                ]
+                              }
+                            ]
+                          },
+                          "bound_byte_digest": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "description": "SHA-256 as 64 lowercase hexadecimal characters.",
+                            "type": "string"
+                          },
+                          "digest_profile": {
+                            "type": "string",
+                            "enum": [
+                              "sha256/raw"
+                            ]
+                          },
+                          "resolution_entry_id": {
+                            "description": "The exact append-only resolution entry that was consulted — not merely the source digest. Null when there was no entry to check, which is itself reported as NOT_FOUND rather than as an unchecked success.",
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "checked_at": {
+                            "description": "When the check ran. Null for NOT_CHECKED — nothing ran.",
+                            "anyOf": [
+                              {
+                                "format": "date-time",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -16177,6 +16294,1043 @@
           }
         },
         "operationId": "getV1ReviewSubmissionsBySubmissionId"
+      }
+    },
+    "/v1/source-uploads": {
+      "post": {
+        "summary": "Declare a source upload",
+        "tags": [
+          "Source Custody"
+        ],
+        "description": "Creates a tenant-bound pending upload identity for exact source bytes MeshQu will hold.\n\n**RECORDS** that this tenant declared an upload of a given length and digest, and who declared it.\n\n**ESTABLISHES NOTHING ABOUT ANY BYTES.** No bytes exist yet. This record is not a source manifest item and not a review subject, and its existence is not a custody claim.\n\nThe declaration is FROZEN here. It cannot be restated once bytes arrive, which is what makes the check on upload a comparison of two independently produced values rather than a value against itself.\n\nCustody is MeshQu-controlled: the bytes are held by MeshQu, tenant-scoped, at a content address that includes the tenant. Availability is later reported as a CHECKED OBSERVATION, made at a moment, never as a standing guarantee.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "byte_digest",
+                  "byte_length",
+                  "media_type"
+                ],
+                "properties": {
+                  "byte_digest": {
+                    "description": "SHA-256 as 64 lowercase hexadecimal characters.",
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  "byte_length": {
+                    "minimum": 0,
+                    "description": "Exact number of octets you are about to upload. Also frozen.",
+                    "type": "integer"
+                  },
+                  "media_type": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "description": "IANA media type of the bytes. Recorded; not sniffed or validated.",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "state",
+                    "digest_profile",
+                    "declared_byte_digest",
+                    "declared_byte_length",
+                    "media_type",
+                    "staged_byte_digest",
+                    "staged_byte_length",
+                    "source_object_id",
+                    "abandon_reason",
+                    "created_at",
+                    "updated_at",
+                    "created_by"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "state": {
+                      "description": "PENDING (created, no bytes), STAGED (bytes received and checked against the frozen declaration), FINALISED (an object exists at its content address and was read back and re-hashed), ABANDONED (terminal; `abandon_reason` says why). FINALISED IS NOT SEALED: a finalised object that no review submission references is an orphan and bounded reconciliation will collect it.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "PENDING"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "STAGED"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "FINALISED"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "ABANDONED"
+                          ]
+                        }
+                      ]
+                    },
+                    "digest_profile": {
+                      "type": "string",
+                      "enum": [
+                        "sha256/raw"
+                      ]
+                    },
+                    "declared_byte_digest": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "SHA-256 as 64 lowercase hexadecimal characters.",
+                      "type": "string"
+                    },
+                    "declared_byte_length": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "media_type": {
+                      "type": "string"
+                    },
+                    "staged_byte_digest": {
+                      "description": "Digest of what actually arrived. Null before any bytes are received.",
+                      "anyOf": [
+                        {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 as 64 lowercase hexadecimal characters.",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "staged_byte_length": {
+                      "anyOf": [
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "source_object_id": {
+                      "description": "The object now holding the bytes. Set only in FINALISED.",
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "abandon_reason": {
+                      "description": "Why the upload will not proceed. DECLARED_* means the bytes you sent are not what you said you would send; READ_BACK_* means the store did not return what it was given, which is a storage-integrity fault and not a caller error. They are separate values because an operator looks in different places for each.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "DECLARED_LENGTH_MISMATCH"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "DECLARED_DIGEST_MISMATCH"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "READ_BACK_DIGEST_MISMATCH"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "READ_BACK_ABSENT"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "CONTENT_ADDRESS_CONFLICT"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "RECONCILED_UNREFERENCED"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "created_by": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1SourceUploads"
+      }
+    },
+    "/v1/source-uploads/{stagingId}/bytes": {
+      "put": {
+        "summary": "Upload the declared source bytes",
+        "tags": [
+          "Source Custody"
+        ],
+        "description": "Receives the octets and checks them against the FROZEN declaration: the exact length first, then the SHA-256 of the decoded bytes.\n\n**RECORDS** that octets arrived and agreed with what was declared.\n\n**DOES NOT PUT THEM IN CUSTODY.** Nothing is at a content address until finalise succeeds, and nothing is read back until then either.\n\nA disagreement ABANDONS the upload rather than leaving it retryable, with a code naming which half disagreed: `DECLARED_LENGTH_MISMATCH` (usually a truncated transfer) or `DECLARED_DIGEST_MISMATCH` (different content). The declaration is frozen, so a retry against the same upload could only fail the same way — start a new one.\n\nBase64 is transport only. The digest is over the decoded octets and the decoded octets are what is stored.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "bytes_base64"
+                ],
+                "properties": {
+                  "bytes_base64": {
+                    "minLength": 0,
+                    "description": "The exact octets, base64-encoded. Base64 is a TRANSPORT encoding only: the digest is taken over the decoded octets, and what is stored is those octets, so what comes back out is byte-identical to what you sent.",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "stagingId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "state",
+                    "digest_profile",
+                    "declared_byte_digest",
+                    "declared_byte_length",
+                    "media_type",
+                    "staged_byte_digest",
+                    "staged_byte_length",
+                    "source_object_id",
+                    "abandon_reason",
+                    "created_at",
+                    "updated_at",
+                    "created_by"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "state": {
+                      "description": "PENDING (created, no bytes), STAGED (bytes received and checked against the frozen declaration), FINALISED (an object exists at its content address and was read back and re-hashed), ABANDONED (terminal; `abandon_reason` says why). FINALISED IS NOT SEALED: a finalised object that no review submission references is an orphan and bounded reconciliation will collect it.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "PENDING"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "STAGED"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "FINALISED"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "ABANDONED"
+                          ]
+                        }
+                      ]
+                    },
+                    "digest_profile": {
+                      "type": "string",
+                      "enum": [
+                        "sha256/raw"
+                      ]
+                    },
+                    "declared_byte_digest": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "SHA-256 as 64 lowercase hexadecimal characters.",
+                      "type": "string"
+                    },
+                    "declared_byte_length": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "media_type": {
+                      "type": "string"
+                    },
+                    "staged_byte_digest": {
+                      "description": "Digest of what actually arrived. Null before any bytes are received.",
+                      "anyOf": [
+                        {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 as 64 lowercase hexadecimal characters.",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "staged_byte_length": {
+                      "anyOf": [
+                        {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "source_object_id": {
+                      "description": "The object now holding the bytes. Set only in FINALISED.",
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "abandon_reason": {
+                      "description": "Why the upload will not proceed. DECLARED_* means the bytes you sent are not what you said you would send; READ_BACK_* means the store did not return what it was given, which is a storage-integrity fault and not a caller error. They are separate values because an operator looks in different places for each.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "DECLARED_LENGTH_MISMATCH"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "DECLARED_DIGEST_MISMATCH"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "READ_BACK_DIGEST_MISMATCH"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "READ_BACK_ABSENT"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "CONTENT_ADDRESS_CONFLICT"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "RECONCILED_UNREFERENCED"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "created_by": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "putV1SourceUploadsByStagingIdBytes"
+      }
+    },
+    "/v1/source-uploads/{stagingId}/finalise": {
+      "post": {
+        "summary": "Finalise a staged upload into custody",
+        "tags": [
+          "Source Custody"
+        ],
+        "description": "Writes the staged octets at their no-overwrite content address — `<tenant_id>/<digest_profile>/<byte_digest>` — then reads them back out of the store and hashes them a second time.\n\n**RECORDS** that MeshQu holds these exact octets under this tenant, and that the bytes the store returned hash to the digest they were written under.\n\n**PROVES** byte identity of what was stored against what was sent. It proves nothing about the source: not that it is authentic, not that the locator ever served it, not that it is the right source for the policy.\n\n**FINALISED IS NOT SEALED.** A finalised object that no sealed review submission references is an ORPHAN, and bounded reconciliation will collect it. Sealing is a separate transaction on the review-submission route.\n\nIf the object already exists at that address, it is reused only after tenant, digest profile, byte length AND the stored octets themselves all agree. Equal digests with unequal bytes is reported as a conflict and nothing is overwritten — there is no code path in this API that writes over a finalised object.\n\nA read-back failure returns 500 and finalises nothing: a store that does not return what it was given is a server fault, not a caller error.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "stagingId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "staging",
+                    "object"
+                  ],
+                  "properties": {
+                    "staging": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "tenant_id",
+                        "state",
+                        "digest_profile",
+                        "declared_byte_digest",
+                        "declared_byte_length",
+                        "media_type",
+                        "staged_byte_digest",
+                        "staged_byte_length",
+                        "source_object_id",
+                        "abandon_reason",
+                        "created_at",
+                        "updated_at",
+                        "created_by"
+                      ],
+                      "properties": {
+                        "id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "tenant_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "state": {
+                          "description": "PENDING (created, no bytes), STAGED (bytes received and checked against the frozen declaration), FINALISED (an object exists at its content address and was read back and re-hashed), ABANDONED (terminal; `abandon_reason` says why). FINALISED IS NOT SEALED: a finalised object that no review submission references is an orphan and bounded reconciliation will collect it.",
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "PENDING"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "STAGED"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "FINALISED"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ABANDONED"
+                              ]
+                            }
+                          ]
+                        },
+                        "digest_profile": {
+                          "type": "string",
+                          "enum": [
+                            "sha256/raw"
+                          ]
+                        },
+                        "declared_byte_digest": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 as 64 lowercase hexadecimal characters.",
+                          "type": "string"
+                        },
+                        "declared_byte_length": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "media_type": {
+                          "type": "string"
+                        },
+                        "staged_byte_digest": {
+                          "description": "Digest of what actually arrived. Null before any bytes are received.",
+                          "anyOf": [
+                            {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "description": "SHA-256 as 64 lowercase hexadecimal characters.",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "staged_byte_length": {
+                          "anyOf": [
+                            {
+                              "minimum": 0,
+                              "type": "integer"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "source_object_id": {
+                          "description": "The object now holding the bytes. Set only in FINALISED.",
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "abandon_reason": {
+                          "description": "Why the upload will not proceed. DECLARED_* means the bytes you sent are not what you said you would send; READ_BACK_* means the store did not return what it was given, which is a storage-integrity fault and not a caller error. They are separate values because an operator looks in different places for each.",
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "DECLARED_LENGTH_MISMATCH"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "DECLARED_DIGEST_MISMATCH"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "READ_BACK_DIGEST_MISMATCH"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "READ_BACK_ABSENT"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "CONTENT_ADDRESS_CONFLICT"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "RECONCILED_UNREFERENCED"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "created_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "updated_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "created_by": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "object": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "tenant_id",
+                        "object_key",
+                        "digest_profile",
+                        "byte_digest",
+                        "byte_length",
+                        "media_type",
+                        "finalised_at",
+                        "finalised_by",
+                        "erased_at",
+                        "erasure_ground"
+                      ],
+                      "properties": {
+                        "id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "tenant_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "object_key": {
+                          "description": "The tenant-scoped content address, `<tenant_id>/<digest_profile>/<byte_digest>`. The tenant is part of the address, not merely part of a query: identical bytes in two tenants are two objects, and there is no lookup by digest alone.",
+                          "type": "string"
+                        },
+                        "digest_profile": {
+                          "type": "string",
+                          "enum": [
+                            "sha256/raw"
+                          ]
+                        },
+                        "byte_digest": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 as 64 lowercase hexadecimal characters.",
+                          "type": "string"
+                        },
+                        "byte_length": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "media_type": {
+                          "type": "string"
+                        },
+                        "finalised_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "finalised_by": {
+                          "type": "string"
+                        },
+                        "erased_at": {
+                          "anyOf": [
+                            {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "erasure_ground": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1SourceUploadsByStagingIdFinalise"
       }
     },
     "/v1/policies/{id}/review-submissions/{submissionId}/review-record": {
@@ -34906,7 +36060,7 @@
         "tags": [
           "Settings"
         ],
-        "description": "Merges the provided settings into the existing tenant settings. Keys that gate a governance control (`agent_licence_mode`, `maker_checker_enforced`) may only be changed by a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED, and the change is recorded in the audit chain. All other keys are unaffected.",
+        "description": "Merges the provided settings into the existing tenant settings. Keys that gate a governance control (`agent_licence_mode`, `maker_checker_enforced`, `source_retention_months`) may only be changed by a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED, and the change is recorded in the audit chain. All other keys are unaffected.\n\n`source_retention_months` is a whole number of months and must be at least 12, the platform minimum. There is no maximum. It RECORDS how long this tenant asks MeshQu to keep exact source bytes; nothing in this release deletes an object when a window elapses, so it is a recorded setting and not yet an enforced one.",
         "requestBody": {
           "required": true,
           "content": {
