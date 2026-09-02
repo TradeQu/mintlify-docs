@@ -16179,6 +16179,1234 @@
         "operationId": "getV1ReviewSubmissionsBySubmissionId"
       }
     },
+    "/v1/policies/{id}/review-submissions/{submissionId}/review-record": {
+      "post": {
+        "summary": "Record a human review of a sealed review submission",
+        "tags": [
+          "Policy Review"
+        ],
+        "description": "Persists one named human's findings, corrections and package-level disposition, bound to the exact sealed subject named by the path submission id together with `expected_candidate_revision` and `expected_review_package_digest`.\n\n**RECORDS** that one named human wrote these findings, these corrections and this one package-level disposition against this exact sealed subject, at this time.\n\n**PROVES** that the record names that subject. Nothing more. This is **research evidence, not approval**: it does not establish that the policy is correct, ratified, approved, activated or verified; that the source is true or complete; or that the reviewer was competent, independent or unblinded. Ruling B5 keeps this wave review-only.\n\n**Requires a verified human-session principal.** An API-key principal receives 403 `HUMAN_PRINCIPAL_REQUIRED` — the same route class as `POST /v1/policies/{id}/versions/{version}/reject` (ruling D3a). A machine cannot record that a human reviewed something.\n\n**A `STOP` disposition does NOT call the reject route.** `POST /v1/policies/{id}/versions/{version}/reject` transitions a submitted version back to draft and is a separate human governance act; this route calls it under no disposition. Recording a judgment and performing an act are different things, and only the second moves a policy version.\n\n**A stale subject is refused, never silently re-pointed.** If the expected revision or digest disagrees with the sealed row the response is 409 with a code naming THAT leg (`CANDIDATE_REVISION_MISMATCH`, `REVIEW_PACKAGE_DIGEST_MISMATCH`), because a judgment recorded against one sealed subject can never be applied to another.\n\n**Immutable once written.** There is no edit path and no erasure path. A reviewer who changes their mind records a NEW judgment, and the earlier one stays legible.\n\nThis route ratifies nothing, activates nothing and records no decision. It is not a receipt and no receipt binds its output.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "description": "One named human's judgment of one exact sealed subject. The two `expected_*` fields are the reviewer's assertion of WHICH subject they read; the server compares them against the sealed row and refuses a disagreement rather than recording the judgment against whatever is current.",
+                "type": "object",
+                "required": [
+                  "expected_candidate_revision",
+                  "expected_review_package_digest",
+                  "findings",
+                  "corrections",
+                  "package_disposition"
+                ],
+                "properties": {
+                  "expected_candidate_revision": {
+                    "minimum": 1,
+                    "description": "The candidate revision the reviewer believes they judged. Compared against the sealed subject; a disagreement is 409 `CANDIDATE_REVISION_MISMATCH`, never a silently corrected value.",
+                    "type": "integer"
+                  },
+                  "expected_review_package_digest": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "description": "The package digest the reviewer believes they judged. A disagreement is 409 `REVIEW_PACKAGE_DIGEST_MISMATCH`.",
+                    "type": "string"
+                  },
+                  "findings": {
+                    "maxItems": 500,
+                    "description": "What the reviewer found. May be empty — \"I found nothing\" is a real result and the protocol scores it, so an empty array is recorded rather than refused.",
+                    "type": "array",
+                    "items": {
+                      "additionalProperties": false,
+                      "description": "One thing the reviewer says is wrong, or worth recording, about one slot.",
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "slot",
+                        "severity",
+                        "detail"
+                      ],
+                      "properties": {
+                        "id": {
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "pattern": "^[A-Za-z0-9._:-]{1,200}$",
+                          "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.",
+                          "type": "string"
+                        },
+                        "slot": {
+                          "description": "Which slot of the sealed subject this item is filed against: one of the ten ruled component names (ruling B2), or `package` for an observation about the submission as a whole — a missing component, an inconsistency BETWEEN slots, or the disposition itself. `package` is deliberately not spelled as a component: there is no eleventh component and it is not part of the digest envelope.",
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "source_manifest"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "clause_ledger"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "candidate_policy"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "source_rule_map"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "assumptions"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "internal_controls"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "case_pack"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "validation_results"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "case_execution_results"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "model_trace"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "package"
+                              ]
+                            }
+                          ]
+                        },
+                        "severity": {
+                          "description": "The reviewer's own materiality classification, from the preregistered protocol's scoring vocabulary: \"A defect is material only if it could change applicability, outcome, required review, source traceability or claimed authority. Cosmetic wording differences do not qualify.\" RECORDS the classification; establishes nothing about whether it is right — that comparison is the blinded run (PWB-026), not this record.",
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "MATERIAL"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "NON_MATERIAL"
+                              ]
+                            }
+                          ]
+                        },
+                        "detail": {
+                          "minLength": 1,
+                          "maxLength": 4000,
+                          "description": "Free text, stored verbatim. Evidence of what the reviewer said, never an instruction the server acts on.",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "corrections": {
+                    "maxItems": 500,
+                    "description": "What the reviewer would change, each with a proposal or explicit uncertainty.",
+                    "type": "array",
+                    "items": {
+                      "additionalProperties": false,
+                      "description": "One finding, plus what the reviewer would put in its place.",
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "slot",
+                        "severity",
+                        "detail",
+                        "proposed"
+                      ],
+                      "properties": {
+                        "id": {
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "pattern": "^[A-Za-z0-9._:-]{1,200}$",
+                          "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.",
+                          "type": "string"
+                        },
+                        "slot": {
+                          "description": "Which slot of the sealed subject this item is filed against: one of the ten ruled component names (ruling B2), or `package` for an observation about the submission as a whole — a missing component, an inconsistency BETWEEN slots, or the disposition itself. `package` is deliberately not spelled as a component: there is no eleventh component and it is not part of the digest envelope.",
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "source_manifest"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "clause_ledger"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "candidate_policy"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "source_rule_map"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "assumptions"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "internal_controls"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "case_pack"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "validation_results"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "case_execution_results"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "model_trace"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "package"
+                              ]
+                            }
+                          ]
+                        },
+                        "severity": {
+                          "description": "The reviewer's own materiality classification, from the preregistered protocol's scoring vocabulary: \"A defect is material only if it could change applicability, outcome, required review, source traceability or claimed authority. Cosmetic wording differences do not qualify.\" RECORDS the classification; establishes nothing about whether it is right — that comparison is the blinded run (PWB-026), not this record.",
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "MATERIAL"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "NON_MATERIAL"
+                              ]
+                            }
+                          ]
+                        },
+                        "detail": {
+                          "minLength": 1,
+                          "maxLength": 4000,
+                          "description": "Free text, stored verbatim. Evidence of what the reviewer said, never an instruction the server acts on.",
+                          "type": "string"
+                        },
+                        "proposed": {
+                          "minLength": 1,
+                          "maxLength": 4000,
+                          "description": "What the reviewer proposes instead, OR their explicit uncertainty. The protocol asks for \"proposed correction or explicit uncertainty\", so this is required and \"I do not know what the right condition is, but this one is unsupported\" is a valid value. Making it optional would permit a correction that proposes nothing.",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "package_disposition": {
+                    "description": "The reviewer's ONE package-level judgment, spelled as the preregistered protocol spells it: `ACCEPT`, `CORRECT_AND_RESUBMIT`, `STOP`.\n\n**None of the three is an approval.** `ACCEPT` is the protocol's word for \"one reviewer found no material defect in this package\" — a statement about a reading, not about the candidate's authority. Ruling B5 keeps this beta review-only, which is why no value here names ratification.\n\n**`STOP` does not call the reject route.** `POST /v1/policies/{id}/versions/{version}/reject` is a separate human governance act (ruling D3a) that transitions a version's status. Recording `STOP` records a judgment and moves nothing.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "ACCEPT"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "CORRECT_AND_RESUBMIT"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "STOP"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "description": "One named human's judgment of one exact sealed subject. The two `expected_*` fields are the reviewer's assertion of WHICH subject they read; the server compares them against the sealed row and refuses a disagreement rather than recording the judgment against whatever is current."
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Policy id. The submission must belong to it, or the request is a 404."
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "submissionId",
+            "required": true,
+            "description": "The sealed submission the judgment is recorded against. This is the review IDENTITY — not the policy version, which is a mutable container that yields many sealed subjects over time."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A persisted human review record. RECORDS one named human's findings, corrections and package-level disposition against one exact sealed subject. PROVES that the record names that subject — and nothing further. Research evidence, not approval.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "A persisted human review record. RECORDS one named human's findings, corrections and package-level disposition against one exact sealed subject. PROVES that the record names that subject — and nothing further. Research evidence, not approval.",
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "submission_id",
+                    "candidate_revision",
+                    "review_package_digest",
+                    "reviewer_principal",
+                    "reviewer_display_name",
+                    "findings",
+                    "corrections",
+                    "package_disposition",
+                    "created_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "submission_id": {
+                      "format": "uuid",
+                      "description": "Leg one of the three that identify the sealed subject this record names.",
+                      "type": "string"
+                    },
+                    "candidate_revision": {
+                      "minimum": 1,
+                      "description": "Leg two.",
+                      "type": "integer"
+                    },
+                    "review_package_digest": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "Leg three, under `meshqu-review-package/v1`.",
+                      "type": "string"
+                    },
+                    "reviewer_principal": {
+                      "description": "The STABLE identity of the reviewer (`user:<uuid>` for a verified human session). Records attribution; proves nothing about competence, independence or that the person read anything. Compare on this, never on the display name.",
+                      "type": "string"
+                    },
+                    "reviewer_display_name": {
+                      "description": "The reviewer's attribution as it stood when the record was written. MUTABLE by nature — legible, never an identity.",
+                      "type": "string"
+                    },
+                    "findings": {
+                      "type": "array",
+                      "items": {
+                        "additionalProperties": false,
+                        "description": "One thing the reviewer says is wrong, or worth recording, about one slot.",
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "slot",
+                          "severity",
+                          "detail"
+                        ],
+                        "properties": {
+                          "id": {
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]{1,200}$",
+                            "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.",
+                            "type": "string"
+                          },
+                          "slot": {
+                            "description": "Which slot of the sealed subject this item is filed against: one of the ten ruled component names (ruling B2), or `package` for an observation about the submission as a whole — a missing component, an inconsistency BETWEEN slots, or the disposition itself. `package` is deliberately not spelled as a component: there is no eleventh component and it is not part of the digest envelope.",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "source_manifest"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "clause_ledger"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "candidate_policy"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "source_rule_map"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "assumptions"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "internal_controls"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "case_pack"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "validation_results"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "case_execution_results"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "model_trace"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "package"
+                                ]
+                              }
+                            ]
+                          },
+                          "severity": {
+                            "description": "The reviewer's own materiality classification, from the preregistered protocol's scoring vocabulary: \"A defect is material only if it could change applicability, outcome, required review, source traceability or claimed authority. Cosmetic wording differences do not qualify.\" RECORDS the classification; establishes nothing about whether it is right — that comparison is the blinded run (PWB-026), not this record.",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "MATERIAL"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "NON_MATERIAL"
+                                ]
+                              }
+                            ]
+                          },
+                          "detail": {
+                            "minLength": 1,
+                            "maxLength": 4000,
+                            "description": "Free text, stored verbatim. Evidence of what the reviewer said, never an instruction the server acts on.",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "corrections": {
+                      "type": "array",
+                      "items": {
+                        "additionalProperties": false,
+                        "description": "One finding, plus what the reviewer would put in its place.",
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "slot",
+                          "severity",
+                          "detail",
+                          "proposed"
+                        ],
+                        "properties": {
+                          "id": {
+                            "minLength": 1,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9._:-]{1,200}$",
+                            "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.",
+                            "type": "string"
+                          },
+                          "slot": {
+                            "description": "Which slot of the sealed subject this item is filed against: one of the ten ruled component names (ruling B2), or `package` for an observation about the submission as a whole — a missing component, an inconsistency BETWEEN slots, or the disposition itself. `package` is deliberately not spelled as a component: there is no eleventh component and it is not part of the digest envelope.",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "source_manifest"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "clause_ledger"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "candidate_policy"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "source_rule_map"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "assumptions"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "internal_controls"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "case_pack"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "validation_results"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "case_execution_results"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "model_trace"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "package"
+                                ]
+                              }
+                            ]
+                          },
+                          "severity": {
+                            "description": "The reviewer's own materiality classification, from the preregistered protocol's scoring vocabulary: \"A defect is material only if it could change applicability, outcome, required review, source traceability or claimed authority. Cosmetic wording differences do not qualify.\" RECORDS the classification; establishes nothing about whether it is right — that comparison is the blinded run (PWB-026), not this record.",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "MATERIAL"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "NON_MATERIAL"
+                                ]
+                              }
+                            ]
+                          },
+                          "detail": {
+                            "minLength": 1,
+                            "maxLength": 4000,
+                            "description": "Free text, stored verbatim. Evidence of what the reviewer said, never an instruction the server acts on.",
+                            "type": "string"
+                          },
+                          "proposed": {
+                            "minLength": 1,
+                            "maxLength": 4000,
+                            "description": "What the reviewer proposes instead, OR their explicit uncertainty. The protocol asks for \"proposed correction or explicit uncertainty\", so this is required and \"I do not know what the right condition is, but this one is unsupported\" is a valid value. Making it optional would permit a correction that proposes nothing.",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "package_disposition": {
+                      "description": "The reviewer's ONE package-level judgment, spelled as the preregistered protocol spells it: `ACCEPT`, `CORRECT_AND_RESUBMIT`, `STOP`.\n\n**None of the three is an approval.** `ACCEPT` is the protocol's word for \"one reviewer found no material defect in this package\" — a statement about a reading, not about the candidate's authority. Ruling B5 keeps this beta review-only, which is why no value here names ratification.\n\n**`STOP` does not call the reject route.** `POST /v1/policies/{id}/versions/{version}/reject` is a separate human governance act (ruling D3a) that transitions a version's status. Recording `STOP` records a judgment and moves nothing.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "ACCEPT"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "CORRECT_AND_RESUBMIT"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "STOP"
+                          ]
+                        }
+                      ]
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1PoliciesByIdReviewSubmissionsBySubmissionIdReviewRecord"
+      },
+      "get": {
+        "summary": "List the human review records of a sealed review submission",
+        "tags": [
+          "Policy Review"
+        ],
+        "description": "Every judgment recorded against one sealed subject, newest first.\n\n**RECORDS** that one named human wrote these findings, these corrections and this one package-level disposition against this exact sealed subject, at this time.\n\n**PROVES** that the record names that subject. Nothing more. This is **research evidence, not approval**: it does not establish that the policy is correct, ratified, approved, activated or verified; that the source is true or complete; or that the reviewer was competent, independent or unblinded. Ruling B5 keeps this wave review-only.\n\n**More than one record is normal and is not a conflict.** Records are append-only and there is no edit path, so a reviewer who changes their mind records a new judgment and the earlier one stays legible. Two reviewers disagreeing about one subject is a fact about the review, and this route reports it rather than resolving it — the beta has no adjudication step and inventing one here would manufacture a result.\n\nAn empty list means no judgment has been recorded. It does not mean the subject was accepted.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Policy id. The submission must belong to it, or the request is a 404."
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "submissionId",
+            "required": true,
+            "description": "The sealed submission the judgment is recorded against. This is the review IDENTITY — not the policy version, which is a mutable container that yields many sealed subjects over time."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "total"
+                  ],
+                  "properties": {
+                    "items": {
+                      "description": "Every record against this sealed subject, newest first.",
+                      "type": "array",
+                      "items": {
+                        "description": "A persisted human review record. RECORDS one named human's findings, corrections and package-level disposition against one exact sealed subject. PROVES that the record names that subject — and nothing further. Research evidence, not approval.",
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "tenant_id",
+                          "submission_id",
+                          "candidate_revision",
+                          "review_package_digest",
+                          "reviewer_principal",
+                          "reviewer_display_name",
+                          "findings",
+                          "corrections",
+                          "package_disposition",
+                          "created_at"
+                        ],
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "tenant_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "submission_id": {
+                            "format": "uuid",
+                            "description": "Leg one of the three that identify the sealed subject this record names.",
+                            "type": "string"
+                          },
+                          "candidate_revision": {
+                            "minimum": 1,
+                            "description": "Leg two.",
+                            "type": "integer"
+                          },
+                          "review_package_digest": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "description": "Leg three, under `meshqu-review-package/v1`.",
+                            "type": "string"
+                          },
+                          "reviewer_principal": {
+                            "description": "The STABLE identity of the reviewer (`user:<uuid>` for a verified human session). Records attribution; proves nothing about competence, independence or that the person read anything. Compare on this, never on the display name.",
+                            "type": "string"
+                          },
+                          "reviewer_display_name": {
+                            "description": "The reviewer's attribution as it stood when the record was written. MUTABLE by nature — legible, never an identity.",
+                            "type": "string"
+                          },
+                          "findings": {
+                            "type": "array",
+                            "items": {
+                              "additionalProperties": false,
+                              "description": "One thing the reviewer says is wrong, or worth recording, about one slot.",
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "slot",
+                                "severity",
+                                "detail"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "minLength": 1,
+                                  "maxLength": 200,
+                                  "pattern": "^[A-Za-z0-9._:-]{1,200}$",
+                                  "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.",
+                                  "type": "string"
+                                },
+                                "slot": {
+                                  "description": "Which slot of the sealed subject this item is filed against: one of the ten ruled component names (ruling B2), or `package` for an observation about the submission as a whole — a missing component, an inconsistency BETWEEN slots, or the disposition itself. `package` is deliberately not spelled as a component: there is no eleventh component and it is not part of the digest envelope.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "source_manifest"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "clause_ledger"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "candidate_policy"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "source_rule_map"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "assumptions"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "internal_controls"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "case_pack"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "validation_results"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "case_execution_results"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "model_trace"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "package"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "severity": {
+                                  "description": "The reviewer's own materiality classification, from the preregistered protocol's scoring vocabulary: \"A defect is material only if it could change applicability, outcome, required review, source traceability or claimed authority. Cosmetic wording differences do not qualify.\" RECORDS the classification; establishes nothing about whether it is right — that comparison is the blinded run (PWB-026), not this record.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "MATERIAL"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "NON_MATERIAL"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "detail": {
+                                  "minLength": 1,
+                                  "maxLength": 4000,
+                                  "description": "Free text, stored verbatim. Evidence of what the reviewer said, never an instruction the server acts on.",
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "corrections": {
+                            "type": "array",
+                            "items": {
+                              "additionalProperties": false,
+                              "description": "One finding, plus what the reviewer would put in its place.",
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "slot",
+                                "severity",
+                                "detail",
+                                "proposed"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "minLength": 1,
+                                  "maxLength": 200,
+                                  "pattern": "^[A-Za-z0-9._:-]{1,200}$",
+                                  "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.",
+                                  "type": "string"
+                                },
+                                "slot": {
+                                  "description": "Which slot of the sealed subject this item is filed against: one of the ten ruled component names (ruling B2), or `package` for an observation about the submission as a whole — a missing component, an inconsistency BETWEEN slots, or the disposition itself. `package` is deliberately not spelled as a component: there is no eleventh component and it is not part of the digest envelope.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "source_manifest"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "clause_ledger"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "candidate_policy"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "source_rule_map"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "assumptions"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "internal_controls"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "case_pack"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "validation_results"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "case_execution_results"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "model_trace"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "package"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "severity": {
+                                  "description": "The reviewer's own materiality classification, from the preregistered protocol's scoring vocabulary: \"A defect is material only if it could change applicability, outcome, required review, source traceability or claimed authority. Cosmetic wording differences do not qualify.\" RECORDS the classification; establishes nothing about whether it is right — that comparison is the blinded run (PWB-026), not this record.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "MATERIAL"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "NON_MATERIAL"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "detail": {
+                                  "minLength": 1,
+                                  "maxLength": 4000,
+                                  "description": "Free text, stored verbatim. Evidence of what the reviewer said, never an instruction the server acts on.",
+                                  "type": "string"
+                                },
+                                "proposed": {
+                                  "minLength": 1,
+                                  "maxLength": 4000,
+                                  "description": "What the reviewer proposes instead, OR their explicit uncertainty. The protocol asks for \"proposed correction or explicit uncertainty\", so this is required and \"I do not know what the right condition is, but this one is unsupported\" is a valid value. Making it optional would permit a correction that proposes nothing.",
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "package_disposition": {
+                            "description": "The reviewer's ONE package-level judgment, spelled as the preregistered protocol spells it: `ACCEPT`, `CORRECT_AND_RESUBMIT`, `STOP`.\n\n**None of the three is an approval.** `ACCEPT` is the protocol's word for \"one reviewer found no material defect in this package\" — a statement about a reading, not about the candidate's authority. Ruling B5 keeps this beta review-only, which is why no value here names ratification.\n\n**`STOP` does not call the reject route.** `POST /v1/policies/{id}/versions/{version}/reject` is a separate human governance act (ruling D3a) that transitions a version's status. Recording `STOP` records a judgment and moves nothing.",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "ACCEPT"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "CORRECT_AND_RESUBMIT"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "STOP"
+                                ]
+                              }
+                            ]
+                          },
+                          "created_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1PoliciesByIdReviewSubmissionsBySubmissionIdReviewRecord"
+      }
+    },
     "/v1/policies/{id}/versions/{version}/case-executions": {
       "post": {
         "summary": "Run a bounded synthetic case pack against a stored policy version",
@@ -32067,6 +33295,12 @@
                 {
                   "type": "string",
                   "enum": [
+                    "review_record_created"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
                     "tenant_member_invited"
                   ]
                 },
@@ -32389,6 +33623,12 @@
                                 "type": "string",
                                 "enum": [
                                   "review_withdrawal_requested"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review_record_created"
                                 ]
                               },
                               {
@@ -32818,6 +34058,12 @@
                             "type": "string",
                             "enum": [
                               "review_withdrawal_requested"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "review_record_created"
                             ]
                           },
                           {
@@ -39139,6 +40385,12 @@
                                 "type": "string",
                                 "enum": [
                                   "review_withdrawal_requested"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review_record_created"
                                 ]
                               },
                               {
