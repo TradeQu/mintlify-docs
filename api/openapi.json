@@ -14799,6 +14799,1386 @@
         "operationId": "getV1PolicyGroupsByIdPolicies"
       }
     },
+    "/v1/policies/{id}/versions/{version}/review-submissions": {
+      "post": {
+        "summary": "Seal a review submission",
+        "tags": [
+          "Policy Review"
+        ],
+        "description": "Assembles the ten ruled review-package components from a declared source corpus, a TOTAL disposition ledger and a bidirectional source-to-rule map, then seals them as an immutable review subject together with their exact canonical bytes.\n\n**RECORDS** which bytes a reviewer will be shown, in which named slot, under which policy version, in what order, at what time, attributed to which principal.\n\n**PROVES** byte equality under `meshqu-review-package/v1`, and nothing else. It does not prove source truth, source completeness, correct interpretation, human review or authority. Source items are described by digests, lengths and locators the CALLER asserts: MeshQu does not fetch, hash or hold those bytes in this wave, and records their availability as `NOT_CHECKED`.\n\n**Resubmission creates a NEW subject.** Posting identical bytes again returns a different `id` with the next `submission_sequence`; it never returns or updates the earlier one. A judgment recorded against one subject can never be applied to another.\n\nAssembly failures return 422 carrying every violation found, each with its own distinct code (`unit_without_disposition`, `mapped_unit_without_rule`, `internal_control_claims_source_mapping`, and the rest of the closed set) and the offending identifier, so a defect class is diagnosable rather than reported as \"validation failed\".\n\nThis route ratifies nothing, activates nothing and records no decision. It is not a receipt and no receipt binds its output.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "description": "Everything needed to assemble the ten ruled component slots. Four slots — the corpus (`source_manifest_items` / `source_units`), `clause_ledger`, `candidate_policy` and `source_rule_map` — must be genuinely present: a source-bound review package with no corpus, ledger, candidate or map is not one, and every totality and bidirectionality rule over it would be vacuously true.",
+                "type": "object",
+                "required": [
+                  "source_manifest_items",
+                  "source_units",
+                  "clause_ledger",
+                  "candidate_policy",
+                  "source_rule_map",
+                  "assumptions",
+                  "internal_controls",
+                  "case_pack",
+                  "validation_results",
+                  "case_execution_results",
+                  "model_trace"
+                ],
+                "properties": {
+                  "source_manifest_items": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "source_item_id",
+                            "custodian_id",
+                            "locator",
+                            "source_revision",
+                            "byte_digest",
+                            "byte_length",
+                            "media_type",
+                            "availability"
+                          ],
+                          "properties": {
+                            "source_item_id": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "custodian_id": {
+                              "minLength": 1,
+                              "description": "Who holds the bytes, as asserted. Records custody as claimed; proves no custody. Custodian identity is in the immutable provenance namespace (ruling B3) — changing it creates a new review subject and cannot be applied as an endpoint update.",
+                              "type": "string"
+                            },
+                            "locator": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "source_revision": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "byte_digest": {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "description": "SHA-256 of the source bytes, ASSERTED by the caller. MeshQu did not compute it in this wave and does not vouch for it.",
+                              "type": "string"
+                            },
+                            "byte_length": {
+                              "minimum": 0,
+                              "type": "integer"
+                            },
+                            "media_type": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "normalization_profile": {
+                              "type": "string"
+                            },
+                            "availability": {
+                              "description": "Always \"NOT_CHECKED\" in this wave. Ruling B3 names several availability states, but every other one is reachable only by a component that actually retrieves and re-hashes bytes, and no such component exists yet (PWB-021b). Records that availability was not checked; proves nothing about the bytes.",
+                              "type": "string",
+                              "enum": [
+                                "NOT_CHECKED"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "description": "The ruled absent sentinel, \"urn:meshqu:review-package:absent\". Records an ASSERTION that the slot has no content; it does not prove absence, and it is distinct from null, [] and {} because those are distinct bytes. Key omission is invalid — all ten slots are always present (ruling B2, fixed arity).",
+                        "type": "string",
+                        "enum": [
+                          "urn:meshqu:review-package:absent"
+                        ]
+                      }
+                    ]
+                  },
+                  "source_units": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "unit_id",
+                            "locator",
+                            "source_item_id",
+                            "source_revision"
+                          ],
+                          "properties": {
+                            "unit_id": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "locator": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "source_item_id": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "source_revision": {
+                              "minLength": 1,
+                              "description": "The revision this unit was read from. Repeated here rather than inherited so a unit carried forward from an earlier capture is DETECTABLE — that is what makes \"a rule pointing at a unit from a different source revision\" a named failure instead of an invisible one.",
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "description": "The ruled absent sentinel, \"urn:meshqu:review-package:absent\". Records an ASSERTION that the slot has no content; it does not prove absence, and it is distinct from null, [] and {} because those are distinct bytes. Key omission is invalid — all ten slots are always present (ruling B2, fixed arity).",
+                        "type": "string",
+                        "enum": [
+                          "urn:meshqu:review-package:absent"
+                        ]
+                      }
+                    ]
+                  },
+                  "clause_ledger": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "unit_id",
+                            "disposition"
+                          ],
+                          "properties": {
+                            "unit_id": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "disposition": {
+                              "description": "The CLOSED disposition vocabulary: mapped, ambiguous, unsupported, non_normative. There is no fifth value and no default — a unit with no disposition is a hole in the ledger and is reported as one. `ambiguous` and `unsupported` are UNRESOLVED states and may never be serialised as ALLOW or PROCEED.",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "mapped"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ambiguous"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "unsupported"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "non_normative"
+                                  ]
+                                }
+                              ]
+                            },
+                            "note": {
+                              "description": "Free-text rationale. Carried verbatim into the digest; never parsed.",
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "description": "The ruled absent sentinel, \"urn:meshqu:review-package:absent\". Records an ASSERTION that the slot has no content; it does not prove absence, and it is distinct from null, [] and {} because those are distinct bytes. Key omission is invalid — all ten slots are always present (ruling B2, fixed arity).",
+                        "type": "string",
+                        "enum": [
+                          "urn:meshqu:review-package:absent"
+                        ]
+                      }
+                    ]
+                  },
+                  "candidate_policy": {
+                    "anyOf": [
+                      {
+                        "additionalProperties": true,
+                        "description": "The candidate policy as projected into the package. Any field beyond `candidate_rules` is carried VERBATIM into the component and therefore into its digest — the assembler adds nothing and removes nothing.",
+                        "type": "object",
+                        "required": [
+                          "candidate_rules"
+                        ],
+                        "properties": {
+                          "candidate_rules": {
+                            "type": "array",
+                            "items": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "candidate_rule_id",
+                                "code"
+                              ],
+                              "properties": {
+                                "candidate_rule_id": {
+                                  "minLength": 1,
+                                  "description": "The IMMUTABLE candidate-rule identity (PWB-010). A rename of the code, wording, severity or condition preserves it; a split or merge allocates new ids with explicit `derived_from` lineage. `code` is mutable presentation and must never be used as the review identity.",
+                                  "type": "string"
+                                },
+                                "code": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "derived_from": {
+                                  "type": "array",
+                                  "items": {
+                                    "minLength": 1,
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "description": "The ruled absent sentinel, \"urn:meshqu:review-package:absent\". Records an ASSERTION that the slot has no content; it does not prove absence, and it is distinct from null, [] and {} because those are distinct bytes. Key omission is invalid — all ten slots are always present (ruling B2, fixed arity).",
+                        "type": "string",
+                        "enum": [
+                          "urn:meshqu:review-package:absent"
+                        ]
+                      }
+                    ]
+                  },
+                  "source_rule_map": {
+                    "anyOf": [
+                      {
+                        "additionalProperties": false,
+                        "description": "The bidirectional source-to-rule map. BOTH directions are stored and must be exact transposes. Storing one and deriving the other would make disagreement impossible to observe: two directions that must agree is a check, one direction plus a derivation is a restatement.",
+                        "type": "object",
+                        "required": [
+                          "forward",
+                          "reverse"
+                        ],
+                        "properties": {
+                          "forward": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "reverse": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "description": "The ruled absent sentinel, \"urn:meshqu:review-package:absent\". Records an ASSERTION that the slot has no content; it does not prove absence, and it is distinct from null, [] and {} because those are distinct bytes. Key omission is invalid — all ten slots are always present (ruling B2, fixed arity).",
+                        "type": "string",
+                        "enum": [
+                          "urn:meshqu:review-package:absent"
+                        ]
+                      }
+                    ]
+                  },
+                  "assumptions": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "additionalProperties": false,
+                          "description": "A DECLARED assumption. The assembler never creates one: a rule with no source unit and no internal-control origin fails as `rule_without_source_or_internal_control` rather than being quietly rewritten into an assumption nobody declared.",
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "text",
+                            "affects"
+                          ],
+                          "properties": {
+                            "id": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "text": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "affects": {
+                              "type": "array",
+                              "items": {
+                                "minLength": 1,
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "description": "The ruled absent sentinel, \"urn:meshqu:review-package:absent\". Records an ASSERTION that the slot has no content; it does not prove absence, and it is distinct from null, [] and {} because those are distinct bytes. Key omission is invalid — all ten slots are always present (ruling B2, fixed arity).",
+                        "type": "string",
+                        "enum": [
+                          "urn:meshqu:review-package:absent"
+                        ]
+                      }
+                    ]
+                  },
+                  "internal_controls": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "candidate_rule_id",
+                            "authority_ref"
+                          ],
+                          "properties": {
+                            "candidate_rule_id": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "authority_ref": {
+                              "minLength": 1,
+                              "description": "Where the control’s authority comes from. A control names its authority and claims NO source mapping; claiming both is the fabricated-mapping defect the rule exists to prevent, and it is refused.",
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "description": "The ruled absent sentinel, \"urn:meshqu:review-package:absent\". Records an ASSERTION that the slot has no content; it does not prove absence, and it is distinct from null, [] and {} because those are distinct bytes. Key omission is invalid — all ten slots are always present (ruling B2, fixed arity).",
+                        "type": "string",
+                        "enum": [
+                          "urn:meshqu:review-package:absent"
+                        ]
+                      }
+                    ]
+                  },
+                  "case_pack": {
+                    "description": "Independently authored cases and expected outcomes. Carried verbatim into the digest.",
+                    "anyOf": [
+                      {},
+                      {
+                        "description": "The ruled absent sentinel, \"urn:meshqu:review-package:absent\". Records an ASSERTION that the slot has no content; it does not prove absence, and it is distinct from null, [] and {} because those are distinct bytes. Key omission is invalid — all ten slots are always present (ruling B2, fixed arity).",
+                        "type": "string",
+                        "enum": [
+                          "urn:meshqu:review-package:absent"
+                        ]
+                      }
+                    ]
+                  },
+                  "validation_results": {
+                    "description": "The displayed server/tool validation results. Separated from `case_pack` deliberately, so changing a RESULT changes the review subject rather than silently reusing the digest of the expectations alone.",
+                    "anyOf": [
+                      {},
+                      {
+                        "description": "The ruled absent sentinel, \"urn:meshqu:review-package:absent\". Records an ASSERTION that the slot has no content; it does not prove absence, and it is distinct from null, [] and {} because those are distinct bytes. Key omission is invalid — all ten slots are always present (ruling B2, fixed arity).",
+                        "type": "string",
+                        "enum": [
+                          "urn:meshqu:review-package:absent"
+                        ]
+                      }
+                    ]
+                  },
+                  "case_execution_results": {
+                    "description": "The displayed case-execution results. Separated from `case_pack` for the same reason.",
+                    "anyOf": [
+                      {},
+                      {
+                        "description": "The ruled absent sentinel, \"urn:meshqu:review-package:absent\". Records an ASSERTION that the slot has no content; it does not prove absence, and it is distinct from null, [] and {} because those are distinct bytes. Key omission is invalid — all ten slots are always present (ruling B2, fixed arity).",
+                        "type": "string",
+                        "enum": [
+                          "urn:meshqu:review-package:absent"
+                        ]
+                      }
+                    ]
+                  },
+                  "model_trace": {
+                    "description": "The model trace, as shown. Carried verbatim into the digest.",
+                    "anyOf": [
+                      {},
+                      {
+                        "description": "The ruled absent sentinel, \"urn:meshqu:review-package:absent\". Records an ASSERTION that the slot has no content; it does not prove absence, and it is distinct from null, [] and {} because those are distinct bytes. Key omission is invalid — all ten slots are always present (ruling B2, fixed arity).",
+                        "type": "string",
+                        "enum": [
+                          "urn:meshqu:review-package:absent"
+                        ]
+                      }
+                    ]
+                  },
+                  "prior_source_manifest_items": {
+                    "description": "The `source_manifest_items` of the immediately preceding sealed submission, when one exists. Present ONLY so \"the bytes moved while the declared identity stayed still\" is detectable. It is not part of any component and never enters a digest.",
+                    "type": "array",
+                    "items": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "source_item_id",
+                        "custodian_id",
+                        "locator",
+                        "source_revision",
+                        "byte_digest",
+                        "byte_length",
+                        "media_type",
+                        "availability"
+                      ],
+                      "properties": {
+                        "source_item_id": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "custodian_id": {
+                          "minLength": 1,
+                          "description": "Who holds the bytes, as asserted. Records custody as claimed; proves no custody. Custodian identity is in the immutable provenance namespace (ruling B3) — changing it creates a new review subject and cannot be applied as an endpoint update.",
+                          "type": "string"
+                        },
+                        "locator": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "source_revision": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "byte_digest": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 of the source bytes, ASSERTED by the caller. MeshQu did not compute it in this wave and does not vouch for it.",
+                          "type": "string"
+                        },
+                        "byte_length": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "media_type": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "normalization_profile": {
+                          "type": "string"
+                        },
+                        "availability": {
+                          "description": "Always \"NOT_CHECKED\" in this wave. Ruling B3 names several availability states, but every other one is reachable only by a component that actually retrieves and re-hashes bytes, and no such component exists yet (PWB-021b). Records that availability was not checked; proves nothing about the bytes.",
+                          "type": "string",
+                          "enum": [
+                            "NOT_CHECKED"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "description": "Everything needed to assemble the ten ruled component slots. Four slots — the corpus (`source_manifest_items` / `source_units`), `clause_ledger`, `candidate_policy` and `source_rule_map` — must be genuinely present: a source-bound review package with no corpus, ledger, candidate or map is not one, and every totality and bidirectionality rule over it would be vacuously true."
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Policy id."
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "description": "Policy version number."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "policy_id",
+                    "policy_version_id",
+                    "candidate_revision",
+                    "submission_sequence",
+                    "review_package_digest",
+                    "component_digests",
+                    "active_rules_hash",
+                    "sealed_at",
+                    "sealed_by"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "description": "The submission’s own identity — distinct per submission even when the policy version and the bytes are unchanged (ruling B1).",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_id": {
+                      "format": "uuid",
+                      "description": "The mutable workflow container the candidate came from. NOT the review identity: one policy version yields many sealed subjects over time.",
+                      "type": "string"
+                    },
+                    "candidate_revision": {
+                      "minimum": 1,
+                      "description": "A server-derived counter of DISTINCT CONSECUTIVE active-rule projections sealed for this policy version, starting at 1. It increments when the new submission’s `active_rules_hash` differs from the previous submission’s, and carries forward when it does not. Named for what it counts: `meshqu.policy_versions` holds no draft revision counter, so this is NOT a count of author edits and does not move for an edit that leaves the active-rule projection unchanged (a renamed rule, a changed description, a different case pack). Two submissions may therefore share a `candidate_revision` and still be different subjects — they are told apart by `id` and `review_package_digest`, which is why the currentness check has three legs.",
+                      "type": "integer"
+                    },
+                    "submission_sequence": {
+                      "minimum": 1,
+                      "description": "Submission ordinal within the policy version, from 1. An ORDERING fact, not an identity — `id` is the identity.",
+                      "type": "integer"
+                    },
+                    "review_package_digest": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "sha256(UTF8(\"meshqu-review-package/v1\") || 0x00 || UTF8(canonicalJsonV2(envelope))). RECORDS which exact canonical bytes the reviewer was shown. PROVES byte equality under that named profile and nothing else — not source truth, completeness, correct interpretation, human review or authority. NOT a receipt field.",
+                      "type": "string"
+                    },
+                    "component_digests": {
+                      "additionalProperties": false,
+                      "description": "The ten ruled component digests, keyed by component name. A closed registry: an eleventh key is invalid and a missing key is invalid.",
+                      "type": "object",
+                      "required": [
+                        "source_manifest",
+                        "clause_ledger",
+                        "candidate_policy",
+                        "source_rule_map",
+                        "assumptions",
+                        "internal_controls",
+                        "case_pack",
+                        "validation_results",
+                        "case_execution_results",
+                        "model_trace"
+                      ],
+                      "properties": {
+                        "source_manifest": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "clause_ledger": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "candidate_policy": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "source_rule_map": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "assumptions": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "internal_controls": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "case_pack": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "validation_results": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "case_execution_results": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "model_trace": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "active_rules_hash": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "sha256(canonicalJson(projectActiveRules(rules))) under meshqu-canonical/v0 — NOT v2, and deliberately OUTSIDE the ten component slots (ruling D2), so that comparing it against a recomputation from the product path is a real check rather than one artefact validating itself. It means \"this is the projection the evaluator will run\", which is a different claim from the package digest’s \"these are the bytes a human read\". Neither implies the other.",
+                      "type": "string"
+                    },
+                    "sealed_at": {
+                      "format": "date-time",
+                      "description": "When the seal was created. Not when a human read it.",
+                      "type": "string"
+                    },
+                    "sealed_by": {
+                      "description": "The principal the server attributed the submit act to. Records attribution; proves nothing about human authorship, competence or independent judgment.",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1PoliciesByIdVersionsByVersionReviewSubmissions"
+      },
+      "get": {
+        "summary": "List sealed review submissions for a policy version",
+        "tags": [
+          "Policy Review"
+        ],
+        "description": "Every sealed review subject for one policy version, newest seal first.\n\n**RECORDS** which submissions were sealed and in what order.\n\n**Order is an ordering fact about seals, not currentness.** The first item is not necessarily the subject a reviewer should be looking at: currentness is the three-leg comparison of subject id, candidate revision and package digest, available on the detail route. Treating the newest seal as \"the subject under review\" without that check is the confusion sealed submissions exist to prevent.\n\nCanonical component bytes are not included — ten canonical blobs per submission is not a list view. Fetch them from `GET /v1/review-submissions/{submissionId}`.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Policy id."
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "description": "Policy version number."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sealed submissions for one policy version, newest seal first. Order is an ordering fact about seals — it does not say the first item is CURRENT for the candidate.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "Sealed submissions for one policy version, newest seal first. Order is an ordering fact about seals — it does not say the first item is CURRENT for the candidate.",
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "total"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "tenant_id",
+                          "policy_id",
+                          "policy_version_id",
+                          "candidate_revision",
+                          "submission_sequence",
+                          "review_package_digest",
+                          "component_digests",
+                          "active_rules_hash",
+                          "sealed_at",
+                          "sealed_by"
+                        ],
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "description": "The submission’s own identity — distinct per submission even when the policy version and the bytes are unchanged (ruling B1).",
+                            "type": "string"
+                          },
+                          "tenant_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "policy_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "policy_version_id": {
+                            "format": "uuid",
+                            "description": "The mutable workflow container the candidate came from. NOT the review identity: one policy version yields many sealed subjects over time.",
+                            "type": "string"
+                          },
+                          "candidate_revision": {
+                            "minimum": 1,
+                            "description": "A server-derived counter of DISTINCT CONSECUTIVE active-rule projections sealed for this policy version, starting at 1. It increments when the new submission’s `active_rules_hash` differs from the previous submission’s, and carries forward when it does not. Named for what it counts: `meshqu.policy_versions` holds no draft revision counter, so this is NOT a count of author edits and does not move for an edit that leaves the active-rule projection unchanged (a renamed rule, a changed description, a different case pack). Two submissions may therefore share a `candidate_revision` and still be different subjects — they are told apart by `id` and `review_package_digest`, which is why the currentness check has three legs.",
+                            "type": "integer"
+                          },
+                          "submission_sequence": {
+                            "minimum": 1,
+                            "description": "Submission ordinal within the policy version, from 1. An ORDERING fact, not an identity — `id` is the identity.",
+                            "type": "integer"
+                          },
+                          "review_package_digest": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "description": "sha256(UTF8(\"meshqu-review-package/v1\") || 0x00 || UTF8(canonicalJsonV2(envelope))). RECORDS which exact canonical bytes the reviewer was shown. PROVES byte equality under that named profile and nothing else — not source truth, completeness, correct interpretation, human review or authority. NOT a receipt field.",
+                            "type": "string"
+                          },
+                          "component_digests": {
+                            "additionalProperties": false,
+                            "description": "The ten ruled component digests, keyed by component name. A closed registry: an eleventh key is invalid and a missing key is invalid.",
+                            "type": "object",
+                            "required": [
+                              "source_manifest",
+                              "clause_ledger",
+                              "candidate_policy",
+                              "source_rule_map",
+                              "assumptions",
+                              "internal_controls",
+                              "case_pack",
+                              "validation_results",
+                              "case_execution_results",
+                              "model_trace"
+                            ],
+                            "properties": {
+                              "source_manifest": {
+                                "pattern": "^[0-9a-f]{64}$",
+                                "type": "string"
+                              },
+                              "clause_ledger": {
+                                "pattern": "^[0-9a-f]{64}$",
+                                "type": "string"
+                              },
+                              "candidate_policy": {
+                                "pattern": "^[0-9a-f]{64}$",
+                                "type": "string"
+                              },
+                              "source_rule_map": {
+                                "pattern": "^[0-9a-f]{64}$",
+                                "type": "string"
+                              },
+                              "assumptions": {
+                                "pattern": "^[0-9a-f]{64}$",
+                                "type": "string"
+                              },
+                              "internal_controls": {
+                                "pattern": "^[0-9a-f]{64}$",
+                                "type": "string"
+                              },
+                              "case_pack": {
+                                "pattern": "^[0-9a-f]{64}$",
+                                "type": "string"
+                              },
+                              "validation_results": {
+                                "pattern": "^[0-9a-f]{64}$",
+                                "type": "string"
+                              },
+                              "case_execution_results": {
+                                "pattern": "^[0-9a-f]{64}$",
+                                "type": "string"
+                              },
+                              "model_trace": {
+                                "pattern": "^[0-9a-f]{64}$",
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "active_rules_hash": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "description": "sha256(canonicalJson(projectActiveRules(rules))) under meshqu-canonical/v0 — NOT v2, and deliberately OUTSIDE the ten component slots (ruling D2), so that comparing it against a recomputation from the product path is a real check rather than one artefact validating itself. It means \"this is the projection the evaluator will run\", which is a different claim from the package digest’s \"these are the bytes a human read\". Neither implies the other.",
+                            "type": "string"
+                          },
+                          "sealed_at": {
+                            "format": "date-time",
+                            "description": "When the seal was created. Not when a human read it.",
+                            "type": "string"
+                          },
+                          "sealed_by": {
+                            "description": "The principal the server attributed the submit act to. Records attribution; proves nothing about human authorship, competence or independent judgment.",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1PoliciesByIdVersionsByVersionReviewSubmissions"
+      }
+    },
+    "/v1/review-submissions/{submissionId}": {
+      "get": {
+        "summary": "Retrieve a sealed review submission and its canonical components",
+        "tags": [
+          "Policy Review"
+        ],
+        "description": "The sealed subject plus the ten components in the ruled registry order, each carrying the EXACT canonical bytes that were sealed into that slot.\n\n**RECORDS** which bytes occupied each named slot of this submission.\n\n**PROVES BYTE EQUALITY ONLY.** `component_digest` is `sha256(UTF8(canonical_bytes))`, and the envelope of those ten reproduces `subject.review_package_digest` under `meshqu-review-package/v1`. That is the whole of the claim: it says these are the bytes that were sealed. It does not say the content is true, complete, correctly interpreted, reviewed by a human or authorised, and for `source_manifest` it says nothing about whether the source items it names still exist or can be retrieved — this wave records their availability as `NOT_CHECKED` and never checked it.\n\nThe bytes are returned verbatim and are not re-serialised, re-ordered or pretty-printed; any of those would produce a string whose digest no longer matches.\n\nSupply `expected_id`, `expected_revision` and `expected_digest` together to assert the identity a judgment was recorded against. All three or none — a partial expectation is refused with 400 rather than half-checked. A disagreeing leg returns 409 with a code naming THAT leg, so \"a different submission\" is never reported as \"the bytes changed\". A match means the judgment names the same subject; it does not mean the judgment is correct.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "expected_id",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "expected_revision",
+            "required": false
+          },
+          {
+            "schema": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "expected_digest",
+            "required": false
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "submissionId",
+            "required": true,
+            "description": "The sealed submission id. This is the review IDENTITY — not the policy version, which is a mutable container that yields many sealed subjects over time."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "subject",
+                    "components"
+                  ],
+                  "properties": {
+                    "subject": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "tenant_id",
+                        "policy_id",
+                        "policy_version_id",
+                        "candidate_revision",
+                        "submission_sequence",
+                        "review_package_digest",
+                        "component_digests",
+                        "active_rules_hash",
+                        "sealed_at",
+                        "sealed_by"
+                      ],
+                      "properties": {
+                        "id": {
+                          "format": "uuid",
+                          "description": "The submission’s own identity — distinct per submission even when the policy version and the bytes are unchanged (ruling B1).",
+                          "type": "string"
+                        },
+                        "tenant_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "policy_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "policy_version_id": {
+                          "format": "uuid",
+                          "description": "The mutable workflow container the candidate came from. NOT the review identity: one policy version yields many sealed subjects over time.",
+                          "type": "string"
+                        },
+                        "candidate_revision": {
+                          "minimum": 1,
+                          "description": "A server-derived counter of DISTINCT CONSECUTIVE active-rule projections sealed for this policy version, starting at 1. It increments when the new submission’s `active_rules_hash` differs from the previous submission’s, and carries forward when it does not. Named for what it counts: `meshqu.policy_versions` holds no draft revision counter, so this is NOT a count of author edits and does not move for an edit that leaves the active-rule projection unchanged (a renamed rule, a changed description, a different case pack). Two submissions may therefore share a `candidate_revision` and still be different subjects — they are told apart by `id` and `review_package_digest`, which is why the currentness check has three legs.",
+                          "type": "integer"
+                        },
+                        "submission_sequence": {
+                          "minimum": 1,
+                          "description": "Submission ordinal within the policy version, from 1. An ORDERING fact, not an identity — `id` is the identity.",
+                          "type": "integer"
+                        },
+                        "review_package_digest": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "sha256(UTF8(\"meshqu-review-package/v1\") || 0x00 || UTF8(canonicalJsonV2(envelope))). RECORDS which exact canonical bytes the reviewer was shown. PROVES byte equality under that named profile and nothing else — not source truth, completeness, correct interpretation, human review or authority. NOT a receipt field.",
+                          "type": "string"
+                        },
+                        "component_digests": {
+                          "additionalProperties": false,
+                          "description": "The ten ruled component digests, keyed by component name. A closed registry: an eleventh key is invalid and a missing key is invalid.",
+                          "type": "object",
+                          "required": [
+                            "source_manifest",
+                            "clause_ledger",
+                            "candidate_policy",
+                            "source_rule_map",
+                            "assumptions",
+                            "internal_controls",
+                            "case_pack",
+                            "validation_results",
+                            "case_execution_results",
+                            "model_trace"
+                          ],
+                          "properties": {
+                            "source_manifest": {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            "clause_ledger": {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            "candidate_policy": {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            "source_rule_map": {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            "assumptions": {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            "internal_controls": {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            "case_pack": {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            "validation_results": {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            "case_execution_results": {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            "model_trace": {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "active_rules_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "sha256(canonicalJson(projectActiveRules(rules))) under meshqu-canonical/v0 — NOT v2, and deliberately OUTSIDE the ten component slots (ruling D2), so that comparing it against a recomputation from the product path is a real check rather than one artefact validating itself. It means \"this is the projection the evaluator will run\", which is a different claim from the package digest’s \"these are the bytes a human read\". Neither implies the other.",
+                          "type": "string"
+                        },
+                        "sealed_at": {
+                          "format": "date-time",
+                          "description": "When the seal was created. Not when a human read it.",
+                          "type": "string"
+                        },
+                        "sealed_by": {
+                          "description": "The principal the server attributed the submit act to. Records attribution; proves nothing about human authorship, competence or independent judgment.",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "components": {
+                      "description": "The ten components in the ruled registry order. Recomputing sha256 over each `canonical_bytes` reproduces every `component_digest`, and the envelope built from those ten reproduces `subject.review_package_digest`.",
+                      "type": "array",
+                      "items": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "canonical_bytes",
+                          "component_digest"
+                        ],
+                        "properties": {
+                          "name": {
+                            "description": "One of the ten ruled component names.",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "source_manifest"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "clause_ledger"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "candidate_policy"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "source_rule_map"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "assumptions"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "internal_controls"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "case_pack"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "validation_results"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "case_execution_results"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "model_trace"
+                                ]
+                              }
+                            ]
+                          },
+                          "canonical_bytes": {
+                            "description": "The EXACT canonical string that was sealed into this slot: canonicalJsonV2({profile, name, value}). Returned verbatim, byte for byte — it is not re-serialised, re-ordered or pretty-printed, because any of those would produce a string whose sha256 is no longer `component_digest`.",
+                            "type": "string"
+                          },
+                          "component_digest": {
+                            "pattern": "^[0-9a-f]{64}$",
+                            "description": "sha256(UTF8(canonical_bytes)). RECORDS which bytes occupied this slot. PROVES BYTE EQUALITY ONLY — that these are the bytes that were sealed. It proves nothing about whether the content is true, complete, correctly interpreted, reviewed by a human, or authorised; and for `source_manifest` it proves nothing about the availability of the source items it names, which this wave records as NOT_CHECKED.",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1ReviewSubmissionsBySubmissionId"
+      }
+    },
     "/v1/decisions/evaluate": {
       "post": {
         "summary": "Evaluate policies (dry-run)",
@@ -37043,6 +38423,10 @@
     {
       "name": "Policy Groups",
       "description": "Policy group management"
+    },
+    {
+      "name": "Policy Review",
+      "description": "Sealed review submissions: assembly, sealing and canonical component retrieval. Records what a reviewer was shown and proves byte equality under meshqu-review-package/v1 — not source truth, completeness, interpretation, human review or authority. Not receipts."
     },
     {
       "name": "Decisions",
