@@ -28222,6 +28222,12 @@
                 {
                   "type": "string",
                   "enum": [
+                    "policy_version_discarded"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
                     "policy_group_created"
                   ]
                 },
@@ -28514,6 +28520,12 @@
                                 "type": "string",
                                 "enum": [
                                   "policy_version_recalled"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "policy_version_discarded"
                                 ]
                               },
                               {
@@ -28913,6 +28925,12 @@
                             "type": "string",
                             "enum": [
                               "policy_version_recalled"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "policy_version_discarded"
                             ]
                           },
                           {
@@ -35204,6 +35222,12 @@
                                 "type": "string",
                                 "enum": [
                                   "policy_version_recalled"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "policy_version_discarded"
                                 ]
                               },
                               {
