@@ -31485,6 +31485,18 @@
                 {
                   "type": "string",
                   "enum": [
+                    "review_submission_sealed"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "review_withdrawal_requested"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
                     "tenant_member_invited"
                   ]
                 },
@@ -31795,6 +31807,18 @@
                                 "type": "string",
                                 "enum": [
                                   "authoring_capability_revoked"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review_submission_sealed"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review_withdrawal_requested"
                                 ]
                               },
                               {
@@ -32212,6 +32236,18 @@
                             "type": "string",
                             "enum": [
                               "authoring_capability_revoked"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "review_submission_sealed"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "review_withdrawal_requested"
                             ]
                           },
                           {
@@ -38521,6 +38557,18 @@
                                 "type": "string",
                                 "enum": [
                                   "authoring_capability_revoked"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review_submission_sealed"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review_withdrawal_requested"
                                 ]
                               },
                               {
