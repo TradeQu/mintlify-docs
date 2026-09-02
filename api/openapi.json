@@ -16231,7 +16231,7 @@
                           "minLength": 1,
                           "maxLength": 200,
                           "pattern": "^[A-Za-z0-9._:-]{1,200}$",
-                          "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.",
+                          "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.\n\nMust be distinct across the whole record — findings and corrections together, since a correction is a standalone item and not a reference to a finding. A repeat is refused with 400 `DUPLICATE_REVIEW_ITEM_ID` naming the offending ids: an id that appears twice cannot name one item unambiguously, which is the only reason this field exists.",
                           "type": "string"
                         },
                         "slot": {
@@ -16351,7 +16351,7 @@
                           "minLength": 1,
                           "maxLength": 200,
                           "pattern": "^[A-Za-z0-9._:-]{1,200}$",
-                          "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.",
+                          "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.\n\nMust be distinct across the whole record — findings and corrections together, since a correction is a standalone item and not a reference to a finding. A repeat is refused with 400 `DUPLICATE_REVIEW_ITEM_ID` naming the offending ids: an id that appears twice cannot name one item unambiguously, which is the only reason this field exists.",
                           "type": "string"
                         },
                         "slot": {
@@ -16578,7 +16578,7 @@
                             "minLength": 1,
                             "maxLength": 200,
                             "pattern": "^[A-Za-z0-9._:-]{1,200}$",
-                            "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.",
+                            "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.\n\nMust be distinct across the whole record — findings and corrections together, since a correction is a standalone item and not a reference to a finding. A repeat is refused with 400 `DUPLICATE_REVIEW_ITEM_ID` naming the offending ids: an id that appears twice cannot name one item unambiguously, which is the only reason this field exists.",
                             "type": "string"
                           },
                           "slot": {
@@ -16696,7 +16696,7 @@
                             "minLength": 1,
                             "maxLength": 200,
                             "pattern": "^[A-Za-z0-9._:-]{1,200}$",
-                            "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.",
+                            "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.\n\nMust be distinct across the whole record — findings and corrections together, since a correction is a standalone item and not a reference to a finding. A repeat is refused with 400 `DUPLICATE_REVIEW_ITEM_ID` naming the offending ids: an id that appears twice cannot name one item unambiguously, which is the only reason this field exists.",
                             "type": "string"
                           },
                           "slot": {
@@ -16827,6 +16827,45 @@
                     },
                     "created_at": {
                       "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
                       "type": "string"
                     }
                   }
@@ -17101,7 +17140,7 @@
                                   "minLength": 1,
                                   "maxLength": 200,
                                   "pattern": "^[A-Za-z0-9._:-]{1,200}$",
-                                  "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.",
+                                  "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.\n\nMust be distinct across the whole record — findings and corrections together, since a correction is a standalone item and not a reference to a finding. A repeat is refused with 400 `DUPLICATE_REVIEW_ITEM_ID` naming the offending ids: an id that appears twice cannot name one item unambiguously, which is the only reason this field exists.",
                                   "type": "string"
                                 },
                                 "slot": {
@@ -17219,7 +17258,7 @@
                                   "minLength": 1,
                                   "maxLength": 200,
                                   "pattern": "^[A-Za-z0-9._:-]{1,200}$",
-                                  "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.",
+                                  "description": "The reviewer client's stable handle for this item WITHIN the record, so a correction or a later scoring sheet can name one item unambiguously. Not globally unique and not an identity the server issues.\n\nMust be distinct across the whole record — findings and corrections together, since a correction is a standalone item and not a reference to a finding. A repeat is refused with 400 `DUPLICATE_REVIEW_ITEM_ID` naming the offending ids: an id that appears twice cannot name one item unambiguously, which is the only reason this field exists.",
                                   "type": "string"
                                 },
                                 "slot": {
