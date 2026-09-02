@@ -635,8 +635,8 @@ a receipt whose shadow fields were stripped or added after signing fails
 These are the codes this page describes. **It is not the complete set.** The
 gap is stated here rather than left to be discovered:
 
-- `@meshqu/types` declares **54** `BundleFailureCode` members. **40** are listed
-  below. The other **14** are emitted by the shipped verifier and are not yet
+- `@meshqu/types` declares **55** `BundleFailureCode` members. **40** are listed
+  below. The other **15** are emitted by the shipped verifier and are not yet
   described on any public surface; they belong to legs that have not reached
   step 4 of §18.
 - `@meshqu/verify-lib` — the browser verifier, a deliberately independent
@@ -645,7 +645,7 @@ gap is stated here rather than left to be discovered:
   that the browser has no evaluator and skipped that sub-claim there. The other
   16 belong to a separate verifier leg (CCR-403) whose capability §15 does not
   list; until §15 lists it, no public surface may claim it.
-- Across both packages the union is **71** codes, of which **31** are not listed
+- Across both packages the union is **72** codes, of which **32** are not listed
   below.
 
 These five numbers are no longer prose. `docs-parity.invariant.test.ts` in the
