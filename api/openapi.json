@@ -16179,6 +16179,576 @@
         "operationId": "getV1ReviewSubmissionsBySubmissionId"
       }
     },
+    "/v1/policies/{id}/versions/{version}/case-executions": {
+      "post": {
+        "summary": "Run a bounded synthetic case pack against a stored policy version",
+        "tags": [
+          "Policy Review"
+        ],
+        "description": "Executes an independently authored case pack against the rules stored on this policy version, in process, and returns the per-case results.\n\n**SYNTHETIC.** No decision, receipt, policy snapshot or audit row is created, nothing is signed and nothing is persisted. The response carries no `integrity_hash`, no signature and no decision id — it is not receipt-shaped and cannot be presented as a real evaluation. Non-billing, and rate-limited under the standard per-tenant/per-key tier.\n\n**RECORDS** what the stored rules did for each supplied case at the supplied `evaluation_time`, and how that compares to the case's expectation.\n\n**ESTABLISHES** deterministic agreement for the exact cases, rules, context and evaluator version exercised. It does NOT establish completeness beyond those cases, the truth of the case classifications, or source fidelity — the spike found one invented rule and one over-broad rule that oracle execution did not catch.\n\n**Five scoring states, not a pass rate.** `match` and `mismatch` are the scored outcomes. `unrepresentable` is an expected `NOT_APPLICABLE`: the evaluator has no verdict for \"this policy does not apply\", and its zero-rule ALLOW is retained as engine output rather than promoted to the policy outcome. `not_scored` is an expected `OUT_OF_SCOPE_INSUFFICIENT_EVIDENCE`, or a case with no expectation. `operational_failure` is an evaluator exception for that case — an indeterminate state, never an ALLOW. The summary reports five counts and no ratio, because the states do not roll up.\n\n422 `CASE_PACK_CANDIDATE_DERIVED` refuses a pack that declares non-independent authorship AND whose every comparable expectation names exactly the rule codes the candidate fires. That check is narrow: it cannot detect a derived pack that declares `independent`, and coincidence with the firing set is also what a CORRECT independent oracle looks like.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "case_pack",
+                  "evaluation_time"
+                ],
+                "properties": {
+                  "case_pack": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "profile",
+                      "cases"
+                    ],
+                    "properties": {
+                      "profile": {
+                        "type": "string",
+                        "enum": [
+                          "meshqu-case-pack/v1"
+                        ]
+                      },
+                      "cases": {
+                        "minItems": 1,
+                        "maxItems": 200,
+                        "type": "array",
+                        "items": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "case_id",
+                            "context",
+                            "expected",
+                            "authored_by",
+                            "authored_at"
+                          ],
+                          "properties": {
+                            "case_id": {
+                              "minLength": 1,
+                              "maxLength": 200,
+                              "type": "string"
+                            },
+                            "context": {
+                              "additionalProperties": true,
+                              "description": "The decision context to evaluate. Carried verbatim; nothing is enriched.",
+                              "type": "object",
+                              "properties": {
+                                "decision_type": {
+                                  "minLength": 1,
+                                  "maxLength": 200,
+                                  "type": "string"
+                                },
+                                "fields": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                }
+                              }
+                            },
+                            "expected": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "disposition"
+                              ],
+                              "properties": {
+                                "disposition": {
+                                  "description": "The expected outcome. PROCEED/REVIEW/BLOCK map to the evaluator verdicts ALLOW/REVIEW/DENY. NOT_APPLICABLE and OUT_OF_SCOPE_INSUFFICIENT_EVIDENCE do NOT map to any verdict: the evaluator cannot say \"this policy does not apply\" or \"the evidence is insufficient\", so those cases are scored `unrepresentable` and `not_scored` respectively and their engine output is retained unscored. Neither can ever be reported as a match.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "PROCEED"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "REVIEW"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "BLOCK"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "NOT_APPLICABLE"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "OUT_OF_SCOPE_INSUFFICIENT_EVIDENCE"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "expected_rule_codes": {
+                                  "maxItems": 500,
+                                  "description": "The rule codes the author expected to fire, compared as a SET. Optional; when absent the case is scored on the verdict alone and the result note says so.",
+                                  "type": "array",
+                                  "items": {
+                                    "minLength": 1,
+                                    "maxLength": 200,
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "authored_by": {
+                              "description": "DECLARED authorship. Recorded, never verified — nothing in a JSON document can prove when or from what a human wrote something down. `candidate_derived` and `unknown` are spellable so the canary has something to refuse.",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "independent"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "candidate_derived"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "unknown"
+                                  ]
+                                }
+                              ]
+                            },
+                            "authored_at": {
+                              "format": "date-time",
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "evaluation_time": {
+                    "format": "date-time",
+                    "description": "The evaluation instant. REQUIRED and supplied by the caller, because determinism is the point: same pack + same rules + same evaluation_time gives the same results. A server clock here would make two identical runs differ.",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Policy id."
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "description": "Policy version number."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "synthetic",
+                    "non_billing",
+                    "persisted",
+                    "profile",
+                    "evaluator_version",
+                    "evaluation_time",
+                    "executed_at",
+                    "results",
+                    "summary",
+                    "canary"
+                  ],
+                  "properties": {
+                    "synthetic": {
+                      "description": "Always true. This is a synthetic preview: no decision, receipt, policy snapshot or audit row was created, nothing was signed, and nothing was persisted. It is non-billing and rate-limited under the standard per-tenant/per-key tier.",
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "non_billing": {
+                      "description": "Always true. Synthetic case executions are not metered as evaluations.",
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "persisted": {
+                      "description": "Always false. Stated as a field rather than only in prose so a client can assert it, and so a future change that began persisting would have to change this literal and every test reading it.",
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "profile": {
+                      "type": "string",
+                      "enum": [
+                        "meshqu-case-pack/v1"
+                      ]
+                    },
+                    "evaluator_version": {
+                      "description": "Names the SEMANTICS of the shared verdict loop, not a build, package version or deployment.",
+                      "type": "string"
+                    },
+                    "evaluation_time": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "executed_at": {
+                      "format": "date-time",
+                      "description": "PRESENTATION metadata. Excluded from the digest-bound projection that occupies the review package's `case_execution_results` slot, so re-running identical work does not move a package digest.",
+                      "type": "string"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "case_id",
+                          "expected_disposition",
+                          "engine_output",
+                          "behavioural_match",
+                          "notes"
+                        ],
+                        "properties": {
+                          "case_id": {
+                            "type": "string"
+                          },
+                          "expected_disposition": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "PROCEED"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "REVIEW"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "BLOCK"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "NOT_APPLICABLE"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "OUT_OF_SCOPE_INSUFFICIENT_EVIDENCE"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "engine_output": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "decision",
+                                  "violations",
+                                  "na_rules",
+                                  "rules_evaluated"
+                                ],
+                                "properties": {
+                                  "decision": {
+                                    "type": "string"
+                                  },
+                                  "violations": {
+                                    "type": "array",
+                                    "items": {}
+                                  },
+                                  "na_rules": {
+                                    "type": "array",
+                                    "items": {}
+                                  },
+                                  "rules_evaluated": {
+                                    "type": "integer"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "operational_failure"
+                                ],
+                                "properties": {
+                                  "operational_failure": {
+                                    "description": "The exception class and message. There is no `decision` on this branch, so an evaluator failure cannot be read as a verdict by field access.",
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "behavioural_match": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "match"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "mismatch"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "unrepresentable"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "not_scored"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "operational_failure"
+                                ]
+                              }
+                            ]
+                          },
+                          "notes": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "summary": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "match",
+                        "mismatch",
+                        "unrepresentable",
+                        "not_scored",
+                        "operational_failure"
+                      ],
+                      "properties": {
+                        "match": {
+                          "type": "integer"
+                        },
+                        "mismatch": {
+                          "type": "integer"
+                        },
+                        "unrepresentable": {
+                          "type": "integer"
+                        },
+                        "not_scored": {
+                          "type": "integer"
+                        },
+                        "operational_failure": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "canary": {
+                      "additionalProperties": false,
+                      "description": "The candidate-derivation canary verdict for the executed pack. A REJECTED pack never reaches this response — it is a 422. See the 422 description for the heuristic's stated limits.",
+                      "type": "object",
+                      "required": [
+                        "rejected",
+                        "compared",
+                        "vacuous",
+                        "coincident_case_ids"
+                      ],
+                      "properties": {
+                        "rejected": {
+                          "type": "boolean",
+                          "enum": [
+                            false
+                          ]
+                        },
+                        "compared": {
+                          "type": "integer"
+                        },
+                        "vacuous": {
+                          "description": "True when NO case carried `expected_rule_codes`, so the coincidence half of the canary compared nothing. Reported rather than hidden: \"not rejected\" and \"nothing was checked\" are different facts.",
+                          "type": "boolean"
+                        },
+                        "coincident_case_ids": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1PoliciesByIdVersionsByVersionCaseExecutions"
+      }
+    },
     "/v1/decisions/evaluate": {
       "post": {
         "summary": "Evaluate policies (dry-run)",
