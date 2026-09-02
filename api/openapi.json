@@ -29836,7 +29836,7 @@
         "tags": [
           "Settings"
         ],
-        "description": "Merges the provided settings into the existing tenant settings. Keys that gate a governance control (currently `agent_licence_mode`) may only be changed by a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED. All other keys are unaffected.",
+        "description": "Merges the provided settings into the existing tenant settings. Keys that gate a governance control (`agent_licence_mode`, `maker_checker_enforced`) may only be changed by a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED, and the change is recorded in the audit chain. All other keys are unaffected.",
         "requestBody": {
           "required": true,
           "content": {
