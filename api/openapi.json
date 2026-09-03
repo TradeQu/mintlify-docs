@@ -5707,7 +5707,7 @@
         "tags": [
           "Policies"
         ],
-        "description": "Creates a new version of the policy with updated rules.",
+        "description": "Creates a new version of the policy with updated rules.\n\nRefused for an authoring-capability principal with 403 `AUTHORING_CAPABILITY_DRAFT_PREMINTED`: a capability is issued against a draft version minted at issuance time, so it has no version left to create. Edit that version with `PATCH /v1/policies/:id/versions/:version` instead.",
         "requestBody": {
           "required": true,
           "content": {
@@ -11865,7 +11865,7 @@
         "tags": [
           "Policies"
         ],
-        "description": "Autosave-style mutation of an in-flight draft version. Replaces the rules JSONB on the existing draft row — does NOT create a new version and does NOT write an audit entry. Returns 409 if the target version is not a draft; returns 404 if the version does not exist for the caller's tenant.",
+        "description": "Autosave-style mutation of an in-flight draft version. Replaces the rules JSONB on the existing draft row — does NOT create a new version and does NOT write an audit entry. Returns 409 if the target version is not a draft; returns 404 if the version does not exist for the caller's tenant.\n\nTwo callers are admitted, on different grounds: the draft's own author, and an authoring-capability principal whose capability names this exact version id (the draft shell minted when the capability was issued). Everyone else receives 403 `FORBIDDEN_NOT_AUTHOR`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -32497,19 +32497,19 @@
         "tags": [
           "Authoring Capabilities"
         ],
-        "description": "Creates an authoring capability record binding an API key to one policy version, a closed set of authoring actions, a set of granted source items and a validity window. Requires a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED. The subject key must hold the authoring:capability scope and must not hold policies:read or policies:write.",
+        "description": "Mints a new DRAFT policy version under `policy_id` — rules copied from `source_policy_version_id`, `created_by` set to the issuing human — and, in the same transaction, creates an authoring capability record bound to THAT minted version, a closed set of authoring actions, a set of granted source items and a validity window. The bound `policy_version_id` and `policy_version_number` are chosen by the server and returned; a caller cannot name them. Requires a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED. The subject key must hold the authoring:capability scope and must not hold policies:read or policies:write. Returns 404 AUTHORING_CAPABILITY_SOURCE_VERSION_NOT_FOUND when the source version is not a version of that policy in this tenant, and 409 AUTHORING_CAPABILITY_DRAFT_CONFLICT when the policy already has an open draft or submitted version, so no shell can be minted.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "additionalProperties": false,
+                "description": "Issue an authoring capability. `source_policy_version_id` names the EXISTING version whose rules are copied into a new draft version minted by this request; the capability binds to the MINTED version, whose id and number the server chooses and returns in `policy_version_id` / `policy_version_number`.",
                 "type": "object",
                 "required": [
                   "key_id",
                   "policy_id",
-                  "policy_version_id",
-                  "policy_version_number",
+                  "source_policy_version_id",
                   "grant_authority",
                   "allowed_actions",
                   "valid_from",
@@ -32524,13 +32524,9 @@
                     "format": "uuid",
                     "type": "string"
                   },
-                  "policy_version_id": {
+                  "source_policy_version_id": {
                     "format": "uuid",
                     "type": "string"
-                  },
-                  "policy_version_number": {
-                    "minimum": 1,
-                    "type": "integer"
                   },
                   "grant_authority": {
                     "minLength": 1,
@@ -32572,7 +32568,8 @@
                 }
               }
             }
-          }
+          },
+          "description": "Issue an authoring capability. `source_policy_version_id` names the EXISTING version whose rules are copied into a new draft version minted by this request; the capability binds to the MINTED version, whose id and number the server chooses and returns in `policy_version_id` / `policy_version_number`."
         },
         "responses": {
           "201": {
