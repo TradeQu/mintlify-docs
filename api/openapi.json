@@ -13057,15 +13057,22 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "type": "object",
-                "properties": {
-                  "reason": {
-                    "minLength": 1,
-                    "maxLength": 500,
-                    "type": "string"
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "properties": {
+                      "reason": {
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
                   }
-                }
+                ]
               }
             }
           }
