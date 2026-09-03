@@ -30364,7 +30364,8 @@
                                 "members:read",
                                 "members:write",
                                 "tenants:provision",
-                                "authoring:capability"
+                                "authoring:capability",
+                                "run:orchestrate"
                               ]
                             }
                           },
@@ -30530,7 +30531,8 @@
                         "api-keys:admin",
                         "members:read",
                         "members:write",
-                        "authoring:capability"
+                        "authoring:capability",
+                        "run:orchestrate"
                       ]
                     }
                   },
@@ -30616,7 +30618,8 @@
                               "members:read",
                               "members:write",
                               "tenants:provision",
-                              "authoring:capability"
+                              "authoring:capability",
+                              "run:orchestrate"
                             ]
                           }
                         },
@@ -30856,7 +30859,8 @@
                           "members:read",
                           "members:write",
                           "tenants:provision",
-                          "authoring:capability"
+                          "authoring:capability",
+                          "run:orchestrate"
                         ]
                       }
                     },
@@ -42805,7 +42809,8 @@
                                 "members:read",
                                 "members:write",
                                 "tenants:provision",
-                                "authoring:capability"
+                                "authoring:capability",
+                                "run:orchestrate"
                               ]
                             }
                           },
@@ -42971,7 +42976,8 @@
                         "api-keys:admin",
                         "members:read",
                         "members:write",
-                        "authoring:capability"
+                        "authoring:capability",
+                        "run:orchestrate"
                       ]
                     }
                   },
@@ -43057,7 +43063,8 @@
                               "members:read",
                               "members:write",
                               "tenants:provision",
-                              "authoring:capability"
+                              "authoring:capability",
+                              "run:orchestrate"
                             ]
                           }
                         },
@@ -43297,7 +43304,8 @@
                           "members:read",
                           "members:write",
                           "tenants:provision",
-                          "authoring:capability"
+                          "authoring:capability",
+                          "run:orchestrate"
                         ]
                       }
                     },
@@ -43490,7 +43498,8 @@
                           "members:read",
                           "members:write",
                           "tenants:provision",
-                          "authoring:capability"
+                          "authoring:capability",
+                          "run:orchestrate"
                         ]
                       }
                     },
