@@ -13051,7 +13051,25 @@
         "tags": [
           "Policies"
         ],
-        "description": "Hard-deletes an in-flight draft version. Returns 409 if the version is not a draft (submitted requires recall first); 404 if not found for the caller's tenant.",
+        "description": "Hard-deletes an in-flight draft version authored by the caller. Returns 409 if the version is not a draft (submitted requires recall first); 404 if not found for the caller's tenant. PWB-039: a tenant ADMIN human session may also discard a draft it did not author when that draft is bound to an authoring capability (an agent's pre-minted shell). That discard is SOFT (status becomes discarded; the row is kept because signed capability records reference it), EXHAUSTS every capability bound to it (the carrier key is not poisoned and may receive a new capability), reopens issuance on the policy, and requires a body { \"reason\": string } recorded in the audit chain. An API key never takes this path.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
         "parameters": [
           {
             "schema": {
@@ -13075,6 +13093,45 @@
         "responses": {
           "204": {
             "description": "Default Response"
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
             "description": "Default Response",
