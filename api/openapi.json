@@ -15850,7 +15850,7 @@
         "tags": [
           "Policy Review"
         ],
-        "description": "The sealed subject plus the ten components in the ruled registry order, each carrying the EXACT canonical bytes that were sealed into that slot.\n\n**RECORDS** which bytes occupied each named slot of this submission.\n\n**PROVES BYTE EQUALITY ONLY.** `component_digest` is `sha256(UTF8(canonical_bytes))`, and the envelope of those ten reproduces `subject.review_package_digest` under `meshqu-review-package/v1`. That is the whole of the claim: it says these are the bytes that were sealed. It does not say the content is true, complete, correctly interpreted, reviewed by a human or authorised.\n\n**Source availability is reported SEPARATELY, and only when asked.** Pass `check_source_availability=true` and each MeshQu-custody item in the sealed `source_manifest` is retrieved from custody and re-hashed against the digest the manifest sealed; the result appears in `source_availability`, one entry per item, bound to the exact resolution entry that was checked. Without the parameter every entry is `NOT_CHECKED`, which states that no check ran — it is not a finding about the bytes.\n\n`AVAILABLE_VERIFIED` is the only state that follows a hash comparison, and it means the bytes were retrievable AT THAT MOMENT. It is not a guarantee of future availability and it says nothing about whether the source is the right source. `NOT_FOUND`, `ACCESS_DENIED`, `DIGEST_MISMATCH`, `ERASED`, `OPERATIONAL_FAILURE` and `NOT_CHECKED` are six distinct answers that never collapse into one another, and none of them is an approval. An unavailable source does not rewrite the sealed subject: the historical digest is unchanged and the current status sits beside it.\n\nThese observations are not part of any component and are in no digest. The bytes themselves are never returned by this or any other route.\n\nThe bytes are returned verbatim and are not re-serialised, re-ordered or pretty-printed; any of those would produce a string whose digest no longer matches.\n\nSupply `expected_id`, `expected_revision` and `expected_digest` together to assert the identity a judgment was recorded against. All three or none — a partial expectation is refused with 400 rather than half-checked. A disagreeing leg returns 409 with a code naming THAT leg, so \"a different submission\" is never reported as \"the bytes changed\". A match means the judgment names the same subject; it does not mean the judgment is correct.",
+        "description": "The sealed subject plus the ten components in the ruled registry order, each carrying the EXACT canonical bytes that were sealed into that slot.\n\n**RECORDS** which bytes occupied each named slot of this submission.\n\n**PROVES BYTE EQUALITY ONLY.** `component_digest` is `sha256(UTF8(canonical_bytes))`, and the envelope of those ten reproduces `subject.review_package_digest` under `meshqu-review-package/v1`. That is the whole of the claim: it says these are the bytes that were sealed. It does not say the content is true, complete, correctly interpreted, reviewed by a human or authorised.\n\n**Source availability is reported SEPARATELY, and only when asked.** Pass `check_source_availability=true` and each MeshQu-custody item in the sealed `source_manifest` is retrieved from custody and re-hashed against the digest the manifest sealed; the result appears in `source_availability`, one entry per item, bound to the exact resolution entry that was checked. Without the parameter every entry is `NOT_CHECKED`, which states that no check ran — it is not a finding about the bytes.\n\n`AVAILABLE_VERIFIED` is the only state that follows a hash comparison, and it means the bytes were retrievable AT THAT MOMENT. It is not a guarantee of future availability and it says nothing about whether the source is the right source. `NOT_FOUND`, `ACCESS_DENIED`, `DIGEST_MISMATCH`, `ERASED`, `OPERATIONAL_FAILURE` and `NOT_CHECKED` are six distinct answers that never collapse into one another, and none of them is an approval. An unavailable source does not rewrite the sealed subject: the historical digest is unchanged and the current status sits beside it.\n\nThese observations are not part of any component and are in no digest. This route never returns bytes; the reviewer-only `.../source-items/:sourceItemId/bytes` route does (PWB-036).\n\nThe bytes are returned verbatim and are not re-serialised, re-ordered or pretty-printed; any of those would produce a string whose digest no longer matches.\n\nSupply `expected_id`, `expected_revision` and `expected_digest` together to assert the identity a judgment was recorded against. All three or none — a partial expectation is refused with 400 rather than half-checked. A disagreeing leg returns 409 with a code naming THAT leg, so \"a different submission\" is never reported as \"the bytes changed\". A match means the judgment names the same subject; it does not mean the judgment is correct.",
         "parameters": [
           {
             "schema": {
@@ -16358,6 +16358,209 @@
           }
         },
         "operationId": "getV1ReviewSubmissionsBySubmissionId"
+      }
+    },
+    "/v1/review-submissions/{submissionId}/source-items/{sourceItemId}/bytes": {
+      "get": {
+        "summary": "Read the bytes of a sealed source item (reviewer sessions only)",
+        "tags": [
+          "Policy Review"
+        ],
+        "description": "PWB-036. A human governance act: an API key is refused HUMAN_PRINCIPAL_REQUIRED. Returns the source item's bytes (base64) ONLY when custody re-hashed the stored octets to the sealed digest on this read (`observation.state = AVAILABLE_VERIFIED`); in every other state `bytes_base64` is null and the observation names the state (NOT_FOUND, ACCESS_DENIED, DIGEST_MISMATCH, ERASED, OPERATIONAL_FAILURE, NOT_CHECKED). The item must be a sealed source_manifest_item of this submission (404 otherwise). Every call, served or not, appends a `source_bytes_read` audit row naming the reader, the item, the bound digest and the resolution entry read. Nothing here claims external availability.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "submissionId",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 256,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "sourceItemId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "submission_id",
+                    "observation",
+                    "media_type",
+                    "bytes_base64"
+                  ],
+                  "properties": {
+                    "submission_id": {
+                      "type": "string"
+                    },
+                    "observation": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "source_item_id",
+                        "state",
+                        "bound_byte_digest",
+                        "digest_profile",
+                        "resolution_entry_id",
+                        "checked_at",
+                        "detail"
+                      ],
+                      "properties": {
+                        "source_item_id": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        },
+                        "bound_byte_digest": {
+                          "type": "string"
+                        },
+                        "digest_profile": {
+                          "type": "string"
+                        },
+                        "resolution_entry_id": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "checked_at": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "detail": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "media_type": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "bytes_base64": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1ReviewSubmissionsBySubmissionIdSourceItemsBySourceItemIdBytes"
       }
     },
     "/v1/source-uploads": {
@@ -34559,6 +34762,12 @@
                 {
                   "type": "string",
                   "enum": [
+                    "source_bytes_read"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
                     "tenant_member_invited"
                   ]
                 },
@@ -34887,6 +35096,12 @@
                                 "type": "string",
                                 "enum": [
                                   "review_record_created"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "source_bytes_read"
                                 ]
                               },
                               {
@@ -35322,6 +35537,12 @@
                             "type": "string",
                             "enum": [
                               "review_record_created"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "source_bytes_read"
                             ]
                           },
                           {
@@ -42490,6 +42711,12 @@
                                 "type": "string",
                                 "enum": [
                                   "review_record_created"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "source_bytes_read"
                                 ]
                               },
                               {
