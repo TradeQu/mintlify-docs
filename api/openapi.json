@@ -16296,6 +16296,209 @@
         "operationId": "getV1ReviewSubmissionsBySubmissionId"
       }
     },
+    "/v1/review-submissions/{submissionId}/source-items/{sourceItemId}/bytes": {
+      "get": {
+        "summary": "Read the bytes of a sealed source item (reviewer sessions only)",
+        "tags": [
+          "Policy Review"
+        ],
+        "description": "PWB-036. A human governance act: an API key is refused HUMAN_PRINCIPAL_REQUIRED. Returns the source item's bytes (base64) ONLY when custody re-hashed the stored octets to the sealed digest on this read (`observation.state = AVAILABLE_VERIFIED`); in every other state `bytes_base64` is null and the observation names the state (NOT_FOUND, ACCESS_DENIED, DIGEST_MISMATCH, ERASED, OPERATIONAL_FAILURE, NOT_CHECKED). The item must be a sealed source_manifest_item of this submission (404 otherwise). Every call, served or not, appends a `source_bytes_read` audit row naming the reader, the item, the bound digest and the resolution entry read. Nothing here claims external availability.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "submissionId",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 256,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "sourceItemId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "submission_id",
+                    "observation",
+                    "media_type",
+                    "bytes_base64"
+                  ],
+                  "properties": {
+                    "submission_id": {
+                      "type": "string"
+                    },
+                    "observation": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "source_item_id",
+                        "state",
+                        "bound_byte_digest",
+                        "digest_profile",
+                        "resolution_entry_id",
+                        "checked_at",
+                        "detail"
+                      ],
+                      "properties": {
+                        "source_item_id": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        },
+                        "bound_byte_digest": {
+                          "type": "string"
+                        },
+                        "digest_profile": {
+                          "type": "string"
+                        },
+                        "resolution_entry_id": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "checked_at": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "detail": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "media_type": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "bytes_base64": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1ReviewSubmissionsBySubmissionIdSourceItemsBySourceItemIdBytes"
+      }
+    },
     "/v1/source-uploads": {
       "post": {
         "summary": "Declare a source upload",
@@ -34491,6 +34694,12 @@
                 {
                   "type": "string",
                   "enum": [
+                    "source_bytes_read"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
                     "tenant_member_invited"
                   ]
                 },
@@ -34819,6 +35028,12 @@
                                 "type": "string",
                                 "enum": [
                                   "review_record_created"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "source_bytes_read"
                                 ]
                               },
                               {
@@ -35254,6 +35469,12 @@
                             "type": "string",
                             "enum": [
                               "review_record_created"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "source_bytes_read"
                             ]
                           },
                           {
@@ -42422,6 +42643,12 @@
                                 "type": "string",
                                 "enum": [
                                   "review_record_created"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "source_bytes_read"
                                 ]
                               },
                               {
