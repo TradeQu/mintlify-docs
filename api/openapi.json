@@ -1250,7 +1250,7 @@
                             }
                           },
                           "versionState": {
-                            "description": "Lifecycle state of the selected version. \"submitted\" is reserved for PV2-020; today the server only emits active | draft | historical.",
+                            "description": "Lifecycle state of the selected version. \"submitted\" is reserved for PV2-020; today the server emits active | draft | historical | discarded. \"discarded\" is a draft soft-discarded under PWB-039 (OPD-107): it never governed a decision, carries no restore action and never sets canRestore.",
                             "anyOf": [
                               {
                                 "type": "string",
@@ -1274,6 +1274,12 @@
                                 "type": "string",
                                 "enum": [
                                   "historical"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "discarded"
                                 ]
                               }
                             ]
@@ -2632,7 +2638,7 @@
                       }
                     },
                     "versionState": {
-                      "description": "Lifecycle state of the selected version. \"submitted\" is reserved for PV2-020; today the server only emits active | draft | historical.",
+                      "description": "Lifecycle state of the selected version. \"submitted\" is reserved for PV2-020; today the server emits active | draft | historical | discarded. \"discarded\" is a draft soft-discarded under PWB-039 (OPD-107): it never governed a decision, carries no restore action and never sets canRestore.",
                       "anyOf": [
                         {
                           "type": "string",
@@ -2656,6 +2662,12 @@
                           "type": "string",
                           "enum": [
                             "historical"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "discarded"
                           ]
                         }
                       ]
@@ -4147,7 +4159,7 @@
                       }
                     },
                     "versionState": {
-                      "description": "Lifecycle state of the selected version. \"submitted\" is reserved for PV2-020; today the server only emits active | draft | historical.",
+                      "description": "Lifecycle state of the selected version. \"submitted\" is reserved for PV2-020; today the server emits active | draft | historical | discarded. \"discarded\" is a draft soft-discarded under PWB-039 (OPD-107): it never governed a decision, carries no restore action and never sets canRestore.",
                       "anyOf": [
                         {
                           "type": "string",
@@ -4171,6 +4183,12 @@
                           "type": "string",
                           "enum": [
                             "historical"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "discarded"
                           ]
                         }
                       ]
@@ -5090,7 +5108,7 @@
                       }
                     },
                     "versionState": {
-                      "description": "Lifecycle state of the selected version. \"submitted\" is reserved for PV2-020; today the server only emits active | draft | historical.",
+                      "description": "Lifecycle state of the selected version. \"submitted\" is reserved for PV2-020; today the server emits active | draft | historical | discarded. \"discarded\" is a draft soft-discarded under PWB-039 (OPD-107): it never governed a decision, carries no restore action and never sets canRestore.",
                       "anyOf": [
                         {
                           "type": "string",
@@ -5114,6 +5132,12 @@
                           "type": "string",
                           "enum": [
                             "historical"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "discarded"
                           ]
                         }
                       ]
@@ -32840,7 +32864,7 @@
         "tags": [
           "Authoring Capabilities"
         ],
-        "description": "Mints a new DRAFT policy version under `policy_id` — rules copied from `source_policy_version_id`, `created_by` set to the issuing human — and, in the same transaction, creates an authoring capability record bound to THAT minted version, a closed set of authoring actions, a set of granted source items and a validity window. The bound `policy_version_id` and `policy_version_number` are chosen by the server and returned; a caller cannot name them. Requires a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED. The subject key must hold the authoring:capability scope and must not hold policies:read or policies:write. Returns 404 AUTHORING_CAPABILITY_SOURCE_VERSION_NOT_FOUND when the source version is not a version of that policy in this tenant, and 409 AUTHORING_CAPABILITY_DRAFT_CONFLICT when the policy already has an open draft or submitted version, so no shell can be minted.",
+        "description": "Mints a new DRAFT policy version under `policy_id` — rules copied from `source_policy_version_id`, `created_by` set to the issuing human — and, in the same transaction, creates an authoring capability record bound to THAT minted version, a closed set of authoring actions, a set of granted source items and a validity window. The bound `policy_version_id` and `policy_version_number` are chosen by the server and returned; a caller cannot name them. Access is decided by two gates, in this order, both answering 403: the scope check runs first, so a principal without the api-keys:admin scope — including an authoring:capability carrier key — is refused FORBIDDEN and never reaches the second gate; a principal that HAS api-keys:admin but is an API key rather than a verified human session is then refused HUMAN_PRINCIPAL_REQUIRED. Only a verified human principal holding api-keys:admin reaches the handler. The subject key named in the body must hold the authoring:capability scope and must not hold policies:read or policies:write. Returns 404 AUTHORING_CAPABILITY_SOURCE_VERSION_NOT_FOUND when the source version is not a version of that policy in this tenant, and 409 AUTHORING_CAPABILITY_DRAFT_CONFLICT when the policy already has an open draft or submitted version, so no shell can be minted.",
         "requestBody": {
           "required": true,
           "content": {
@@ -33725,7 +33749,7 @@
         "tags": [
           "Authoring Capabilities"
         ],
-        "description": "Creates a revocation record naming the given grant and returns it. The grant row is left exactly as issued. Requires a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED.",
+        "description": "Creates a revocation record naming the given grant and returns it. The grant row is left exactly as issued. Access is decided by the same two gates as issuance, in the same order, both answering 403: without the api-keys:admin scope the scope check refuses FORBIDDEN first; with it, an API key rather than a verified human session is refused HUMAN_PRINCIPAL_REQUIRED.",
         "requestBody": {
           "required": true,
           "content": {
