@@ -11296,7 +11296,6 @@
                                   "type": "object",
                                   "required": [
                                     "rule_code",
-                                    "when",
                                     "reason"
                                   ],
                                   "properties": {
@@ -11305,7 +11304,7 @@
                                       "type": "string"
                                     },
                                     "when": {
-                                      "description": "The when clause that excluded the rule"
+                                      "description": "The when clause that excluded the rule. Absent when no when clause was responsible — the rule was reached and had nothing to test."
                                     },
                                     "reason": {
                                       "description": "Human-readable reason why the rule was not applicable",
@@ -15366,7 +15365,7 @@
                     ]
                   },
                   "model_trace": {
-                    "description": "The model trace, as shown. Carried verbatim into the digest.",
+                    "description": "The model trace, as shown. Carried verbatim into the digest — except that when an authoring capability admitted this request, the slot is emitted as `{ authoring_capability, agent_model_trace }`: the server-resolved capability binding, and this value beneath it byte for byte (OPD-108). The two keys `authoring_capability` and `agent_model_trace` are RESERVED — supplying either at the top level of this object is refused with `MODEL_TRACE_RESERVED_KEY`, so a caller cannot write a slot that reads like a server binding.",
                     "anyOf": [
                       {},
                       {
@@ -15377,6 +15376,11 @@
                         ]
                       }
                     ]
+                  },
+                  "authoring_capability_id": {
+                    "format": "uuid",
+                    "description": "The authoring capability the caller asserts admitted this request. REQUIRED when a capability admitted it, REFUSED when none did. It is checked against the capability the credential resolved to and is never stored as supplied — the server records its own resolution. Records which capability the API resolved at seal time; it does not establish anything about the model behind the credential.",
+                    "type": "string"
                   },
                   "prior_source_manifest_items": {
                     "description": "The `source_manifest_items` of the immediately preceding sealed submission, when one exists. Present ONLY so \"the bytes moved while the declared identity stayed still\" is detectable. It is not part of any component and never enters a digest.",
@@ -15485,7 +15489,8 @@
                     "component_digests",
                     "active_rules_hash",
                     "sealed_at",
-                    "sealed_by"
+                    "sealed_by",
+                    "authoring_capability_id"
                   ],
                   "properties": {
                     "id": {
@@ -15593,6 +15598,18 @@
                     "sealed_by": {
                       "description": "The principal the server attributed the submit act to. Records attribution; proves nothing about human authorship, competence or independent judgment.",
                       "type": "string"
+                    },
+                    "authoring_capability_id": {
+                      "description": "The authoring capability that ADMITTED this seal, as the server resolved it from the authenticating credential — not read from the package and not chosen by the caller (OPD-108). `null` where none did: a seal made through the interim `policies:write` path has no capability behind it, and inventing one would claim an authority nothing checked.\n\nRECORDS which capability record the credential resolved to at the moment of sealing. It does NOT establish that the model named in that capability's self-declared `agent_declaration` produced these bytes — a capability's subject is the API key.",
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   }
                 }
@@ -15777,7 +15794,8 @@
                           "component_digests",
                           "active_rules_hash",
                           "sealed_at",
-                          "sealed_by"
+                          "sealed_by",
+                          "authoring_capability_id"
                         ],
                         "properties": {
                           "id": {
@@ -15885,6 +15903,18 @@
                           "sealed_by": {
                             "description": "The principal the server attributed the submit act to. Records attribution; proves nothing about human authorship, competence or independent judgment.",
                             "type": "string"
+                          },
+                          "authoring_capability_id": {
+                            "description": "The authoring capability that ADMITTED this seal, as the server resolved it from the authenticating credential — not read from the package and not chosen by the caller (OPD-108). `null` where none did: a seal made through the interim `policies:write` path has no capability behind it, and inventing one would claim an authority nothing checked.\n\nRECORDS which capability record the credential resolved to at the moment of sealing. It does NOT establish that the model named in that capability's self-declared `agent_declaration` produced these bytes — a capability's subject is the API key.",
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         }
                       }
@@ -16023,7 +16053,8 @@
                         "component_digests",
                         "active_rules_hash",
                         "sealed_at",
-                        "sealed_by"
+                        "sealed_by",
+                        "authoring_capability_id"
                       ],
                       "properties": {
                         "id": {
@@ -16131,6 +16162,18 @@
                         "sealed_by": {
                           "description": "The principal the server attributed the submit act to. Records attribution; proves nothing about human authorship, competence or independent judgment.",
                           "type": "string"
+                        },
+                        "authoring_capability_id": {
+                          "description": "The authoring capability that ADMITTED this seal, as the server resolved it from the authenticating credential — not read from the package and not chosen by the caller (OPD-108). `null` where none did: a seal made through the interim `policies:write` path has no capability behind it, and inventing one would claim an authority nothing checked.\n\nRECORDS which capability record the credential resolved to at the moment of sealing. It does NOT establish that the model named in that capability's self-declared `agent_declaration` produced these bytes — a capability's subject is the API key.",
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         }
                       }
                     },
@@ -18969,7 +19012,7 @@
         "tags": [
           "Policy Review"
         ],
-        "description": "Executes an independently authored case pack against the rules stored on this policy version, in process, and returns the per-case results.\n\n**SYNTHETIC.** No decision, receipt, policy snapshot or audit row is created, nothing is signed and nothing is persisted. The response carries no `integrity_hash`, no signature and no decision id — it is not receipt-shaped and cannot be presented as a real evaluation. Non-billing, and rate-limited under the standard per-tenant/per-key tier.\n\n**RECORDS** what the stored rules did for each supplied case at the supplied `evaluation_time`, and how that compares to the case's expectation.\n\n**ESTABLISHES** deterministic agreement for the exact cases, rules, context and evaluator version exercised. It does NOT establish completeness beyond those cases, the truth of the case classifications, or source fidelity — the spike found one invented rule and one over-broad rule that oracle execution did not catch.\n\n**Five scoring states, not a pass rate.** `match` and `mismatch` are the scored outcomes. `unrepresentable` is an expected `NOT_APPLICABLE`: the evaluator has no verdict for \"this policy does not apply\", and its zero-rule ALLOW is retained as engine output rather than promoted to the policy outcome. `not_scored` is an expected `OUT_OF_SCOPE_INSUFFICIENT_EVIDENCE`, or a case with no expectation. `operational_failure` is an evaluator exception for that case — an indeterminate state, never an ALLOW. The summary reports five counts and no ratio, because the states do not roll up.\n\n422 `CASE_PACK_CANDIDATE_DERIVED` refuses a pack that declares non-independent authorship AND whose every comparable expectation names exactly the rule codes the candidate fires. That check is narrow: it cannot detect a derived pack that declares `independent`, and coincidence with the firing set is also what a CORRECT independent oracle looks like.",
+        "description": "Executes an independently authored case pack against the rules stored on this policy version, in process, and returns the per-case results.\n\n**SYNTHETIC.** No decision, receipt, policy snapshot or audit row is created, nothing is signed and nothing is persisted. The response carries no `integrity_hash`, no signature and no decision id — it is not receipt-shaped and cannot be presented as a real evaluation. Non-billing, and rate-limited under the standard per-tenant/per-key tier.\n\n**RECORDS** what the stored rules did for each supplied case at the supplied `evaluation_time`, and how that compares to the case's expectation.\n\n**ESTABLISHES** deterministic agreement for the exact cases, rules, context and evaluator version exercised. It does NOT establish completeness beyond those cases, the truth of the case classifications, or source fidelity — the spike found one invented rule and one over-broad rule that oracle execution did not catch.\n\n**Five scoring states, not a pass rate.** `match` and `mismatch` are the scored outcomes. `unrepresentable` is an expected `NOT_APPLICABLE`: the evaluator has no verdict for \"this policy does not apply\", and its zero-rule ALLOW is retained as engine output rather than promoted to the policy outcome. It is ALSO the state for a case whose `context.decision_type` differs from the one this policy governs: no rule is evaluated against it, and `engine_output` carries `not_applicable_decision_type` — a branch with no `decision` and no `violations`, so a context the policy does not govern cannot be read as a verdict by field access. A case whose context states no `decision_type` is evaluated normally. `not_scored` is an expected `OUT_OF_SCOPE_INSUFFICIENT_EVIDENCE`, or a case with no expectation. `operational_failure` is an evaluator exception for that case — an indeterminate state, never an ALLOW. The summary reports five counts and no ratio, because the states do not roll up.\n\n422 `CASE_PACK_CANDIDATE_DERIVED` refuses a pack that declares non-independent authorship AND whose every comparable expectation names exactly the rule codes the candidate fires. That check is narrow: it cannot detect a derived pack that declares `independent`, and coincidence with the firing set is also what a CORRECT independent oracle looks like.",
         "requestBody": {
           "required": true,
           "content": {
@@ -19301,6 +19344,19 @@
                                 "properties": {
                                   "operational_failure": {
                                     "description": "The exception class and message. There is no `decision` on this branch, so an evaluator failure cannot be read as a verdict by field access.",
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "not_applicable_decision_type"
+                                ],
+                                "properties": {
+                                  "not_applicable_decision_type": {
+                                    "description": "Names the decision type the case declares and the one the policy governs. There is no `decision` and no `violations` on this branch, so a context the policy does not govern cannot be read as a verdict by field access.",
                                     "type": "string"
                                   }
                                 }
@@ -20009,7 +20065,6 @@
                             "type": "object",
                             "required": [
                               "rule_code",
-                              "when",
                               "reason"
                             ],
                             "properties": {
@@ -20018,7 +20073,7 @@
                                 "type": "string"
                               },
                               "when": {
-                                "description": "The when clause that excluded the rule"
+                                "description": "The when clause that excluded the rule. Absent when no when clause was responsible — the rule was reached and had nothing to test."
                               },
                               "reason": {
                                 "description": "Human-readable reason why the rule was not applicable",
@@ -21516,7 +21571,6 @@
                                 "type": "object",
                                 "required": [
                                   "rule_code",
-                                  "when",
                                   "reason"
                                 ],
                                 "properties": {
@@ -21525,7 +21579,7 @@
                                     "type": "string"
                                   },
                                   "when": {
-                                    "description": "The when clause that excluded the rule"
+                                    "description": "The when clause that excluded the rule. Absent when no when clause was responsible — the rule was reached and had nothing to test."
                                   },
                                   "reason": {
                                     "description": "Human-readable reason why the rule was not applicable",
@@ -22716,7 +22770,6 @@
                                 "type": "object",
                                 "required": [
                                   "rule_code",
-                                  "when",
                                   "reason"
                                 ],
                                 "properties": {
@@ -22725,7 +22778,7 @@
                                     "type": "string"
                                   },
                                   "when": {
-                                    "description": "The when clause that excluded the rule"
+                                    "description": "The when clause that excluded the rule. Absent when no when clause was responsible — the rule was reached and had nothing to test."
                                   },
                                   "reason": {
                                     "description": "Human-readable reason why the rule was not applicable",
@@ -24289,7 +24342,6 @@
                                   "type": "object",
                                   "required": [
                                     "rule_code",
-                                    "when",
                                     "reason"
                                   ],
                                   "properties": {
@@ -24298,7 +24350,7 @@
                                       "type": "string"
                                     },
                                     "when": {
-                                      "description": "The when clause that excluded the rule"
+                                      "description": "The when clause that excluded the rule. Absent when no when clause was responsible — the rule was reached and had nothing to test."
                                     },
                                     "reason": {
                                       "description": "Human-readable reason why the rule was not applicable",
@@ -25351,7 +25403,6 @@
                                 "type": "object",
                                 "required": [
                                   "rule_code",
-                                  "when",
                                   "reason"
                                 ],
                                 "properties": {
@@ -25360,7 +25411,7 @@
                                     "type": "string"
                                   },
                                   "when": {
-                                    "description": "The when clause that excluded the rule"
+                                    "description": "The when clause that excluded the rule. Absent when no when clause was responsible — the rule was reached and had nothing to test."
                                   },
                                   "reason": {
                                     "description": "Human-readable reason why the rule was not applicable",
@@ -27043,7 +27094,6 @@
                                 "type": "object",
                                 "required": [
                                   "rule_code",
-                                  "when",
                                   "reason"
                                 ],
                                 "properties": {
@@ -27052,7 +27102,7 @@
                                     "type": "string"
                                   },
                                   "when": {
-                                    "description": "The when clause that excluded the rule"
+                                    "description": "The when clause that excluded the rule. Absent when no when clause was responsible — the rule was reached and had nothing to test."
                                   },
                                   "reason": {
                                     "description": "Human-readable reason why the rule was not applicable",
@@ -27833,7 +27883,6 @@
                             "type": "object",
                             "required": [
                               "rule_code",
-                              "when",
                               "reason"
                             ],
                             "properties": {
@@ -27842,7 +27891,7 @@
                                 "type": "string"
                               },
                               "when": {
-                                "description": "The when clause that excluded the rule"
+                                "description": "The when clause that excluded the rule. Absent when no when clause was responsible — the rule was reached and had nothing to test."
                               },
                               "reason": {
                                 "description": "Human-readable reason why the rule was not applicable",
@@ -32864,14 +32913,14 @@
         "tags": [
           "Authoring Capabilities"
         ],
-        "description": "Mints a new DRAFT policy version under `policy_id` — rules copied from `source_policy_version_id`, `created_by` set to the issuing human — and, in the same transaction, creates an authoring capability record bound to THAT minted version, a closed set of authoring actions, a set of granted source items and a validity window. The bound `policy_version_id` and `policy_version_number` are chosen by the server and returned; a caller cannot name them. Access is decided by two gates, in this order, both answering 403: the scope check runs first, so a principal without the api-keys:admin scope — including an authoring:capability carrier key — is refused FORBIDDEN and never reaches the second gate; a principal that HAS api-keys:admin but is an API key rather than a verified human session is then refused HUMAN_PRINCIPAL_REQUIRED. Only a verified human principal holding api-keys:admin reaches the handler. The subject key named in the body must hold the authoring:capability scope and must not hold policies:read or policies:write. Returns 404 AUTHORING_CAPABILITY_SOURCE_VERSION_NOT_FOUND when the source version is not a version of that policy in this tenant, and 409 AUTHORING_CAPABILITY_DRAFT_CONFLICT when the policy already has an open draft or submitted version, so no shell can be minted.",
+        "description": "Mints a new DRAFT policy version under `policy_id` — rules copied from `source_policy_version_id`, `created_by` set to the issuing human — and, in the same transaction, creates an authoring capability record bound to THAT minted version, a closed set of authoring actions, a set of granted source items and a validity window. The bound `policy_version_id` and `policy_version_number` are chosen by the server and returned; a caller cannot name them. Access is decided by two gates, in this order, both answering 403: the scope check runs first, so a principal without the api-keys:admin scope — including an authoring:capability carrier key — is refused FORBIDDEN and never reaches the second gate; a principal that HAS api-keys:admin but is an API key rather than a verified human session is then refused HUMAN_PRINCIPAL_REQUIRED. Only a verified human principal holding api-keys:admin reaches the handler. The subject key named in the body must hold the authoring:capability scope and must not hold policies:read or policies:write. Returns 404 AUTHORING_CAPABILITY_SOURCE_VERSION_NOT_FOUND when the source version is not a version of that policy in this tenant, and 409 AUTHORING_CAPABILITY_DRAFT_CONFLICT when the policy already has an open draft or submitted version, so no shell can be minted. Five further 400s, none of which writes anything. Two refuse a record that could never be used, because the subject key cannot authenticate at all: AUTHORING_CAPABILITY_SUBJECT_REVOKED (it is revoked or inactive) and AUTHORING_CAPABILITY_SUBJECT_EXPIRED (its expires_at is at or before now). One refuses a window that could never open: AUTHORING_CAPABILITY_WINDOW_ELAPSED (valid_until is at or before now). One refuses a window that outlives its carrier: AUTHORING_CAPABILITY_WINDOW_OUTLIVES_SUBJECT (valid_until is after the subject key's expires_at, so the part of the window past that instant is unusable while the part before it is not — a window ending exactly at the expiry is accepted, and a key with no expires_at does not constrain the window). One fails closed on an expiry the platform cannot read: AUTHORING_CAPABILITY_SUBJECT_EXPIRY_UNREADABLE (the subject key's expires_at is not a readable timestamp, so whether it can still authenticate cannot be established, and issuance refuses rather than assumes). These are evaluated in one order and the first that applies is the answer: the subject key must exist, then hold the right scopes, then be live, and only then is the window checked — against the clock, then against the key's expiry.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "additionalProperties": false,
-                "description": "Issue an authoring capability. `source_policy_version_id` names the EXISTING version whose rules are copied into a new draft version minted by this request; the capability binds to the MINTED version, whose id and number the server chooses and returns in `policy_version_id` / `policy_version_number`.",
+                "description": "Issue an authoring capability. `source_policy_version_id` names the EXISTING version whose rules are copied into a new draft version minted by this request; the capability binds to the MINTED version, whose id and number the server chooses and returns in `policy_version_id` / `policy_version_number`. `valid_until` must be strictly after `valid_from` (AUTHORING_CAPABILITY_INVALID_WINDOW), strictly after the time of the request (AUTHORING_CAPABILITY_WINDOW_ELAPSED), and at or before the subject key's `expires_at` when it has one (AUTHORING_CAPABILITY_WINDOW_OUTLIVES_SUBJECT). `valid_from` may be in the past: it records when the delegation began. The subject key named by `key_id` must additionally pass the subject-key checks the endpoint description lists — it must not be revoked or inactive, it must not have expired, and if it carries an `expires_at` the server must be able to read it (a key with no `expires_at` is accepted). Body coherence is checked first (AUTHORING_CAPABILITY_INVALID_WINDOW), then the subject key, then the two clock rules above.",
                 "type": "object",
                 "required": [
                   "key_id",
@@ -32924,6 +32973,42 @@
                       "type": "string"
                     }
                   },
+                  "agent_declaration": {
+                    "additionalProperties": false,
+                    "description": "What the agent DECLARES about itself, recorded on the capability at issuance. It is inside the capability digest preimage and therefore covered by the grantor signature, so it cannot be edited after issuance without breaking the record. That is the whole of the property: it does not establish that the named model exists, that it is the model that authenticated, or that it produced anything. Never read by any admission decision.",
+                    "type": "object",
+                    "required": [
+                      "model",
+                      "version",
+                      "instruction_digest"
+                    ],
+                    "properties": {
+                      "model": {
+                        "minLength": 1,
+                        "maxLength": 256,
+                        "description": "The model the agent declares itself to be. Self-declared; never checked.",
+                        "type": "string"
+                      },
+                      "version": {
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "description": "The model or build version the agent declares. Self-declared; never checked.",
+                        "type": "string"
+                      },
+                      "instruction_digest": {
+                        "minLength": 1,
+                        "maxLength": 512,
+                        "description": "A digest the agent declares identifies the instructions it ran under. Opaque to this API: MeshQu does not compute it, hold the instructions it names, or verify it.",
+                        "type": "string"
+                      },
+                      "harness": {
+                        "minLength": 1,
+                        "maxLength": 256,
+                        "description": "The harness the agent declares it runs inside. Optional — an absent field and an empty one are different facts, so an empty string is refused.",
+                        "type": "string"
+                      }
+                    }
+                  },
                   "valid_from": {
                     "format": "date-time",
                     "type": "string"
@@ -32936,7 +33021,7 @@
               }
             }
           },
-          "description": "Issue an authoring capability. `source_policy_version_id` names the EXISTING version whose rules are copied into a new draft version minted by this request; the capability binds to the MINTED version, whose id and number the server chooses and returns in `policy_version_id` / `policy_version_number`."
+          "description": "Issue an authoring capability. `source_policy_version_id` names the EXISTING version whose rules are copied into a new draft version minted by this request; the capability binds to the MINTED version, whose id and number the server chooses and returns in `policy_version_id` / `policy_version_number`. `valid_until` must be strictly after `valid_from` (AUTHORING_CAPABILITY_INVALID_WINDOW), strictly after the time of the request (AUTHORING_CAPABILITY_WINDOW_ELAPSED), and at or before the subject key's `expires_at` when it has one (AUTHORING_CAPABILITY_WINDOW_OUTLIVES_SUBJECT). `valid_from` may be in the past: it records when the delegation began. The subject key named by `key_id` must additionally pass the subject-key checks the endpoint description lists — it must not be revoked or inactive, it must not have expired, and if it carries an `expires_at` the server must be able to read it (a key with no `expires_at` is accepted). Body coherence is checked first (AUTHORING_CAPABILITY_INVALID_WINDOW), then the subject key, then the two clock rules above."
         },
         "responses": {
           "201": {
@@ -33056,6 +33141,42 @@
                     "issued_at": {
                       "format": "date-time",
                       "type": "string"
+                    },
+                    "agent_declaration": {
+                      "additionalProperties": false,
+                      "description": "What the agent DECLARES about itself, recorded on the capability at issuance. It is inside the capability digest preimage and therefore covered by the grantor signature, so it cannot be edited after issuance without breaking the record. That is the whole of the property: it does not establish that the named model exists, that it is the model that authenticated, or that it produced anything. Never read by any admission decision.",
+                      "type": "object",
+                      "required": [
+                        "model",
+                        "version",
+                        "instruction_digest"
+                      ],
+                      "properties": {
+                        "model": {
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "The model the agent declares itself to be. Self-declared; never checked.",
+                          "type": "string"
+                        },
+                        "version": {
+                          "minLength": 1,
+                          "maxLength": 128,
+                          "description": "The model or build version the agent declares. Self-declared; never checked.",
+                          "type": "string"
+                        },
+                        "instruction_digest": {
+                          "minLength": 1,
+                          "maxLength": 512,
+                          "description": "A digest the agent declares identifies the instructions it ran under. Opaque to this API: MeshQu does not compute it, hold the instructions it names, or verify it.",
+                          "type": "string"
+                        },
+                        "harness": {
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "The harness the agent declares it runs inside. Optional — an absent field and an empty one are different facts, so an empty string is refused.",
+                          "type": "string"
+                        }
+                      }
                     },
                     "capability_digest": {
                       "pattern": "^[0-9a-f]{64}$",
@@ -33459,6 +33580,42 @@
                             "format": "date-time",
                             "type": "string"
                           },
+                          "agent_declaration": {
+                            "additionalProperties": false,
+                            "description": "What the agent DECLARES about itself, recorded on the capability at issuance. It is inside the capability digest preimage and therefore covered by the grantor signature, so it cannot be edited after issuance without breaking the record. That is the whole of the property: it does not establish that the named model exists, that it is the model that authenticated, or that it produced anything. Never read by any admission decision.",
+                            "type": "object",
+                            "required": [
+                              "model",
+                              "version",
+                              "instruction_digest"
+                            ],
+                            "properties": {
+                              "model": {
+                                "minLength": 1,
+                                "maxLength": 256,
+                                "description": "The model the agent declares itself to be. Self-declared; never checked.",
+                                "type": "string"
+                              },
+                              "version": {
+                                "minLength": 1,
+                                "maxLength": 128,
+                                "description": "The model or build version the agent declares. Self-declared; never checked.",
+                                "type": "string"
+                              },
+                              "instruction_digest": {
+                                "minLength": 1,
+                                "maxLength": 512,
+                                "description": "A digest the agent declares identifies the instructions it ran under. Opaque to this API: MeshQu does not compute it, hold the instructions it names, or verify it.",
+                                "type": "string"
+                              },
+                              "harness": {
+                                "minLength": 1,
+                                "maxLength": 256,
+                                "description": "The harness the agent declares it runs inside. Optional — an absent field and an empty one are different facts, so an empty string is refused.",
+                                "type": "string"
+                              }
+                            }
+                          },
                           "capability_digest": {
                             "pattern": "^[0-9a-f]{64}$",
                             "type": "string"
@@ -33605,6 +33762,42 @@
                                   "issued_at": {
                                     "format": "date-time",
                                     "type": "string"
+                                  },
+                                  "agent_declaration": {
+                                    "additionalProperties": false,
+                                    "description": "What the agent DECLARES about itself, recorded on the capability at issuance. It is inside the capability digest preimage and therefore covered by the grantor signature, so it cannot be edited after issuance without breaking the record. That is the whole of the property: it does not establish that the named model exists, that it is the model that authenticated, or that it produced anything. Never read by any admission decision.",
+                                    "type": "object",
+                                    "required": [
+                                      "model",
+                                      "version",
+                                      "instruction_digest"
+                                    ],
+                                    "properties": {
+                                      "model": {
+                                        "minLength": 1,
+                                        "maxLength": 256,
+                                        "description": "The model the agent declares itself to be. Self-declared; never checked.",
+                                        "type": "string"
+                                      },
+                                      "version": {
+                                        "minLength": 1,
+                                        "maxLength": 128,
+                                        "description": "The model or build version the agent declares. Self-declared; never checked.",
+                                        "type": "string"
+                                      },
+                                      "instruction_digest": {
+                                        "minLength": 1,
+                                        "maxLength": 512,
+                                        "description": "A digest the agent declares identifies the instructions it ran under. Opaque to this API: MeshQu does not compute it, hold the instructions it names, or verify it.",
+                                        "type": "string"
+                                      },
+                                      "harness": {
+                                        "minLength": 1,
+                                        "maxLength": 256,
+                                        "description": "The harness the agent declares it runs inside. Optional — an absent field and an empty one are different facts, so an empty string is refused.",
+                                        "type": "string"
+                                      }
+                                    }
                                   },
                                   "capability_digest": {
                                     "pattern": "^[0-9a-f]{64}$",
@@ -33900,6 +34093,42 @@
                     "issued_at": {
                       "format": "date-time",
                       "type": "string"
+                    },
+                    "agent_declaration": {
+                      "additionalProperties": false,
+                      "description": "What the agent DECLARES about itself, recorded on the capability at issuance. It is inside the capability digest preimage and therefore covered by the grantor signature, so it cannot be edited after issuance without breaking the record. That is the whole of the property: it does not establish that the named model exists, that it is the model that authenticated, or that it produced anything. Never read by any admission decision.",
+                      "type": "object",
+                      "required": [
+                        "model",
+                        "version",
+                        "instruction_digest"
+                      ],
+                      "properties": {
+                        "model": {
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "The model the agent declares itself to be. Self-declared; never checked.",
+                          "type": "string"
+                        },
+                        "version": {
+                          "minLength": 1,
+                          "maxLength": 128,
+                          "description": "The model or build version the agent declares. Self-declared; never checked.",
+                          "type": "string"
+                        },
+                        "instruction_digest": {
+                          "minLength": 1,
+                          "maxLength": 512,
+                          "description": "A digest the agent declares identifies the instructions it ran under. Opaque to this API: MeshQu does not compute it, hold the instructions it names, or verify it.",
+                          "type": "string"
+                        },
+                        "harness": {
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "The harness the agent declares it runs inside. Optional — an absent field and an empty one are different facts, so an empty string is refused.",
+                          "type": "string"
+                        }
+                      }
                     },
                     "capability_digest": {
                       "pattern": "^[0-9a-f]{64}$",
@@ -34272,6 +34501,42 @@
                     "issued_at": {
                       "format": "date-time",
                       "type": "string"
+                    },
+                    "agent_declaration": {
+                      "additionalProperties": false,
+                      "description": "What the agent DECLARES about itself, recorded on the capability at issuance. It is inside the capability digest preimage and therefore covered by the grantor signature, so it cannot be edited after issuance without breaking the record. That is the whole of the property: it does not establish that the named model exists, that it is the model that authenticated, or that it produced anything. Never read by any admission decision.",
+                      "type": "object",
+                      "required": [
+                        "model",
+                        "version",
+                        "instruction_digest"
+                      ],
+                      "properties": {
+                        "model": {
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "The model the agent declares itself to be. Self-declared; never checked.",
+                          "type": "string"
+                        },
+                        "version": {
+                          "minLength": 1,
+                          "maxLength": 128,
+                          "description": "The model or build version the agent declares. Self-declared; never checked.",
+                          "type": "string"
+                        },
+                        "instruction_digest": {
+                          "minLength": 1,
+                          "maxLength": 512,
+                          "description": "A digest the agent declares identifies the instructions it ran under. Opaque to this API: MeshQu does not compute it, hold the instructions it names, or verify it.",
+                          "type": "string"
+                        },
+                        "harness": {
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "The harness the agent declares it runs inside. Optional — an absent field and an empty one are different facts, so an empty string is refused.",
+                          "type": "string"
+                        }
+                      }
                     },
                     "capability_digest": {
                       "pattern": "^[0-9a-f]{64}$",
