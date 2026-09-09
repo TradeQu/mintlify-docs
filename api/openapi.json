@@ -15274,6 +15274,7 @@
                               "type": "string"
                             },
                             "affects": {
+                              "description": "What the assumption bears on. Each entry is either a `candidate_rule_id` from `candidate_policy.candidate_rules`, or a `unit_id` from `source_units` — the same source-unit inventory this seal carries. An entry in neither set is refused with `assumption_affects_unknown_rule_or_unit`, whose name says both sets were searched. Naming a source unit is how an assumption about a clause that produced NO candidate rule reaches a reviewer; before it was allowed, such an assumption had to be attached to an unrelated rule or to nothing. Matching is exact string equality — a case variant of a unit id is refused — and the package does not record which of the two namespaces an entry was meant for.",
                               "type": "array",
                               "items": {
                                 "minLength": 1,
