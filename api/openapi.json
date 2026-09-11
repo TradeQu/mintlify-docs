@@ -15383,6 +15383,11 @@
                     "description": "The authoring capability the caller asserts admitted this request. REQUIRED when a capability admitted it, REFUSED when none did. It is checked against the capability the credential resolved to and is never stored as supplied — the server records its own resolution. Records which capability the API resolved at seal time; it does not establish anything about the model behind the credential.",
                     "type": "string"
                   },
+                  "answers_record_id": {
+                    "format": "uuid",
+                    "description": "The review record this submission answers. REQUIRED when the prior submission of this policy version has been RETURNED, and REFUSED when it has not — so \"which record does this revision answer\" can never be answered by silence. It is checked against the return and never stored as supplied. It enters NO component and no digest preimage moves.",
+                    "type": "string"
+                  },
                   "prior_source_manifest_items": {
                     "description": "The `source_manifest_items` of the immediately preceding sealed submission, when one exists. Present ONLY so \"the bytes moved while the declared identity stayed still\" is detectable. It is not part of any component and never enters a digest.",
                     "type": "array",
@@ -15491,7 +15496,8 @@
                     "active_rules_hash",
                     "sealed_at",
                     "sealed_by",
-                    "authoring_capability_id"
+                    "authoring_capability_id",
+                    "answers_record_id"
                   ],
                   "properties": {
                     "id": {
@@ -15611,6 +15617,96 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "answers_record_id": {
+                      "description": "The review record this submission ANSWERS, as the server resolved it from the return of the prior submission of this policy version (OPD-130). `null` for a first submission and for every row sealed before the field existed.\n\nIT IS IN NO COMPONENT'S CANONICAL BYTES and no digest preimage moves: a package sealed with this link digests to exactly what the same package digests to without one.\n\nRECORDS which record the server verified this package was sealed in answer to. It does NOT establish that the package addresses that record's findings or corrections — nothing reads the package against the record.",
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
                     }
                   }
                 }
@@ -15796,7 +15892,8 @@
                           "active_rules_hash",
                           "sealed_at",
                           "sealed_by",
-                          "authoring_capability_id"
+                          "authoring_capability_id",
+                          "answers_record_id"
                         ],
                         "properties": {
                           "id": {
@@ -15907,6 +16004,18 @@
                           },
                           "authoring_capability_id": {
                             "description": "The authoring capability that ADMITTED this seal, as the server resolved it from the authenticating credential — not read from the package and not chosen by the caller (OPD-108). `null` where none did: a seal made through the interim `policies:write` path has no capability behind it, and inventing one would claim an authority nothing checked.\n\nRECORDS which capability record the credential resolved to at the moment of sealing. It does NOT establish that the model named in that capability's self-declared `agent_declaration` produced these bytes — a capability's subject is the API key.",
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "answers_record_id": {
+                            "description": "The review record this submission ANSWERS, as the server resolved it from the return of the prior submission of this policy version (OPD-130). `null` for a first submission and for every row sealed before the field existed.\n\nIT IS IN NO COMPONENT'S CANONICAL BYTES and no digest preimage moves: a package sealed with this link digests to exactly what the same package digests to without one.\n\nRECORDS which record the server verified this package was sealed in answer to. It does NOT establish that the package addresses that record's findings or corrections — nothing reads the package against the record.",
                             "anyOf": [
                               {
                                 "format": "uuid",
@@ -16037,7 +16146,12 @@
                   "required": [
                     "subject",
                     "components",
-                    "source_availability"
+                    "source_availability",
+                    "review_state",
+                    "returned_record_id",
+                    "returned_by",
+                    "returned_at",
+                    "return_authority"
                   ],
                   "properties": {
                     "subject": {
@@ -16055,7 +16169,8 @@
                         "active_rules_hash",
                         "sealed_at",
                         "sealed_by",
-                        "authoring_capability_id"
+                        "authoring_capability_id",
+                        "answers_record_id"
                       ],
                       "properties": {
                         "id": {
@@ -16166,6 +16281,18 @@
                         },
                         "authoring_capability_id": {
                           "description": "The authoring capability that ADMITTED this seal, as the server resolved it from the authenticating credential — not read from the package and not chosen by the caller (OPD-108). `null` where none did: a seal made through the interim `policies:write` path has no capability behind it, and inventing one would claim an authority nothing checked.\n\nRECORDS which capability record the credential resolved to at the moment of sealing. It does NOT establish that the model named in that capability's self-declared `agent_declaration` produced these bytes — a capability's subject is the API key.",
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "answers_record_id": {
+                          "description": "The review record this submission ANSWERS, as the server resolved it from the return of the prior submission of this policy version (OPD-130). `null` for a first submission and for every row sealed before the field existed.\n\nIT IS IN NO COMPONENT'S CANONICAL BYTES and no digest preimage moves: a package sealed with this link digests to exactly what the same package digests to without one.\n\nRECORDS which record the server verified this package was sealed in answer to. It does NOT establish that the package addresses that record's findings or corrections — nothing reads the package against the record.",
                           "anyOf": [
                             {
                               "format": "uuid",
@@ -16373,6 +16500,77 @@
                           }
                         }
                       }
+                    },
+                    "review_state": {
+                      "description": "DERIVED, never stored. `RETURNED` iff a return row exists for this submission; `SEALED` otherwise. The machine is SEALED -> RETURNED, once. It says nothing about whether the package is good, current or reviewed.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "SEALED"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "RETURNED"
+                          ]
+                        }
+                      ]
+                    },
+                    "returned_record_id": {
+                      "description": "The CORRECT_AND_RESUBMIT record the return named, or `null` when the submission has not been returned. This is the id the agent must supply as `answers_record_id` on its next seal.",
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "returned_by": {
+                      "description": "The STABLE principal that returned it (`user:<uuid>`), or `null`. Display attribution travels separately and is not this field.",
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "returned_at": {
+                      "anyOf": [
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "return_authority": {
+                      "description": "Which door the returner came through. `tenant_admin` is the ruled FALLBACK — ANY tenant admin. It does NOT mean a named second reviewer, an independent one, or one who read anything.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "recording_reviewer"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "tenant_admin"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   }
                 }
@@ -16701,6 +16899,235 @@
           }
         },
         "operationId": "getV1ReviewSubmissionsBySubmissionIdSourceItemsBySourceItemIdBytes"
+      }
+    },
+    "/v1/review-submissions/{submissionId}/return": {
+      "post": {
+        "summary": "Return a sealed review submission to the author (OPD-130)",
+        "tags": [
+          "Policy Review"
+        ],
+        "description": "Marks a sealed submission RETURNED against a `CORRECT_AND_RESUBMIT` review record, so the agent that authored it can read the record under its capability and seal a revision that answers it.\n\n**A human governance act (ADR 0003).** Only a verified human-session principal is admitted. A credential that holds `policies:write` but is not a human session is refused 403 `HUMAN_PRINCIPAL_REQUIRED`; one that does not hold `policies:write` is refused 403 `FORBIDDEN` by the scope gate first, before the human check is reached. Two controls, two codes — neither renders as permission.\n\n**Who may.** The human whose session recorded the named record (`recording_reviewer`), or a tenant admin as the ruled FALLBACK (`tenant_admin`). Anyone else receives 403 `REVIEW_RETURN_NOT_REVIEWER_OR_ADMIN`. The fallback is ANY tenant admin — it does not mean a named second reviewer, and nothing checks that the admin read anything. `return_authority` records which door was taken.\n\n**The record must be a `CORRECT_AND_RESUBMIT` of THIS submission.** Another disposition is 409 `REVIEW_RECORD_NOT_CORRECT_AND_RESUBMIT`; a record that is not on this submission (or does not exist, or belongs to another tenant) is one 404 `REVIEW_RECORD_NOT_ON_SUBMISSION` covering all three, deliberately, so the route is not an existence oracle.\n\n**Once.** The machine is SEALED → RETURNED; a second return is 409 `REVIEW_SUBMISSION_ALREADY_RETURNED`.\n\n**What it changes and what it does not.** One append-only return row and one `review_submission_returned` audit row, on the same transaction. The sealed subject is untouched, the authoring capability stays valid, and the shell version stays draft.\n\nRECORDS that this human under this authority returned this subject naming this record. It does NOT establish that the author saw it, that the record is correct, or that anything was corrected. It is not a receipt and nothing here is signed.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "review_record_id"
+                ],
+                "properties": {
+                  "review_record_id": {
+                    "format": "uuid",
+                    "description": "The CORRECT_AND_RESUBMIT record this return acts on. It must be a record of THIS submission and its disposition must be CORRECT_AND_RESUBMIT; anything else is refused rather than returned under a disposition that did not ask for a revision.",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "submissionId",
+            "required": true,
+            "description": "The sealed submission id. This is the review IDENTITY — not the policy version, which is a mutable container that yields many sealed subjects over time."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "submission_id",
+                    "review_state",
+                    "returned_record_id",
+                    "returned_by",
+                    "returned_by_display",
+                    "return_authority",
+                    "returned_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "submission_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "review_state": {
+                      "type": "string",
+                      "enum": [
+                        "RETURNED"
+                      ]
+                    },
+                    "returned_record_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "returned_by": {
+                      "type": "string"
+                    },
+                    "returned_by_display": {
+                      "type": "string"
+                    },
+                    "return_authority": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "recording_reviewer"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "tenant_admin"
+                          ]
+                        }
+                      ]
+                    },
+                    "returned_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1ReviewSubmissionsBySubmissionIdReturn"
       }
     },
     "/v1/source-uploads": {
@@ -35130,6 +35557,18 @@
                 {
                   "type": "string",
                   "enum": [
+                    "review_submission_returned"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "review_record_read_under_capability"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
                     "tenant_member_invited"
                   ]
                 },
@@ -35464,6 +35903,18 @@
                                 "type": "string",
                                 "enum": [
                                   "source_bytes_read"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review_submission_returned"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review_record_read_under_capability"
                                 ]
                               },
                               {
@@ -35905,6 +36356,18 @@
                             "type": "string",
                             "enum": [
                               "source_bytes_read"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "review_submission_returned"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "review_record_read_under_capability"
                             ]
                           },
                           {
@@ -43079,6 +43542,18 @@
                                 "type": "string",
                                 "enum": [
                                   "source_bytes_read"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review_submission_returned"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review_record_read_under_capability"
                                 ]
                               },
                               {
