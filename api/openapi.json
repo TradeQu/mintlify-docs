@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.11.0",
+    "version": "1.12.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -24335,6 +24335,25 @@
                           "type": "string"
                         }
                       }
+                    },
+                    "rule_sources": {
+                      "description": "Rule code to the source reference its author recorded. Present only when at least one rule in the governing snapshot carries one. Not part of the signed result: join it to violations[].rule_code or na_rules[].rule_code.",
+                      "type": "object",
+                      "additionalProperties": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "document": {
+                            "type": "string"
+                          },
+                          "section": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -26219,6 +26238,25 @@
                           "type": "string"
                         }
                       }
+                    },
+                    "rule_sources": {
+                      "description": "Rule code to the source reference its author recorded. Present only when at least one rule in the governing snapshot carries one. Not part of the signed result: join it to violations[].rule_code or na_rules[].rule_code.",
+                      "type": "object",
+                      "additionalProperties": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "document": {
+                            "type": "string"
+                          },
+                          "section": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -27461,6 +27499,25 @@
                         "detail": {
                           "description": "Plain-language explanation. Names no tenant data.",
                           "type": "string"
+                        }
+                      }
+                    },
+                    "rule_sources": {
+                      "description": "Rule code to the source reference its author recorded. Present only when at least one rule in the governing snapshot carries one. Not part of the signed result: join it to violations[].rule_code or na_rules[].rule_code.",
+                      "type": "object",
+                      "additionalProperties": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "properties": {
+                          "document": {
+                            "type": "string"
+                          },
+                          "section": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          }
                         }
                       }
                     }
