@@ -7,7 +7,7 @@ description: "API and SDK version history"
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog documents API and SDK functionality shipped into those deployments. Console UI changes are not tracked here.
 </Info>
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.12.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.13.0**.
 
 ## Versioning policy
 
@@ -24,6 +24,20 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract ve
 ## API version header
 
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
+
+---
+
+## v1.13.0
+
+**Codification: rule citations are derived, not asserted**
+- `POST /v1/policies` and `POST /v1/policies/{id}/versions` accept an optional `codification` block: the clauses the caller read, a map from rule code to clause, and a disposition (`ambiguous`, `unsupported`, `non_normative`) with a reason for every clause that produced no rule.
+- When it is supplied, each stored rule's `source_ref` is **derived from the clause it is mapped to**, and any `source_ref` sent in the request is ignored. A rule that names no clause cannot be stored through this path.
+- Refusals return `422 CODIFICATION_REFUSED` with the specific reason in `details.code` — a clause with no outcome, a disposition with no reason, or a rule whose condition the evaluator cannot execute.
+- **Omitting the block leaves behaviour exactly as before.** Existing callers are unaffected.
+
+**What this establishes, precisely**
+- That every clause the caller *declared* has exactly one accounted-for outcome, and that every stored rule is executable and attributed to a declared clause with a citation the API derived rather than accepted.
+- It does **not** establish that the declared clauses are the whole source document. Nothing server-side reads the document, so a caller that under-reports both its clauses and their outcomes cannot be distinguished from one that does not. That remains a question for human review before ratification.
 
 ---
 

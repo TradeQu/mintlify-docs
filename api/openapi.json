@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.12.0",
+    "version": "1.13.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -2203,6 +2203,121 @@
                     "items": {
                       "maxLength": 200,
                       "type": "string"
+                    }
+                  },
+                  "codification": {
+                    "additionalProperties": false,
+                    "description": "Optional. When present, the stored rules are the ones `codify()` returns — including `source_ref`, which `codify()` derives from the declared clause and does not take from the caller — not the ones submitted. See `packages/meshqu-core/src/codification.ts`.",
+                    "type": "object",
+                    "required": [
+                      "source",
+                      "clauses",
+                      "rule_units"
+                    ],
+                    "properties": {
+                      "source": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "document"
+                        ],
+                        "properties": {
+                          "document": {
+                            "minLength": 1,
+                            "maxLength": 500,
+                            "description": "Human-facing document name, e.g. the filename or title.",
+                            "type": "string"
+                          },
+                          "url": {
+                            "maxLength": 2000,
+                            "description": "Optional link to the stored source object.",
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "clauses": {
+                        "minItems": 1,
+                        "description": "Every declared unit of the source document. `codify()` refuses the write unless each one has exactly one outcome (a rule via `rule_units`, or an entry in `dispositions`).",
+                        "type": "array",
+                        "items": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "unit_id",
+                            "locator",
+                            "text"
+                          ],
+                          "properties": {
+                            "unit_id": {
+                              "minLength": 1,
+                              "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                              "type": "string"
+                            },
+                            "locator": {
+                              "minLength": 1,
+                              "description": "How a human finds it in the source, e.g. \"4.1\".",
+                              "type": "string"
+                            },
+                            "text": {
+                              "minLength": 1,
+                              "description": "The clause text, verbatim.",
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "rule_units": {
+                        "description": "Maps a submitted rule's `code` to the `unit_id` of the clause it was derived from. A rule with no entry here is refused — an unattributed rule cannot be stored through this path.",
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "dispositions": {
+                        "description": "Clauses that yielded no rule, and why. Every declared clause not covered by `rule_units` must appear here.",
+                        "type": "array",
+                        "items": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "unit_id",
+                            "disposition",
+                            "reason"
+                          ],
+                          "properties": {
+                            "unit_id": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "disposition": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ambiguous"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "unsupported"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "non_normative"
+                                  ]
+                                }
+                              ]
+                            },
+                            "reason": {
+                              "description": "Required. Shown to the reviewer as the thing they must decide about.",
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -6510,6 +6625,121 @@
                   "change_reason": {
                     "maxLength": 500,
                     "type": "string"
+                  },
+                  "codification": {
+                    "additionalProperties": false,
+                    "description": "Optional. When present, the stored rules are the ones `codify()` returns — including `source_ref`, which `codify()` derives from the declared clause and does not take from the caller — not the ones submitted. See `packages/meshqu-core/src/codification.ts`.",
+                    "type": "object",
+                    "required": [
+                      "source",
+                      "clauses",
+                      "rule_units"
+                    ],
+                    "properties": {
+                      "source": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "document"
+                        ],
+                        "properties": {
+                          "document": {
+                            "minLength": 1,
+                            "maxLength": 500,
+                            "description": "Human-facing document name, e.g. the filename or title.",
+                            "type": "string"
+                          },
+                          "url": {
+                            "maxLength": 2000,
+                            "description": "Optional link to the stored source object.",
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "clauses": {
+                        "minItems": 1,
+                        "description": "Every declared unit of the source document. `codify()` refuses the write unless each one has exactly one outcome (a rule via `rule_units`, or an entry in `dispositions`).",
+                        "type": "array",
+                        "items": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "unit_id",
+                            "locator",
+                            "text"
+                          ],
+                          "properties": {
+                            "unit_id": {
+                              "minLength": 1,
+                              "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                              "type": "string"
+                            },
+                            "locator": {
+                              "minLength": 1,
+                              "description": "How a human finds it in the source, e.g. \"4.1\".",
+                              "type": "string"
+                            },
+                            "text": {
+                              "minLength": 1,
+                              "description": "The clause text, verbatim.",
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "rule_units": {
+                        "description": "Maps a submitted rule's `code` to the `unit_id` of the clause it was derived from. A rule with no entry here is refused — an unattributed rule cannot be stored through this path.",
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "dispositions": {
+                        "description": "Clauses that yielded no rule, and why. Every declared clause not covered by `rule_units` must appear here.",
+                        "type": "array",
+                        "items": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "unit_id",
+                            "disposition",
+                            "reason"
+                          ],
+                          "properties": {
+                            "unit_id": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "disposition": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ambiguous"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "unsupported"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "non_normative"
+                                  ]
+                                }
+                              ]
+                            },
+                            "reason": {
+                              "description": "Required. Shown to the reviewer as the thing they must decide about.",
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
