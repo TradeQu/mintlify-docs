@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.13.0",
+    "version": "1.14.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -1483,6 +1483,184 @@
                                     "type": "null"
                                   }
                                 ]
+                              },
+                              "codification_record": {
+                                "additionalProperties": false,
+                                "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                                "type": "object",
+                                "required": [
+                                  "schema",
+                                  "source",
+                                  "clauses",
+                                  "ledger",
+                                  "counts",
+                                  "refusals"
+                                ],
+                                "properties": {
+                                  "schema": {
+                                    "type": "string",
+                                    "enum": [
+                                      "meshqu-codification-record/v1"
+                                    ]
+                                  },
+                                  "source": {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "document"
+                                    ],
+                                    "properties": {
+                                      "document": {
+                                        "minLength": 1,
+                                        "maxLength": 500,
+                                        "description": "Human-facing document name, e.g. the filename or title.",
+                                        "type": "string"
+                                      },
+                                      "url": {
+                                        "maxLength": 2000,
+                                        "description": "Optional link to the stored source object.",
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "clauses": {
+                                    "type": "array",
+                                    "items": {
+                                      "additionalProperties": false,
+                                      "type": "object",
+                                      "required": [
+                                        "unit_id",
+                                        "locator",
+                                        "text"
+                                      ],
+                                      "properties": {
+                                        "unit_id": {
+                                          "minLength": 1,
+                                          "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                          "type": "string"
+                                        },
+                                        "locator": {
+                                          "minLength": 1,
+                                          "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                          "type": "string"
+                                        },
+                                        "text": {
+                                          "minLength": 1,
+                                          "description": "The clause text, verbatim.",
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "ledger": {
+                                    "description": "Exactly one entry per declared clause.",
+                                    "type": "array",
+                                    "items": {
+                                      "additionalProperties": false,
+                                      "type": "object",
+                                      "required": [
+                                        "unit_id",
+                                        "disposition"
+                                      ],
+                                      "properties": {
+                                        "unit_id": {
+                                          "type": "string"
+                                        },
+                                        "disposition": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "mapped"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "ambiguous"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "unsupported"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "non_normative"
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        "note": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "counts": {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "clauses",
+                                      "mapped",
+                                      "ambiguous",
+                                      "unsupported",
+                                      "non_normative",
+                                      "refused"
+                                    ],
+                                    "properties": {
+                                      "clauses": {
+                                        "type": "integer"
+                                      },
+                                      "mapped": {
+                                        "type": "integer"
+                                      },
+                                      "ambiguous": {
+                                        "type": "integer"
+                                      },
+                                      "unsupported": {
+                                        "type": "integer"
+                                      },
+                                      "non_normative": {
+                                        "type": "integer"
+                                      },
+                                      "refused": {
+                                        "type": "integer"
+                                      }
+                                    }
+                                  },
+                                  "refusals": {
+                                    "description": "Proposals the rule grammar refused. Never silently dropped.",
+                                    "type": "array",
+                                    "items": {
+                                      "additionalProperties": false,
+                                      "type": "object",
+                                      "required": [
+                                        "unit_id",
+                                        "rule_code",
+                                        "kind",
+                                        "message"
+                                      ],
+                                      "properties": {
+                                        "unit_id": {
+                                          "type": "string"
+                                        },
+                                        "rule_code": {
+                                          "type": "string"
+                                        },
+                                        "kind": {
+                                          "type": "string"
+                                        },
+                                        "message": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
                               }
                             }
                           },
@@ -3009,6 +3187,184 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "codification_record": {
+                          "additionalProperties": false,
+                          "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                          "type": "object",
+                          "required": [
+                            "schema",
+                            "source",
+                            "clauses",
+                            "ledger",
+                            "counts",
+                            "refusals"
+                          ],
+                          "properties": {
+                            "schema": {
+                              "type": "string",
+                              "enum": [
+                                "meshqu-codification-record/v1"
+                              ]
+                            },
+                            "source": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "document"
+                              ],
+                              "properties": {
+                                "document": {
+                                  "minLength": 1,
+                                  "maxLength": 500,
+                                  "description": "Human-facing document name, e.g. the filename or title.",
+                                  "type": "string"
+                                },
+                                "url": {
+                                  "maxLength": 2000,
+                                  "description": "Optional link to the stored source object.",
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "clauses": {
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "locator",
+                                  "text"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "minLength": 1,
+                                    "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                    "type": "string"
+                                  },
+                                  "locator": {
+                                    "minLength": 1,
+                                    "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                    "type": "string"
+                                  },
+                                  "text": {
+                                    "minLength": 1,
+                                    "description": "The clause text, verbatim.",
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "ledger": {
+                              "description": "Exactly one entry per declared clause.",
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "disposition"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "disposition": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "mapped"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "ambiguous"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "unsupported"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "non_normative"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "note": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "counts": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "clauses",
+                                "mapped",
+                                "ambiguous",
+                                "unsupported",
+                                "non_normative",
+                                "refused"
+                              ],
+                              "properties": {
+                                "clauses": {
+                                  "type": "integer"
+                                },
+                                "mapped": {
+                                  "type": "integer"
+                                },
+                                "ambiguous": {
+                                  "type": "integer"
+                                },
+                                "unsupported": {
+                                  "type": "integer"
+                                },
+                                "non_normative": {
+                                  "type": "integer"
+                                },
+                                "refused": {
+                                  "type": "integer"
+                                }
+                              }
+                            },
+                            "refusals": {
+                              "description": "Proposals the rule grammar refused. Never silently dropped.",
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "rule_code",
+                                  "kind",
+                                  "message"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "rule_code": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }
                       }
                     },
@@ -4553,6 +4909,184 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "codification_record": {
+                          "additionalProperties": false,
+                          "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                          "type": "object",
+                          "required": [
+                            "schema",
+                            "source",
+                            "clauses",
+                            "ledger",
+                            "counts",
+                            "refusals"
+                          ],
+                          "properties": {
+                            "schema": {
+                              "type": "string",
+                              "enum": [
+                                "meshqu-codification-record/v1"
+                              ]
+                            },
+                            "source": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "document"
+                              ],
+                              "properties": {
+                                "document": {
+                                  "minLength": 1,
+                                  "maxLength": 500,
+                                  "description": "Human-facing document name, e.g. the filename or title.",
+                                  "type": "string"
+                                },
+                                "url": {
+                                  "maxLength": 2000,
+                                  "description": "Optional link to the stored source object.",
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "clauses": {
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "locator",
+                                  "text"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "minLength": 1,
+                                    "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                    "type": "string"
+                                  },
+                                  "locator": {
+                                    "minLength": 1,
+                                    "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                    "type": "string"
+                                  },
+                                  "text": {
+                                    "minLength": 1,
+                                    "description": "The clause text, verbatim.",
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "ledger": {
+                              "description": "Exactly one entry per declared clause.",
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "disposition"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "disposition": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "mapped"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "ambiguous"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "unsupported"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "non_normative"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "note": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "counts": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "clauses",
+                                "mapped",
+                                "ambiguous",
+                                "unsupported",
+                                "non_normative",
+                                "refused"
+                              ],
+                              "properties": {
+                                "clauses": {
+                                  "type": "integer"
+                                },
+                                "mapped": {
+                                  "type": "integer"
+                                },
+                                "ambiguous": {
+                                  "type": "integer"
+                                },
+                                "unsupported": {
+                                  "type": "integer"
+                                },
+                                "non_normative": {
+                                  "type": "integer"
+                                },
+                                "refused": {
+                                  "type": "integer"
+                                }
+                              }
+                            },
+                            "refusals": {
+                              "description": "Proposals the rule grammar refused. Never silently dropped.",
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "rule_code",
+                                  "kind",
+                                  "message"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "rule_code": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }
                       }
                     },
@@ -5516,6 +6050,184 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "codification_record": {
+                          "additionalProperties": false,
+                          "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                          "type": "object",
+                          "required": [
+                            "schema",
+                            "source",
+                            "clauses",
+                            "ledger",
+                            "counts",
+                            "refusals"
+                          ],
+                          "properties": {
+                            "schema": {
+                              "type": "string",
+                              "enum": [
+                                "meshqu-codification-record/v1"
+                              ]
+                            },
+                            "source": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "document"
+                              ],
+                              "properties": {
+                                "document": {
+                                  "minLength": 1,
+                                  "maxLength": 500,
+                                  "description": "Human-facing document name, e.g. the filename or title.",
+                                  "type": "string"
+                                },
+                                "url": {
+                                  "maxLength": 2000,
+                                  "description": "Optional link to the stored source object.",
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "clauses": {
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "locator",
+                                  "text"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "minLength": 1,
+                                    "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                    "type": "string"
+                                  },
+                                  "locator": {
+                                    "minLength": 1,
+                                    "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                    "type": "string"
+                                  },
+                                  "text": {
+                                    "minLength": 1,
+                                    "description": "The clause text, verbatim.",
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "ledger": {
+                              "description": "Exactly one entry per declared clause.",
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "disposition"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "disposition": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "mapped"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "ambiguous"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "unsupported"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "non_normative"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "note": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "counts": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "clauses",
+                                "mapped",
+                                "ambiguous",
+                                "unsupported",
+                                "non_normative",
+                                "refused"
+                              ],
+                              "properties": {
+                                "clauses": {
+                                  "type": "integer"
+                                },
+                                "mapped": {
+                                  "type": "integer"
+                                },
+                                "ambiguous": {
+                                  "type": "integer"
+                                },
+                                "unsupported": {
+                                  "type": "integer"
+                                },
+                                "non_normative": {
+                                  "type": "integer"
+                                },
+                                "refused": {
+                                  "type": "integer"
+                                }
+                              }
+                            },
+                            "refusals": {
+                              "description": "Proposals the rule grammar refused. Never silently dropped.",
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "rule_code",
+                                  "kind",
+                                  "message"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "rule_code": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }
                       }
                     },
@@ -7320,6 +8032,184 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "codification_record": {
+                      "additionalProperties": false,
+                      "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                      "type": "object",
+                      "required": [
+                        "schema",
+                        "source",
+                        "clauses",
+                        "ledger",
+                        "counts",
+                        "refusals"
+                      ],
+                      "properties": {
+                        "schema": {
+                          "type": "string",
+                          "enum": [
+                            "meshqu-codification-record/v1"
+                          ]
+                        },
+                        "source": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "document"
+                          ],
+                          "properties": {
+                            "document": {
+                              "minLength": 1,
+                              "maxLength": 500,
+                              "description": "Human-facing document name, e.g. the filename or title.",
+                              "type": "string"
+                            },
+                            "url": {
+                              "maxLength": 2000,
+                              "description": "Optional link to the stored source object.",
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "clauses": {
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "locator",
+                              "text"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "minLength": 1,
+                                "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                "type": "string"
+                              },
+                              "locator": {
+                                "minLength": 1,
+                                "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                "type": "string"
+                              },
+                              "text": {
+                                "minLength": 1,
+                                "description": "The clause text, verbatim.",
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "ledger": {
+                          "description": "Exactly one entry per declared clause.",
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "disposition"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "type": "string"
+                              },
+                              "disposition": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "mapped"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "ambiguous"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "unsupported"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "non_normative"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "note": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "counts": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "clauses",
+                            "mapped",
+                            "ambiguous",
+                            "unsupported",
+                            "non_normative",
+                            "refused"
+                          ],
+                          "properties": {
+                            "clauses": {
+                              "type": "integer"
+                            },
+                            "mapped": {
+                              "type": "integer"
+                            },
+                            "ambiguous": {
+                              "type": "integer"
+                            },
+                            "unsupported": {
+                              "type": "integer"
+                            },
+                            "non_normative": {
+                              "type": "integer"
+                            },
+                            "refused": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "refusals": {
+                          "description": "Proposals the rule grammar refused. Never silently dropped.",
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "rule_code",
+                              "kind",
+                              "message"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "type": "string"
+                              },
+                              "rule_code": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -8067,6 +8957,184 @@
                             "type": "null"
                           }
                         ]
+                      },
+                      "codification_record": {
+                        "additionalProperties": false,
+                        "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                        "type": "object",
+                        "required": [
+                          "schema",
+                          "source",
+                          "clauses",
+                          "ledger",
+                          "counts",
+                          "refusals"
+                        ],
+                        "properties": {
+                          "schema": {
+                            "type": "string",
+                            "enum": [
+                              "meshqu-codification-record/v1"
+                            ]
+                          },
+                          "source": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "document"
+                            ],
+                            "properties": {
+                              "document": {
+                                "minLength": 1,
+                                "maxLength": 500,
+                                "description": "Human-facing document name, e.g. the filename or title.",
+                                "type": "string"
+                              },
+                              "url": {
+                                "maxLength": 2000,
+                                "description": "Optional link to the stored source object.",
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "clauses": {
+                            "type": "array",
+                            "items": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "unit_id",
+                                "locator",
+                                "text"
+                              ],
+                              "properties": {
+                                "unit_id": {
+                                  "minLength": 1,
+                                  "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                  "type": "string"
+                                },
+                                "locator": {
+                                  "minLength": 1,
+                                  "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                  "type": "string"
+                                },
+                                "text": {
+                                  "minLength": 1,
+                                  "description": "The clause text, verbatim.",
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "ledger": {
+                            "description": "Exactly one entry per declared clause.",
+                            "type": "array",
+                            "items": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "unit_id",
+                                "disposition"
+                              ],
+                              "properties": {
+                                "unit_id": {
+                                  "type": "string"
+                                },
+                                "disposition": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "mapped"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "ambiguous"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "unsupported"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "non_normative"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "note": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "counts": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "clauses",
+                              "mapped",
+                              "ambiguous",
+                              "unsupported",
+                              "non_normative",
+                              "refused"
+                            ],
+                            "properties": {
+                              "clauses": {
+                                "type": "integer"
+                              },
+                              "mapped": {
+                                "type": "integer"
+                              },
+                              "ambiguous": {
+                                "type": "integer"
+                              },
+                              "unsupported": {
+                                "type": "integer"
+                              },
+                              "non_normative": {
+                                "type": "integer"
+                              },
+                              "refused": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          "refusals": {
+                            "description": "Proposals the rule grammar refused. Never silently dropped.",
+                            "type": "array",
+                            "items": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "unit_id",
+                                "rule_code",
+                                "kind",
+                                "message"
+                              ],
+                              "properties": {
+                                "unit_id": {
+                                  "type": "string"
+                                },
+                                "rule_code": {
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "type": "string"
+                                },
+                                "message": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
                       }
                     }
                   }
@@ -8740,6 +9808,184 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "codification_record": {
+                          "additionalProperties": false,
+                          "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                          "type": "object",
+                          "required": [
+                            "schema",
+                            "source",
+                            "clauses",
+                            "ledger",
+                            "counts",
+                            "refusals"
+                          ],
+                          "properties": {
+                            "schema": {
+                              "type": "string",
+                              "enum": [
+                                "meshqu-codification-record/v1"
+                              ]
+                            },
+                            "source": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "document"
+                              ],
+                              "properties": {
+                                "document": {
+                                  "minLength": 1,
+                                  "maxLength": 500,
+                                  "description": "Human-facing document name, e.g. the filename or title.",
+                                  "type": "string"
+                                },
+                                "url": {
+                                  "maxLength": 2000,
+                                  "description": "Optional link to the stored source object.",
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "clauses": {
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "locator",
+                                  "text"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "minLength": 1,
+                                    "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                    "type": "string"
+                                  },
+                                  "locator": {
+                                    "minLength": 1,
+                                    "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                    "type": "string"
+                                  },
+                                  "text": {
+                                    "minLength": 1,
+                                    "description": "The clause text, verbatim.",
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "ledger": {
+                              "description": "Exactly one entry per declared clause.",
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "disposition"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "disposition": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "mapped"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "ambiguous"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "unsupported"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "non_normative"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "note": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "counts": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "clauses",
+                                "mapped",
+                                "ambiguous",
+                                "unsupported",
+                                "non_normative",
+                                "refused"
+                              ],
+                              "properties": {
+                                "clauses": {
+                                  "type": "integer"
+                                },
+                                "mapped": {
+                                  "type": "integer"
+                                },
+                                "ambiguous": {
+                                  "type": "integer"
+                                },
+                                "unsupported": {
+                                  "type": "integer"
+                                },
+                                "non_normative": {
+                                  "type": "integer"
+                                },
+                                "refused": {
+                                  "type": "integer"
+                                }
+                              }
+                            },
+                            "refusals": {
+                              "description": "Proposals the rule grammar refused. Never silently dropped.",
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "rule_code",
+                                  "kind",
+                                  "message"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "rule_code": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }
                       }
                     },
@@ -9648,6 +10894,184 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "codification_record": {
+                      "additionalProperties": false,
+                      "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                      "type": "object",
+                      "required": [
+                        "schema",
+                        "source",
+                        "clauses",
+                        "ledger",
+                        "counts",
+                        "refusals"
+                      ],
+                      "properties": {
+                        "schema": {
+                          "type": "string",
+                          "enum": [
+                            "meshqu-codification-record/v1"
+                          ]
+                        },
+                        "source": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "document"
+                          ],
+                          "properties": {
+                            "document": {
+                              "minLength": 1,
+                              "maxLength": 500,
+                              "description": "Human-facing document name, e.g. the filename or title.",
+                              "type": "string"
+                            },
+                            "url": {
+                              "maxLength": 2000,
+                              "description": "Optional link to the stored source object.",
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "clauses": {
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "locator",
+                              "text"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "minLength": 1,
+                                "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                "type": "string"
+                              },
+                              "locator": {
+                                "minLength": 1,
+                                "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                "type": "string"
+                              },
+                              "text": {
+                                "minLength": 1,
+                                "description": "The clause text, verbatim.",
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "ledger": {
+                          "description": "Exactly one entry per declared clause.",
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "disposition"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "type": "string"
+                              },
+                              "disposition": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "mapped"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "ambiguous"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "unsupported"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "non_normative"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "note": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "counts": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "clauses",
+                            "mapped",
+                            "ambiguous",
+                            "unsupported",
+                            "non_normative",
+                            "refused"
+                          ],
+                          "properties": {
+                            "clauses": {
+                              "type": "integer"
+                            },
+                            "mapped": {
+                              "type": "integer"
+                            },
+                            "ambiguous": {
+                              "type": "integer"
+                            },
+                            "unsupported": {
+                              "type": "integer"
+                            },
+                            "non_normative": {
+                              "type": "integer"
+                            },
+                            "refused": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "refusals": {
+                          "description": "Proposals the rule grammar refused. Never silently dropped.",
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "rule_code",
+                              "kind",
+                              "message"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "type": "string"
+                              },
+                              "rule_code": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -10427,6 +11851,184 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "codification_record": {
+                      "additionalProperties": false,
+                      "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                      "type": "object",
+                      "required": [
+                        "schema",
+                        "source",
+                        "clauses",
+                        "ledger",
+                        "counts",
+                        "refusals"
+                      ],
+                      "properties": {
+                        "schema": {
+                          "type": "string",
+                          "enum": [
+                            "meshqu-codification-record/v1"
+                          ]
+                        },
+                        "source": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "document"
+                          ],
+                          "properties": {
+                            "document": {
+                              "minLength": 1,
+                              "maxLength": 500,
+                              "description": "Human-facing document name, e.g. the filename or title.",
+                              "type": "string"
+                            },
+                            "url": {
+                              "maxLength": 2000,
+                              "description": "Optional link to the stored source object.",
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "clauses": {
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "locator",
+                              "text"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "minLength": 1,
+                                "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                "type": "string"
+                              },
+                              "locator": {
+                                "minLength": 1,
+                                "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                "type": "string"
+                              },
+                              "text": {
+                                "minLength": 1,
+                                "description": "The clause text, verbatim.",
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "ledger": {
+                          "description": "Exactly one entry per declared clause.",
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "disposition"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "type": "string"
+                              },
+                              "disposition": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "mapped"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "ambiguous"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "unsupported"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "non_normative"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "note": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "counts": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "clauses",
+                            "mapped",
+                            "ambiguous",
+                            "unsupported",
+                            "non_normative",
+                            "refused"
+                          ],
+                          "properties": {
+                            "clauses": {
+                              "type": "integer"
+                            },
+                            "mapped": {
+                              "type": "integer"
+                            },
+                            "ambiguous": {
+                              "type": "integer"
+                            },
+                            "unsupported": {
+                              "type": "integer"
+                            },
+                            "non_normative": {
+                              "type": "integer"
+                            },
+                            "refused": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "refusals": {
+                          "description": "Proposals the rule grammar refused. Never silently dropped.",
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "rule_code",
+                              "kind",
+                              "message"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "type": "string"
+                              },
+                              "rule_code": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -11183,6 +12785,184 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "codification_record": {
+                      "additionalProperties": false,
+                      "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                      "type": "object",
+                      "required": [
+                        "schema",
+                        "source",
+                        "clauses",
+                        "ledger",
+                        "counts",
+                        "refusals"
+                      ],
+                      "properties": {
+                        "schema": {
+                          "type": "string",
+                          "enum": [
+                            "meshqu-codification-record/v1"
+                          ]
+                        },
+                        "source": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "document"
+                          ],
+                          "properties": {
+                            "document": {
+                              "minLength": 1,
+                              "maxLength": 500,
+                              "description": "Human-facing document name, e.g. the filename or title.",
+                              "type": "string"
+                            },
+                            "url": {
+                              "maxLength": 2000,
+                              "description": "Optional link to the stored source object.",
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "clauses": {
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "locator",
+                              "text"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "minLength": 1,
+                                "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                "type": "string"
+                              },
+                              "locator": {
+                                "minLength": 1,
+                                "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                "type": "string"
+                              },
+                              "text": {
+                                "minLength": 1,
+                                "description": "The clause text, verbatim.",
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "ledger": {
+                          "description": "Exactly one entry per declared clause.",
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "disposition"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "type": "string"
+                              },
+                              "disposition": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "mapped"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "ambiguous"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "unsupported"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "non_normative"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "note": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "counts": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "clauses",
+                            "mapped",
+                            "ambiguous",
+                            "unsupported",
+                            "non_normative",
+                            "refused"
+                          ],
+                          "properties": {
+                            "clauses": {
+                              "type": "integer"
+                            },
+                            "mapped": {
+                              "type": "integer"
+                            },
+                            "ambiguous": {
+                              "type": "integer"
+                            },
+                            "unsupported": {
+                              "type": "integer"
+                            },
+                            "non_normative": {
+                              "type": "integer"
+                            },
+                            "refused": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "refusals": {
+                          "description": "Proposals the rule grammar refused. Never silently dropped.",
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "rule_code",
+                              "kind",
+                              "message"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "type": "string"
+                              },
+                              "rule_code": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -13650,6 +15430,184 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "codification_record": {
+                      "additionalProperties": false,
+                      "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                      "type": "object",
+                      "required": [
+                        "schema",
+                        "source",
+                        "clauses",
+                        "ledger",
+                        "counts",
+                        "refusals"
+                      ],
+                      "properties": {
+                        "schema": {
+                          "type": "string",
+                          "enum": [
+                            "meshqu-codification-record/v1"
+                          ]
+                        },
+                        "source": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "document"
+                          ],
+                          "properties": {
+                            "document": {
+                              "minLength": 1,
+                              "maxLength": 500,
+                              "description": "Human-facing document name, e.g. the filename or title.",
+                              "type": "string"
+                            },
+                            "url": {
+                              "maxLength": 2000,
+                              "description": "Optional link to the stored source object.",
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "clauses": {
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "locator",
+                              "text"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "minLength": 1,
+                                "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                "type": "string"
+                              },
+                              "locator": {
+                                "minLength": 1,
+                                "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                "type": "string"
+                              },
+                              "text": {
+                                "minLength": 1,
+                                "description": "The clause text, verbatim.",
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "ledger": {
+                          "description": "Exactly one entry per declared clause.",
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "disposition"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "type": "string"
+                              },
+                              "disposition": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "mapped"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "ambiguous"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "unsupported"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "non_normative"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "note": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "counts": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "clauses",
+                            "mapped",
+                            "ambiguous",
+                            "unsupported",
+                            "non_normative",
+                            "refused"
+                          ],
+                          "properties": {
+                            "clauses": {
+                              "type": "integer"
+                            },
+                            "mapped": {
+                              "type": "integer"
+                            },
+                            "ambiguous": {
+                              "type": "integer"
+                            },
+                            "unsupported": {
+                              "type": "integer"
+                            },
+                            "non_normative": {
+                              "type": "integer"
+                            },
+                            "refused": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "refusals": {
+                          "description": "Proposals the rule grammar refused. Never silently dropped.",
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "rule_code",
+                              "kind",
+                              "message"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "type": "string"
+                              },
+                              "rule_code": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -14618,6 +16576,184 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "codification_record": {
+                      "additionalProperties": false,
+                      "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                      "type": "object",
+                      "required": [
+                        "schema",
+                        "source",
+                        "clauses",
+                        "ledger",
+                        "counts",
+                        "refusals"
+                      ],
+                      "properties": {
+                        "schema": {
+                          "type": "string",
+                          "enum": [
+                            "meshqu-codification-record/v1"
+                          ]
+                        },
+                        "source": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "document"
+                          ],
+                          "properties": {
+                            "document": {
+                              "minLength": 1,
+                              "maxLength": 500,
+                              "description": "Human-facing document name, e.g. the filename or title.",
+                              "type": "string"
+                            },
+                            "url": {
+                              "maxLength": 2000,
+                              "description": "Optional link to the stored source object.",
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "clauses": {
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "locator",
+                              "text"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "minLength": 1,
+                                "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                "type": "string"
+                              },
+                              "locator": {
+                                "minLength": 1,
+                                "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                "type": "string"
+                              },
+                              "text": {
+                                "minLength": 1,
+                                "description": "The clause text, verbatim.",
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "ledger": {
+                          "description": "Exactly one entry per declared clause.",
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "disposition"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "type": "string"
+                              },
+                              "disposition": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "mapped"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "ambiguous"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "unsupported"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "non_normative"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "note": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "counts": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "clauses",
+                            "mapped",
+                            "ambiguous",
+                            "unsupported",
+                            "non_normative",
+                            "refused"
+                          ],
+                          "properties": {
+                            "clauses": {
+                              "type": "integer"
+                            },
+                            "mapped": {
+                              "type": "integer"
+                            },
+                            "ambiguous": {
+                              "type": "integer"
+                            },
+                            "unsupported": {
+                              "type": "integer"
+                            },
+                            "non_normative": {
+                              "type": "integer"
+                            },
+                            "refused": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "refusals": {
+                          "description": "Proposals the rule grammar refused. Never silently dropped.",
+                          "type": "array",
+                          "items": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "unit_id",
+                              "rule_code",
+                              "kind",
+                              "message"
+                            ],
+                            "properties": {
+                              "unit_id": {
+                                "type": "string"
+                              },
+                              "rule_code": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }

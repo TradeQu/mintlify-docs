@@ -7,7 +7,7 @@ description: "API and SDK version history"
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog documents API and SDK functionality shipped into those deployments. Console UI changes are not tracked here.
 </Info>
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.13.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.14.0**.
 
 ## Versioning policy
 
@@ -24,6 +24,21 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract ve
 ## API version header
 
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
+
+---
+
+## v1.14.0
+
+**The codification record: what a version's clauses were accounted for**
+- Policy version responses carry an optional `codification_record`. It is present only on versions written through the codification path introduced in 1.13.0, and **absent** — not null — on every other version.
+- It records one disposition per **declared** clause, the clause text a reviewer needs in order to judge it, the counts, and any proposal the rule grammar refused.
+- The declines are the point. Before this, a clause the codifier read and chose not to express as a rule left no trace once the write completed, so a reviewer could see the rules that were produced but not the judgements behind the ones that were not.
+- `ledger`, `counts` and `refusals` are the write boundary's own output, not values the caller supplies. A `codification_record` sent in a request body is ignored.
+
+**What it is not**
+- It is **unsigned and unhashed**. It is not covered by `policy_rules_hash` or `policy_snapshot_digest`, and it enters no receipt, snapshot, export or evidence manifest.
+- It is **not a sealed review package**. A review package proves byte equality under `meshqu-review-package/v1` and binds source custody; this proves neither. Where a version has both, the review package is the stronger artefact.
+- As in 1.13.0, it does **not** establish that the declared clauses are the whole document. Nothing server-side reads the document.
 
 ---
 
