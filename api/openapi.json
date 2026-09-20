@@ -32,7 +32,220 @@
         "description": "Prometheus scrape token (`METRICS_BEARER_TOKEN`) for `GET /metrics`. Distinct from the API key; only required when the token is configured."
       }
     },
-    "schemas": {}
+    "schemas": {
+      "def-0": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "field",
+              "equals"
+            ],
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "equals": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              },
+              "case_sensitive": {
+                "type": "boolean"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "field",
+              "in"
+            ],
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
+                }
+              },
+              "case_sensitive": {
+                "type": "boolean"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "field",
+              "exists"
+            ],
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "exists": {
+                "type": "boolean"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "field",
+              "min"
+            ],
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "greater_than": {
+                "type": "number"
+              },
+              "less_than": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "field",
+              "max"
+            ],
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "greater_than": {
+                "type": "number"
+              },
+              "less_than": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "field",
+              "greater_than"
+            ],
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "greater_than": {
+                "type": "number"
+              },
+              "less_than": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "field",
+              "less_than"
+            ],
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "greater_than": {
+                "type": "number"
+              },
+              "less_than": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "all"
+            ],
+            "properties": {
+              "all": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/def-0"
+                }
+              }
+            }
+          },
+          {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "any"
+            ],
+            "properties": {
+              "any": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/def-0"
+                }
+              }
+            }
+          }
+        ],
+        "title": "When"
+      }
+    }
   },
   "paths": {
     "/v1/health": {
