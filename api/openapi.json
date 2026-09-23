@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.14.0",
+    "version": "1.15.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -9191,7 +9191,7 @@
         "tags": [
           "Policies"
         ],
-        "description": "Promotes a draft version to ratified status, making it the active version governing evaluations. Returns a signed PolicyApprovalReceipt when a ratifier key is configured.",
+        "description": "Records that a human approved this exact draft version: the version becomes ratified. Ratification does not put the version in force — the version currently in force keeps governing evaluations until the ratified version is activated with POST /v1/policies/{id}/versions/{version}/activate. Returns a signed PolicyApprovalReceipt when a ratifier key is configured.",
         "requestBody": {
           "required": true,
           "content": {
@@ -10302,6 +10302,342 @@
           }
         },
         "operationId": "postV1PoliciesByIdVersionsByVersionRatify"
+      }
+    },
+    "/v1/policies/{id}/versions/{version}/activate": {
+      "post": {
+        "summary": "Put a ratified policy version in force",
+        "tags": [
+          "Policies"
+        ],
+        "description": "Puts this exact ratified version in force: the version currently in force (if any) is superseded, this version governs evaluations from now on, and a signed immutable version-activation receipt is returned. A policy's first activation starts it in shadow mode; a later activation keeps the policy's current mode (shadow to enforcing stays its own act, POST /v1/policies/{id}/activate). Refusals: 404 NOT_FOUND when the policy or version does not exist in this tenant; 409 INVALID_TRANSITION with details.reason = POLICY_ARCHIVED (the policy is archived), VERSION_ALREADY_IN_FORCE, VERSION_NOT_RATIFIED (the version is not ratified), or VERSION_NOT_PENDING (a version with an equal or higher number is in force); 500 RATIFIER_KEY_REQUIRED when no ratifier key is configured. Nothing is written on a refusal.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "in": "path",
+            "name": "version",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "receipt_kind",
+                    "id",
+                    "tenant_id",
+                    "policy_id",
+                    "policy_version_id",
+                    "policy_version_number",
+                    "previous_policy_version_id",
+                    "shadow_mode",
+                    "activated_by",
+                    "activation_authority",
+                    "activated_at",
+                    "activation_receipt_digest",
+                    "activator_signature"
+                  ],
+                  "properties": {
+                    "receipt_kind": {
+                      "description": "Names the act inside the signed preimage. Always `policy_version_activation`.",
+                      "type": "string",
+                      "enum": [
+                        "policy_version_activation"
+                      ]
+                    },
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_id": {
+                      "format": "uuid",
+                      "description": "The version this act put in force.",
+                      "type": "string"
+                    },
+                    "policy_version_number": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "previous_policy_version_id": {
+                      "description": "The version that was in force and is now superseded; null when nothing was in force (first activation).",
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "shadow_mode": {
+                      "description": "The policy's mode after this act. A first activation starts the policy in shadow; a later one keeps the mode it had.",
+                      "type": "boolean"
+                    },
+                    "activated_by": {
+                      "description": "Stable subject id of the human who acted.",
+                      "type": "string"
+                    },
+                    "activation_authority": {
+                      "type": "string"
+                    },
+                    "activated_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "activation_receipt_digest": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "SHA-256 (hex) of the canonical JSON of the eleven preimage fields.",
+                      "type": "string"
+                    },
+                    "activator_signature": {
+                      "type": "object",
+                      "required": [
+                        "signature",
+                        "signature_kid",
+                        "signature_algorithm"
+                      ],
+                      "properties": {
+                        "signature": {
+                          "type": "string"
+                        },
+                        "signature_kid": {
+                          "type": "string"
+                        },
+                        "signature_algorithm": {
+                          "type": "string",
+                          "enum": [
+                            "ed25519"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1PoliciesByIdVersionsByVersionActivate"
       }
     },
     "/v1/policies/{id}/versions/{version}/submit": {
@@ -41348,6 +41684,12 @@
                 {
                   "type": "string",
                   "enum": [
+                    "policy_version_activated"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
                     "policy_ratified"
                   ]
                 },
@@ -41694,6 +42036,12 @@
                                 "type": "string",
                                 "enum": [
                                   "policy_activated"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "policy_version_activated"
                                 ]
                               },
                               {
@@ -42147,6 +42495,12 @@
                             "type": "string",
                             "enum": [
                               "policy_activated"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "policy_version_activated"
                             ]
                           },
                           {
@@ -50395,6 +50749,12 @@
                                 "type": "string",
                                 "enum": [
                                   "policy_activated"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "policy_version_activated"
                                 ]
                               },
                               {
