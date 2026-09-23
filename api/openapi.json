@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.16.0",
+    "version": "1.17.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -27171,6 +27171,264 @@
           }
         },
         "operationId": "postV1PoliciesByIdReviewSubmissionsBySubmissionIdDraftFindingsConsume"
+      }
+    },
+    "/v1/work/pending": {
+      "get": {
+        "summary": "List pending review and activation work",
+        "tags": [
+          "Policies"
+        ],
+        "description": "The organisation's pending governance work, oldest waiting first, derived at read from existing records.\n\n- `review` items: a policy version awaiting a review act. The requested act is `review` when its latest sealed review submission has no review record, `ratify` when that submission's newest record is ACCEPT, and `ratify` for a version submitted for maker-checker approval without a sealed submission. A returned submission, or one whose newest record is CORRECT_AND_RESUBMIT or STOP, is not listed.\n- `activation` items: a ratified version that is not in force and is newer than the version in force (or nothing is in force). Ratifying does not put a version in force; activation is a separate act.\n\nArchived policies are excluded. Reading this list performs no act. It names no next actor and does not say whether the caller is eligible for the requested act — the act's own route decides that.",
+        "parameters": [
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "total",
+                    "limit",
+                    "offset"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "kind",
+                          "requested_act",
+                          "policy_id",
+                          "policy_name",
+                          "policy_code",
+                          "policy_version_id",
+                          "version",
+                          "status",
+                          "draft_revision",
+                          "entered_state_at",
+                          "entered_state_source"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "activation"
+                                ]
+                              }
+                            ]
+                          },
+                          "requested_act": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "ratify"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "activate"
+                                ]
+                              }
+                            ]
+                          },
+                          "policy_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "policy_name": {
+                            "type": "string"
+                          },
+                          "policy_code": {
+                            "type": "string"
+                          },
+                          "policy_version_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "version": {
+                            "minimum": 1,
+                            "description": "Policy version number.",
+                            "type": "integer"
+                          },
+                          "status": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "draft"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "submitted"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "ratified"
+                                ]
+                              }
+                            ]
+                          },
+                          "draft_revision": {
+                            "minimum": 0,
+                            "description": "The version's CURRENT draft revision.",
+                            "type": "integer"
+                          },
+                          "submission_id": {
+                            "format": "uuid",
+                            "description": "The latest sealed review submission of the version, when the item derives from one. Absent otherwise.",
+                            "type": "string"
+                          },
+                          "submission_sequence": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "candidate_revision": {
+                            "minimum": 1,
+                            "description": "The candidate revision that submission sealed. It can trail `draft_revision` when the draft was edited after sealing; currentness is checked on the submission detail route.",
+                            "type": "integer"
+                          },
+                          "accept_record_id": {
+                            "format": "uuid",
+                            "description": "The ACCEPT review record a `ratify` item derives from. Absent otherwise.",
+                            "type": "string"
+                          },
+                          "entered_state_at": {
+                            "format": "date-time",
+                            "description": "When the item entered this state, read from the stored column `entered_state_source` names.",
+                            "type": "string"
+                          },
+                          "entered_state_source": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "submitted_at"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "sealed_at"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "accept_recorded_at"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "ratified_at"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "limit": {
+                      "type": "integer"
+                    },
+                    "offset": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1WorkPending"
       }
     },
     "/v1/policies/{id}/versions/{version}/case-executions": {

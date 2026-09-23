@@ -7,7 +7,7 @@ description: "API and SDK version history"
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog documents API and SDK functionality shipped into those deployments. Console UI changes are not tracked here.
 </Info>
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.16.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.17.0**.
 
 ## Versioning policy
 
@@ -24,6 +24,19 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract ve
 ## API version header
 
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
+
+---
+
+## v1.17.0
+
+**Pending work for a tenant**
+- New `GET /v1/work/pending` (scope `policies:read`). Lists the tenant's pending governance work, oldest waiting first. It performs no act; people and API keys holding the scope can read it, and a key holding only an authoring capability cannot.
+- `review` items: versions whose latest sealed review submission has no review record yet (requested act `review`) or whose newest record is an acceptance (requested act `ratify`), plus versions submitted for maker-checker approval with no sealed submission (requested act `ratify`). Returned, correct-and-resubmit and stop outcomes are not listed.
+- `activation` items: ratified versions that are not in force and are newer than the version in force, or where nothing is in force (requested act `activate`). Archived policies are not listed.
+- Each item names the policy and version, the version's status, the requested act, and when it entered that state together with the stored field that time came from (`entered_state_source`). There is no field for who acts next: nothing in the data names one.
+- Paged with `limit` (1–100, default 50) and `offset`.
+
+*Field names and values above are taken from the regenerated `api/openapi.json` for this release (operation `getV1WorkPending`, `GET /v1/work/pending`).*
 
 ---
 
