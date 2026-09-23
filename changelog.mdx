@@ -42,6 +42,69 @@ All endpoints are prefixed with `/v1`. When a new major version is released, the
 
 ---
 
+## v1.14.0
+
+**The codification record: what a version's clauses were accounted for**
+- Policy version responses carry an optional `codification_record`. It is present only on versions written through the codification path introduced in 1.13.0, and **absent** — not null — on every other version.
+- It records one disposition per **declared** clause, the clause text a reviewer needs in order to judge it, the counts, and any proposal the rule grammar refused.
+- The declines are the point. Before this, a clause the codifier read and chose not to express as a rule left no trace once the write completed, so a reviewer could see the rules that were produced but not the judgements behind the ones that were not.
+- `ledger`, `counts` and `refusals` are the write boundary's own output, not values the caller supplies. A `codification_record` sent in a request body is ignored.
+
+**What it is not**
+- It is **unsigned and unhashed**. It is not covered by `policy_rules_hash` or `policy_snapshot_digest`, and it enters no receipt, snapshot, export or evidence manifest.
+- It is **not a sealed review package**. A review package proves byte equality under `meshqu-review-package/v1` and binds source custody; this proves neither. Where a version has both, the review package is the stronger artefact.
+- As in 1.13.0, it does **not** establish that the declared clauses are the whole document. Nothing server-side reads the document.
+
+---
+
+## v1.13.0
+
+**Codification: rule citations are derived, not asserted**
+- `POST /v1/policies` and `POST /v1/policies/{id}/versions` accept an optional `codification` block: the clauses the caller read, a map from rule code to clause, and a disposition (`ambiguous`, `unsupported`, `non_normative`) with a reason for every clause that produced no rule.
+- When it is supplied, each stored rule's `source_ref` is **derived from the clause it is mapped to**, and any `source_ref` sent in the request is ignored. A rule that names no clause cannot be stored through this path.
+- Refusals return `422 CODIFICATION_REFUSED` with the specific reason in `details.code` — a clause with no outcome, a disposition with no reason, or a rule whose condition the evaluator cannot execute.
+- **Omitting the block leaves behaviour exactly as before.** Existing callers are unaffected.
+
+**What this establishes, precisely**
+- That every clause the caller *declared* has exactly one accounted-for outcome, and that every stored rule is executable and attributed to a declared clause with a citation the API derived rather than accepted.
+- It does **not** establish that the declared clauses are the whole source document. Nothing server-side reads the document, so a caller that under-reports both its clauses and their outcomes cannot be distinguished from one that does not. That remains a question for human review before ratification.
+
+---
+
+## v1.12.0
+
+**Evaluation results say where a rule came from**
+- `POST /v1/decisions/evaluate` and `POST /v1/decisions/record` may now return `rule_sources`: a map from rule code to the source reference its author recorded (`document`, `section`, `url`). Present only when at least one rule in the governing snapshot carries one.
+- It sits **beside** `result`, not inside it. `result` is the signed object and its `integrity_hash` covers the violations exactly as the evaluator produced them, so a caller joins `rule_sources` to `violations[].rule_code` or `na_rules[].rule_code` itself. Existing clients that ignore the field see unchanged bodies.
+- What it is evidence of, stated precisely: `source_ref` is author-supplied and is **excluded** from `policy_rules_hash`, so ratification does not attest to it. It **is** covered by `policy_snapshot_digest`, which hashes the snapshot rules verbatim — so a v2 receipt binds that this snapshot carried this reference. That is a narrower claim than "the rule faithfully encodes that clause", which no digest can make.
+
+**Corrections to the published contract**
+- `components.schemas` now defines `def-0`, the recursive `when` gate union. The spec had referenced it 32 times without defining it, affecting nine operations including `POST /v1/policies` and `POST /v1/policies/validate`. Anything that resolves references — an OpenAPI validator, a client generator, an agent importing the schema — previously had nothing to resolve it to. The generator now hoists recursive definitions and refuses to emit a document containing an unresolvable reference.
+
+---
+
+## v1.11.0
+
+**Ungoverned evaluations are distinguishable from a governed pass**
+- `POST /v1/decisions/evaluate` and `POST /v1/decisions/record` may now return an optional `governance_coverage` object when no applicable rule was evaluated. It carries `permission_established: false`, saying explicitly that an `ALLOW` over zero evaluated rules records the absence of an applicable ratified rule rather than a determination that the action is permitted.
+- The object is **unsigned and is not a receipt field**. No hash payload, signing envelope, canonical profile or `receipt_schema_version` changed, and stripping the object does not affect the signed payload. Existing receipts verify exactly as before.
+- It is **absent** on a governed pass, so a client that ignores it sees byte-identical response bodies to v1.10.0. Treating its absence as permission is a client error.
+- `coverage` distinguishes `NO_ACTIVE_RULES` from `NO_APPLICABLE_RULES`. `cryptographically_established` is `true` only for `NO_ACTIVE_RULES`, and only when `evaluated_rules_hash` equals the empty-active-set hash *and* the result is signed — it means the claim is bound into a signed payload, not that the signature has been verified.
+- Note `POST /v1/decisions/evaluate` continues to answer `404 NO_ACTIVE_RULES` when a decision type resolves to no active rules at all; it refuses the evaluation rather than returning an advisory. The advisory's reachable case is active rules that are all excluded by their `when` gates.
+
+**Malformed rule conditions are refused rather than silently passing**
+- A rule whose condition the evaluator cannot execute — an unrecognised operator key, no subject field, or no executable constraint — is now rejected at the write boundary with `VALIDATION_ERROR` on draft update and on ratify, and produces `UNKNOWN_CONDITION_SHAPE` (`400`) at evaluation time.
+- Previously such a condition was skipped and counted as a rule that had passed. A threshold rule written `{ field, operator: "gt", value: 150 }` — not the canonical `{ field, min | max | greater_than | less_than }` — permitted any amount while reporting `rules_evaluated: 1, violations: 0, decision: "ALLOW"`.
+- A boolean temporal operator set to `false` (`not_expired`, `not_future`, `must_be_before`, `must_be_after`) and `min_length: 0` are likewise refused: the evaluator reads none of them, so they asked nothing. Numeric bounds of `0` are unaffected and remain executable — `{ field, max: 0 }` still refuses any positive value.
+- Rules already stored are unaffected until they are next edited or ratified.
+
+**Corrections to the published contract**
+- `PATCH /v1/policies/{id}/versions/{version}` now answers `409 NOT_DRAFT` for a submitted or ratified version even when the submitted rules are also malformed. It previously answered `422` in that case, reporting a rule problem where the version was not editable at all.
+- The temporal rule condition schema documents `min_days_after`, `must_be_before` and `must_be_after`. All three were already executed by the evaluator and missing from the published schema.
+- Policy list endpoints document the `q` search parameter, and policy version responses document `draft_revision`. Both shipped earlier and had not been regenerated into the spec.
+
+---
+
 ## v1.10.0
 
 **Case-insensitive policy `when` gates**

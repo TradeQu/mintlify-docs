@@ -49,7 +49,7 @@ flowchart LR
 
 > If you remember one thing: MeshQu is called **at the decision boundary**, not after.
 
-**Advisory by design:** MeshQu returns a governed verdict and receipt. Enforcement always remains in your system.
+**Advisory by design:** MeshQu returns a governed verdict. Enforcement always remains in your system.
 
 ```bash
 curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
@@ -85,7 +85,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
 ## What happens after you integrate
 
 1. Your system calls MeshQu before or after the **decision boundary** — the moment an outcome becomes irreversible.
-2. MeshQu evaluates the context against your active policies and returns a verdict and a cryptographic receipt.
+2. MeshQu evaluates the context against your active policies and returns a verdict — and, when you call `record`, a signed Decision Receipt.
 3. Your code decides how to act — proceed, queue for review, or block.
 4. Auditors can independently replay and verify any recorded decision later.
 

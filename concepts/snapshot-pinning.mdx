@@ -92,9 +92,15 @@ Because the snapshot is immutable and replay freezes the evaluation time, replay
 | `POST /v1/decisions/evaluate` | Current active policies (creating a new snapshot if needed). |
 | `POST /v1/decisions/record` | Current active policies (creating a new snapshot if needed). |
 | `POST /v1/decisions/{id}/replay` | The **pinned snapshot** from the original decision. |
-| `POST /v1/decisions/evaluate` with `options.snapshot_id` | A **specified snapshot** — manual replay against any snapshot you name. |
+| `POST /v1/decisions/evaluate` with `options.snapshot_id` | A **named snapshot**, and only one that pins the currently active, ratified policy versions. |
 
-The last form lets you re-evaluate an arbitrary context against a known snapshot (for example, to test how a new context would have fared under historical rules) by passing `options.snapshot_id` and, optionally, `options.evaluation_time`.
+The last form lets you name the snapshot a dry run is read against, by passing `options.snapshot_id` and, optionally, `options.evaluation_time`. It is **not** a way to evaluate against historical rules, and it is not replay. The snapshot you name must pin, for every policy it contains, the version that is active *and* `ratified` right now. A draft, submitted or superseded pin is refused; so is a snapshot whose ratification status cannot be established, or one that names no policy versions at all. Only ratified versions may govern a decision, and that rule applies to a snapshot you name exactly as it applies to the active policy set.
+
+<Note>
+To re-derive a decision that was already recorded, use `POST /v1/decisions/{id}/replay`. Replay is deliberately **not** subject to this guard — its pin comes from the stored decision, and refusing it would make an already-signed receipt unverifiable through the API.
+</Note>
+
+Note also that a dry run's result is **not signed** and is not a receipt — it carries `result.dry_run: true` and no signature fields. Naming a snapshot does not change that. See [Evaluate vs record](/api/reference#evaluate-vs-record).
 
 ## When replay does not match
 
@@ -102,11 +108,25 @@ A mismatch (`matches: false`) is a signal, not a routine outcome — it means th
 
 ## Error responses
 
+Replaying a recorded decision:
+
 | Situation | Response |
 | --- | --- |
 | Decision not found | `404 NOT_FOUND` |
 | Pinned snapshot missing (data corruption) | `404 SNAPSHOT_NOT_FOUND` |
 | Replaying another tenant's decision | `404 NOT_FOUND` — cross-tenant requests are indistinguishable from "does not exist" |
+
+Naming a snapshot on `POST /v1/decisions/evaluate` via `options.snapshot_id`:
+
+| Situation | Response |
+| --- | --- |
+| The named snapshot does not exist | `404 SNAPSHOT_NOT_FOUND` |
+| It pins a version that is not the active ratified one — draft, submitted or superseded | `400 POLICY_VERSION_NOT_RATIFIED` |
+| Its ratification status cannot be established, or it names no policy versions | `400 POLICY_VERSION_RATIFICATION_UNKNOWN` |
+
+<Note>
+A snapshot that does not exist is a `404`; a snapshot that exists but is not ratified governance is a `400`. The two are different answers to different questions, so do not treat every rejected pin as a bad request.
+</Note>
 
 <Warning>
 Replay reproduces a verdict; it does **not** undo anything. A replayed `DENY` does not block, and a replayed `ALLOW` does not execute. MeshQu is advisory — replay is an audit operation, not an enforcement one.

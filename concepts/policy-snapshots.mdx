@@ -63,7 +63,7 @@ Use **both** identifiers for what each is good at. The version number ("this use
 Snapshots are written once and never modified. This is enforced at two layers:
 
 - **By construction** — a snapshot is created via a find-or-create path. If a matching snapshot already exists for the tenant, it is reused; otherwise a new one is written. Existing rows are never updated.
-- **At the database** — an immutability trigger rejects every `UPDATE` and `DELETE` on the snapshot table. A privileged operator cannot silently rewrite a snapshot's rules.
+- **At the database** — an immutability trigger rejects every `UPDATE` and `DELETE` on the snapshot table. This binds the API's runtime role and every application caller; it does **not** bind the table owner or a DB superuser, who can disable any trigger. See [Storage-layer immutability](/concepts/decision-assurance#storage-layer-immutability-what-it-enforces-and-against-whom) for what that bound does and does not leave standing.
 
 This guarantees three properties auditors rely on:
 

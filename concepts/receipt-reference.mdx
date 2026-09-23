@@ -408,10 +408,17 @@ What works today:
 - **Offline subject-digest binding.** Implemented when `dsse_envelope` is
   present. The verifier decodes the DSSE envelope, reads the in-toto Statement
   and asserts `subject.digest.sha256 == receipt.integrity_hash`.
-- **Inclusion-proof verification.** Accepted as
-  `transparency.inclusion_proof_unverified` for legacy anchors lacking the new
-  fields; emits `transparency.inclusion_proof_invalid` when present and
-  broken.
+- **Inclusion-proof verification.** Shape-checked only. The verifier emits
+  `transparency.inclusion_proof_invalid` when the bundled proof's
+  `inclusion_proof` is present and malformed. The cryptographic binding comes
+  from the SET, so the verifier also emits the advisory
+  `transparency.inclusion_proof_unverified` whenever it cannot complete SET
+  verification — for a legacy anchor lacking the new fields, and **whenever the
+  caller supplied no Rekor trust roots**, which is the default. That code is
+  therefore not a legacy-only signal.
+
+Every bullet above describes a bundle that actually ships
+`transparency_proof.json`. What the verifier reports when it does not is §6.1.
 
 Online Rekor access splits into three layers. Read them separately — the
 differences are where public copy usually goes wrong:
@@ -429,8 +436,50 @@ differences are where public copy usually goes wrong:
   implemented. Offline SET verification against a pinned Rekor log key remains
   the guarantee MeshQu stands behind.
 
-Pre-PR-5b/5f anchors (no `dsse_envelope` / `signed_entry_timestamp` /
-`integrated_time` / `log_id`) report `transparency: not_applicable`.
+### 6.1 What a bundle reports for an anchor
+
+The anchor is **recorded on the receipt, not proved by it**. It is written after
+signing and is deliberately not covered by the integrity hash (§14). What the
+bundle verifier reports therefore depends on what the bundle carries, and there
+are four distinct outcomes:
+
+The branches are tested in this order, so the more specific case wins:
+
+| On the receipt, and in the bundle | `transparency` status | Failure code | Verdict contribution |
+| --- | --- | --- | --- |
+| **A.** Anchor names a proof-bearing shape — `dsse_envelope` **and** `entry_body` both captured — and `transparency_proof.json` is absent | `invalid` | `transparency.proof_missing` | `invalid`; exit 5 |
+| **B.** Any other anchor is present, and `transparency_proof.json` is absent | `not_checked` | `transparency.anchor_unproven` | `indeterminate`; exit 7 |
+| **C.** No anchor at all — `transparency_anchor` absent or `null` | `not_applicable` | none | none; exit 0 |
+| **D.** Anchor present and `transparency_proof.json` shipped | the checks in §6 above | as listed in §10.4 | per §10.5 |
+
+Verdicts and exit codes are §10.5. A pre-PR-5b/5f anchor (no `dsse_envelope` /
+`entry_body`) falls in **B**: the exporter deliberately ships no proof for it,
+so the verifier has nothing to check the claim against.
+
+**B changed on 2026-08-28 (CCR-302c).** It previously reported
+`not_applicable` with no failure code, verdict `valid`, exit 0.
+`not_applicable` asserts that no check was required; `not_checked` states that
+one was not performed. When the verifier lacks the inputs to determine
+anything, the second is true and the first is a claim that cannot be supported.
+
+Note the shape of **D** in the default configuration: with no Rekor trust roots
+supplied, a correctly anchored bundle reports `transparency: invalid` carrying
+only the advisory `transparency.inclusion_proof_unverified`, which rolls up to
+`warn` and exit 0. A sub-claim reading `invalid` is not by itself a failed
+bundle — the failure codes decide (§10.5).
+
+Two consequences to state plainly on any public surface:
+
+- **An anchor displayed on a receipt is a claim recorded, not a claim
+  verified.** `provider`, `log_index`, `entry_uuid` and `anchored_at` render as
+  facts on every surface that displays a receipt. Only **A** and **D** involve
+  the verifier checking anything about them.
+- **The verifier cannot distinguish "never anchored" from "anchor removed".**
+  Because the anchor is not bound by the integrity hash, a receipt whose anchor
+  was stripped to `null` presents the same claim as one that was never anchored,
+  and `transparency_anchor: null` is a legitimate state that unanchored runs
+  export on purpose. Do not read **C** as evidence that no anchoring took
+  place.
 
 ## 7. Decision Chains
 
@@ -542,9 +591,20 @@ manifest_digest                sha256(canonical(manifest minus manifest_digest))
 
 ### 10.3 Verifier sub-claims
 
-Every relevant sub-claim is reported (not just the first failure). Each has
-`status: 'valid' | 'invalid' | 'not_applicable'` and a
-`failure_codes: string[]`.
+Every relevant sub-claim is reported (not just the first failure). Each has a
+`status` and a `failure_codes: string[]`. There are **four** statuses:
+
+| `status` | Meaning | Contribution to the verdict |
+| --- | --- | --- |
+| `valid` | The check ran and the claim holds | passing |
+| `not_applicable` | The artefact makes no claim of this kind; there is nothing to check | passing |
+| `not_checked` | A claim was made and could not be established | `indeterminate` (§10.5) |
+| `invalid` | The check ran and the claim is refuted | `invalid` if any code on it is non-advisory, otherwise `warn` (§10.5) |
+
+`not_applicable` and `not_checked` are **not interchangeable**, and the
+distinction is load-bearing rather than stylistic: the first asserts that no
+check was required, the second that one was not performed. Only the second
+carries verification debt.
 
 | Sub-claim | What it checks | Today's status |
 | --- | --- | --- |
@@ -552,7 +612,7 @@ Every relevant sub-claim is reported (not just the first failure). Each has
 | `integrity` | `integrity_hash` recomputes correctly (v1 or v2 path by `receipt_schema_version`) | Implemented |
 | `signature` | Ed25519 signature valid against trusted key (v1: bare hash; v2: canonical envelope) | Implemented |
 | `snapshot_replay` | `evaluated_rules_hash` + `policy_snapshot_id` match; v2 also checks `policy_snapshot_digest` | Implemented |
-| `transparency` | DSSE subject digest binding + offline SET; `not_applicable` if anchor lacks new fields | Implemented (offline) |
+| `transparency` | DSSE subject digest binding + offline SET when a proof is bundled; `not_checked` when the receipt claims an anchor and no proof is bundled; `not_applicable` only when the receipt claims no anchor (§6.1) | Implemented (offline) |
 | `chain_link` | Hash-linked parent receipt → chain integrity hash | Implemented |
 | `chain_seal` | Seal hash + signature; receipt binding | Implemented |
 | `canonicalization` | Profile match + canonical-form vector tests | Implemented |
@@ -570,7 +630,32 @@ the bundled snapshot produces still fails `snapshot_replay.hash_mismatch`, and
 a receipt whose shadow fields were stripped or added after signing fails
 `integrity.mismatch`.
 
-### 10.4 Failure codes (full list)
+### 10.4 Failure codes
+
+These are the codes this page describes. **It is not the complete set.** The
+gap is stated here rather than left to be discovered:
+
+- `@meshqu/types` declares **55** `BundleFailureCode` members. **40** are listed
+  below. The other **15** are emitted by the shipped verifier and are not yet
+  described on any public surface; they belong to legs that have not reached
+  step 4 of §18.
+- `@meshqu/verify-lib` — the browser verifier, a deliberately independent
+  re-implementation — declares its **own** union carrying **17 further** codes.
+  One of them, `snapshot_replay.skipped_in_browser`, is an advisory recording
+  that the browser has no evaluator and skipped that sub-claim there. The other
+  16 belong to a separate verifier leg (CCR-403) whose capability §15 does not
+  list; until §15 lists it, no public surface may claim it.
+- Across both packages the union is **72** codes, of which **32** are not listed
+  below.
+
+These five numbers are no longer prose. `docs-parity.invariant.test.ts` in the
+`tradequ` repository parses them out of this section and compares them with the
+declared unions, so a code added to either package and not reflected here turns
+that check red. Its limits are stated in the test itself.
+
+A code's absence from this list is a documentation gap, not evidence that the
+verifier cannot emit it. Do not treat the list as an exhaustive contract, and do
+not build a public claim on a code being missing from it.
 
 ```
 bundle.unknown_version
@@ -598,6 +683,8 @@ transparency.set_invalid
 transparency.unknown_log_id
 transparency.envelope_decode_failed
 transparency.envelope_body_hash_mismatch
+transparency.proof_missing
+transparency.anchor_unproven
 
 chain_link.hash_mismatch
 chain_link.signature_invalid
@@ -622,6 +709,44 @@ approval_lineage.unknown_ratifier
 approval_lineage.policy_rules_hash_mismatch
 ```
 
+### 10.5 Verdict roll-up and exit codes
+
+The ten sub-claims roll up to one headline verdict, with precedence
+**`invalid` > `indeterminate` > `warn` > `valid`**:
+
+| Verdict | When | Exit code |
+| --- | --- | --- |
+| `invalid` | Any sub-claim has `status: 'invalid'` **and** at least one non-advisory failure code | 5 |
+| `indeterminate` | No hard failure, but at least one sub-claim is `not_checked` | 7 |
+| `warn` | No hard failure and nothing unchecked, but at least one sub-claim carries an advisory code | 0 |
+| `valid` | Every sub-claim passes cleanly | 0 |
+
+An **advisory** code is one the verifier emits to disclose a scope limit rather
+than to report a cryptographic failure. `transparency.inclusion_proof_unverified`
+and `snapshot_replay.skipped_in_browser` are the two this page names; the set is
+not fully documented here (§10.4). A sub-claim is downgraded only when **every**
+code on it is advisory — a real failure alongside an advisory one always wins,
+so "we could not check X" can never launder "X failed".
+
+**5 and 7 answer deliberately different questions.** Exit 5 says a check ran and
+the claim is refuted. Exit 7 says a claim was made and could not be established:
+the artefact is not accused of anything, and it has not passed either.
+Automation gating on verification should pick the question it means:
+
+- `-eq 0` — *nothing is wrong*. Rejects unchecked claims.
+- `-ne 5` — *nothing is proven wrong*. Accepts unchecked claims.
+
+Neither is the right default for every caller, which is why the verifier reports
+them separately rather than collapsing 7 into either neighbour. A CI gate
+written as "exit 0 or fail" is a stricter policy than one written as "not exit
+5", and the difference is exactly the set of claims the artefact makes that the
+verifier could not settle.
+
+The verdict is the shipped verifier's own output, in both the Node and browser
+implementations. The exit codes are the mapping the command-line verifier
+applies to it; that verifier is not published yet — see
+[Trust Model](/security/trust-model) for its status.
+
 ## 11. Public API Surface
 
 The endpoints exposed by the MeshQu API:
@@ -636,6 +761,21 @@ The endpoints exposed by the MeshQu API:
 | `POST /v1/agent-licences` (issue) · `POST /v1/agent-licences/:id/revoke` | **Human session only** (`humanGovernanceAct` — an API key receives 403) | tenant-tier | Implemented |
 | `GET /v1/agent-licences` (list) · `GET /v1/agent-licences/:id` | API key + tenant | tenant-tier | Implemented |
 | `GET /v1/chains/:chainId/bundle?format=json\|tar` | Public, unauth | 30 req/min per IP | Implemented |
+| `GET /v1/chains/:chainId/verify` | Public, unauth | 100 req/min per IP | Implemented |
+| `GET /v1/chains/:chainId/seal` | Public, unauth | 300 req/min per IP | Implemented |
+| `GET /v1/forms/:formId/schema` | Public, unauth | 60 req/min | Implemented |
+| `GET /v1/forms/:formId/api-contract` | Public, unauth | 60 req/min | Implemented |
+| `GET /v1/forms/:formId/receipts/:decisionId` | Public, unauth | 300 req/min | Implemented |
+| `POST /v1/forms/:formId/submit` | **Public, unauth — and a write** | 100 req/min per (form, IP) | Implemented. Evaluates and **mints a signed receipt** with no API key presented |
+
+**Fourteen** path patterns are reachable with no API key and no tenant header —
+eighteen when the operator enables the OpenAPI document and docs UI. **Nine of
+them reach tenant data**: the eight reads in the table above plus one write, the
+form submit. The remaining five are infrastructure, with one caveat worth
+stating — `/metrics` exposes per-tenant time series and is guarded by a bearer
+token rather than by the API key. All of them are listed, with what
+"unauthenticated" does and does not mean, under
+[Authentication → Public paths](/getting-started/authentication#public-paths).
 
 Public receipt response shape: `{ context, result, chain_id, chain_step }`.
 The API normalises legacy `policy_snapshot_hash` → `evaluated_rules_hash` on
@@ -655,17 +795,53 @@ REST API and verification bundles:
 - **Policy approval receipts** — ratifier-signed approval records.
 - **Audit events** — an append-only, hash-chained audit log.
 
-Each tenant's data is strictly isolated; a request can only ever read or write
-data belonging to its own tenant.
+Tenant isolation is enforced in four layers — the request's tenant header,
+an application-level tenant predicate on every query, a per-transaction
+`SET LOCAL` of the tenant id, and Postgres row-level security with `FORCE` — so
+a request carrying a tenant header can only ever reach that tenant's data.
+
+**What that does not say.** Of the fourteen path patterns reachable with **no**
+tenant header and no API key (§11), nine reach tenant data — and they read and
+write it, addressed by an unguessable identifier rather than by an
+authenticated principal. A
+receipt id, chain id or form id is therefore a **capability**: whoever holds one
+can read what it names, and in the case of `POST /v1/forms/:formId/submit`
+cause a signed receipt to be minted under that form's tenant.
+
+On those paths the four layers are not what separates one tenant from another,
+because they are not in the request at all — `GET /v1/receipts/:decisionId`
+resolves through a `SECURITY DEFINER` lookup that takes a receipt id and no
+tenant predicate. What keeps one tenant's receipts out of another's reach there
+is the unguessability of the identifier, and nothing else. Publish an id and you
+have published what it names.
 
 ## 13. Key Management
 
 - Signing key kid format: `msk_v{N}` (e.g. `msk_v1`).
 - Algorithm: Ed25519 only.
-- **Key rotation does not retroactively invalidate bundles** — each bundle
-  pins its trusted keys at export time in `trusted_keys.json`.
-- The /verify demo uses bundled `msk_demo_v1`; production verification uses
-  `trusted_keys.json` from the bundle.
+- **`trusted_keys.json` inside a bundle is informational only and is never
+  used as a trust root.** Treating it as one would let a self-signed bundle —
+  operator-controlled keys listed in the bundle as "trusted" — verify against
+  itself. The verifier refuses instead: with no external roots supplied it
+  emits `signature.no_external_trust_root` (§10.4) rather than falling back to
+  the bundled listing.
+- **Production verification requires trust roots supplied out-of-band.** The
+  verifier resolves a receipt's `signature_kid` only against roots its caller
+  passes in; with none supplied it emits `signature.no_external_trust_root`
+  rather than falling back to anything. How a verifying party obtains and pins
+  those roots is that party's own policy — it is not something the issuer's own
+  API can settle, and this page does not tell you to fetch them from one.
+  `GET /v1/.well-known/signing-keys` in particular is **deprecated and
+  self-asserted** — the producer vouching for itself — and **must not be
+  treated as a trust root.**
+- The /verify demo is not an exception to that rule so much as a demonstration
+  of it: it verifies against a bundled demo key (`msk_demo_v2`) and makes no
+  trust-rooted claim.
+- **Key rotation does not retroactively invalidate bundles** — a rotated-out
+  key still verifies a receipt it signed, provided the verifier's out-of-band
+  root set still carries it. The bundle's `trusted_keys.json` records which
+  keys were current at export time, which is useful for a fingerprint UI; it
+  is not what makes the old signature verify.
 - Custodian (evidence) keys and ratifier (approval) keys are supplied to the
   verifier out-of-band via `custodianTrustedRoots` / `ratifierTrustedRoots`.
   MeshQu never holds them.

@@ -14,10 +14,12 @@ external verifier needs to validate a Decision Receipt offline:
 - the public keys used to sign the receipt and chain proofs (informational only),
 - a top-level manifest that hashes everything together.
 
-Trust roots come from out-of-band channels (MeshQu's published JWKS,
-sigstore.dev's well-known Rekor key, your own pinned keys). The bundle's
-own `trusted_keys.json` is informational and **never used** to authenticate
-signatures.
+Trust roots come from out-of-band channels — sigstore.dev's well-known Rekor
+key for transparency proofs, and for receipt signatures a key set you pin
+yourself, through whatever channel your policy accepts. MeshQu's own
+`GET /v1/.well-known/signing-keys` is **deprecated and self-asserted** and must
+not be used as a trust root. The bundle's own `trusted_keys.json` is
+informational and **never used** to authenticate signatures.
 
 ## At-a-glance
 

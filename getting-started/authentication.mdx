@@ -3,12 +3,51 @@ title: "Authentication"
 description: "API keys, scopes, and tenant isolation"
 ---
 
-Every request to the MeshQu API (except health and readiness checks) requires two headers:
+Every request to the MeshQu API requires two headers, **except on the public
+paths listed below**:
 
 | Header | Description |
 | --- | --- |
 | `Authorization` | `Bearer <API_KEY>` |
 | `X-MeshQu-Tenant-Id` | Your tenant UUID |
+
+## Public paths
+
+These paths carry no API key and no tenant header. They are not an oversight —
+each hosts its own access control, and offline verification and hosted forms
+depend on them being reachable without a key. But the exception is wider than
+"health checks", so it is set out in full:
+
+**Infrastructure:**
+
+- `GET /v1/health`, `GET /v1/ready`
+- `GET /v1/.well-known/signing-keys`, `GET /v1/.well-known/trust-registry`
+- the OpenAPI document and docs UI, when the operator enables them
+- `GET /metrics` — **not** free of tenant data. Many metric families carry a
+  `tenant` label, so the endpoint exposes per-tenant volumes and outcomes. It
+  is guarded by a bearer token (`METRICS_BEARER_TOKEN`, required in
+  production), not by an API key — which is why it sits on this list at all.
+
+**Tenant-scoped, unauthenticated** — these *do* reach tenant data, addressed by
+an unguessable identifier rather than by a key:
+
+- `GET /v1/receipts/:decisionId` and `GET /v1/receipts/:decisionId/bundle`
+- `GET /v1/chains/:chainId/verify`, `GET /v1/chains/:chainId/seal`,
+  `GET /v1/chains/:chainId/bundle`
+- `GET /v1/forms/:formId/schema`, `GET /v1/forms/:formId/api-contract`,
+  `GET /v1/forms/:formId/receipts/:decisionId`
+- **`POST /v1/forms/:formId/submit`** — the one public *write*. A submission to
+  a hosted form is evaluated and **mints a signed receipt** without any API key
+  being presented. Rate limiting is per `(form, IP)` and the form's own token
+  budget caps total consumption; treat a form's ID as a capability and disable
+  forms you no longer want submissions on.
+
+<Note>
+  "Unauthenticated" here means no API key and no tenant header — not
+  unrestricted. Every one of these paths is rate-limited, and a request still
+  only ever reaches the tenant that owns the identifier in the URL. What it
+  does not do is prove who the caller is.
+</Note>
 
 ## API keys
 

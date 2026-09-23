@@ -27,7 +27,11 @@ GET /v1/policies/:id?version=<number>        # a specific historical or the acti
 The response always resolves `selectedVersion` to the numeric version and reports the corresponding `versionState`.
 
 <Note>
-Only the `active` version is used during evaluation. Looking at a draft or historical version never changes what MeshQu actually decides for production traffic.
+**Viewing** a draft or a historical version never changes what MeshQu decides — reading a version has no effect on evaluation.
+
+**Which version governs is a separate question, and the answer is not always "the active one".** Ordinary evaluation resolves the active version. A **frozen form**, however, evaluates against the exact `policy_version` pinned on it, which is looked up by `(policy, version)` with no status filter — that is the point of freezing a form. A `superseded` version that carries ratification provenance can therefore govern live traffic, deliberately and indefinitely, while a newer version is active.
+
+A **draft** cannot: a draft's ratification columns are forced null by a database constraint, and a pin is refused at both form-write time and every submission unless the pinned version was ratified by a non-system actor. A refused pin returns `FROZEN_PIN_NOT_ELIGIBLE`.
 </Note>
 
 ## Maker-checker

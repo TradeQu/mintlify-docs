@@ -73,17 +73,42 @@ sub-claim taxonomy and failure codes.
 - That `DecisionContext.evidence` references and `source_artifact`
   hashes the caller submits are truthful — we hash what we're given.
 
-## What a privileged DB operator can and cannot do
+## Storage-layer immutability — what it enforces, and against whom
 
-MeshQu enforces immutability at the storage layer:
+MeshQu enforces immutability with database triggers. Every trigger binds the
+API's runtime role and every application caller. **No trigger binds the table
+owner or a DB superuser**, either of whom can defeat one with
+`ALTER TABLE ... DISABLE TRIGGER` or `SET session_replication_role = 'replica'`.
+That is inherent to the mechanism, not a defect in any particular rule, and it
+bounds every claim below.
+
+**Enforced against the runtime role and every application caller:**
 
 - Deleting a recorded receipt or policy snapshot is blocked.
-- Updating any integrity-bound field is blocked. The only legitimate
-  post-record mutation is `result.transparency_anchor` (the async-Rekor
-  patch path).
-- Forging a new receipt still requires the signing key. Rekor anchoring
-  and external attestor signatures narrow that further; independent
-  custody of the signing key itself is an L5 concern.
+- Updating any integrity-bound field is blocked. `result.transparency_anchor`
+  is the one legitimate post-record mutation, and it is **one-time-set**: it may
+  go from null to an anchor exactly once, and can then never be replaced or
+  erased — only re-written identically as a no-op.
+- `TRUNCATE` on the append-only tables is blocked by a statement-level guard.
+
+**Not established by the above:**
+
+- A privileged operator holding the table-owner or superuser role can disable
+  these triggers and then delete or rewrite rows. Constraining that is a
+  **deployment responsibility** — the API runtime connecting as a non-owner
+  role that holds DML only — and not a property any release delivers. Detection
+  is bounded too: disabling a trigger via `session_replication_role` leaves
+  `pg_trigger.tgenabled` unchanged, so a health check reading that column does
+  not see it.
+- Forging a *new* receipt still requires the signing key, whatever the database
+  role. Rekor anchoring and external attestor signatures narrow that further;
+  independent custody of the signing key itself is an L5 concern.
+
+The durable statement is therefore about the *signing key*, not the database:
+a receipt that verifies against an out-of-band trust root was signed by the
+key, and no database privilege substitutes for it. Deletion, by contrast, is a
+retention and access-control property an operator arranges — see the
+responsibilities table below.
 
 ## Implemented mechanics vs deployment responsibilities
 
