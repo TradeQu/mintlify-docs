@@ -339,6 +339,17 @@ matrix and Node ↔ browser parity tests.
   has no non-null `approval_receipt_digest` entries.
 - The same approval-lineage checks run in both the Node verifier and the
   browser verifier, kept at parity (APR-009).
+- **CCR-309.** Step 1 ("the receipt is present in the bundled file") used to
+  share `approval_lineage.digest_mismatch` with step 2 ("the digest matches")
+  — so a bundle that never shipped `policy_approval_receipts.json` at all (an
+  original research-corpus export, for example) was told its approval receipt
+  "was tampered or substituted", which is false: nothing was compared. The
+  verifier now reports `approval_lineage.receipt_absent` when step 1 fails to
+  find a receipt, `approval_lineage.receipt_malformed` when the file or
+  receipt cannot be read at all, and reserves `approval_lineage.digest_mismatch`
+  for a receipt that was found, could be read, and genuinely disagreed with
+  the signed snapshot binding. All three remain hard failures — `invalid`,
+  exit 5 — this changes which code names the failure, not whether it fails.
 
 ## 5. Evidence Manifest (v2 only)
 
@@ -635,7 +646,7 @@ a receipt whose shadow fields were stripped or added after signing fails
 These are the codes this page describes. **It is not the complete set.** The
 gap is stated here rather than left to be discovered:
 
-- `@meshqu/types` declares **55** `BundleFailureCode` members. **40** are listed
+- `@meshqu/types` declares **57** `BundleFailureCode` members. **42** are listed
   below. The other **15** are emitted by the shipped verifier and are not yet
   described on any public surface; they belong to legs that have not reached
   step 4 of §18.
@@ -645,7 +656,7 @@ gap is stated here rather than left to be discovered:
   that the browser has no evaluator and skipped that sub-claim there. The other
   16 belong to a separate verifier leg (CCR-403) whose capability §15 does not
   list; until §15 lists it, no public surface may claim it.
-- Across both packages the union is **72** codes, of which **32** are not listed
+- Across both packages the union is **74** codes, of which **32** are not listed
   below.
 
 These five numbers are no longer prose. `docs-parity.invariant.test.ts` in the
@@ -703,7 +714,9 @@ evidence.custodian_unknown_kid
 evidence.custodian_signature_invalid
 evidence.custodian_signature_malformed
 
-approval_lineage.digest_mismatch
+approval_lineage.receipt_absent      (CCR-309: snapshot names a digest, bundle has no matching receipt — nothing was compared)
+approval_lineage.receipt_malformed   (CCR-309: the receipts file/receipt could not be read at all — parse failure, wrong shape, or digest computation threw)
+approval_lineage.digest_mismatch     (a present, well-formed receipt's recomputed digest disagrees with the signed snapshot binding — the only one of the three meaning tampering or substitution)
 approval_lineage.signature_invalid
 approval_lineage.unknown_ratifier
 approval_lineage.policy_rules_hash_mismatch

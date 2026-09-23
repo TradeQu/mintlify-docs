@@ -169,7 +169,13 @@ that the ratifier's Ed25519 signature verifies against the
 caller-supplied `ratifierTrustedRoots`. Reports `not_applicable`
 otherwise.
 
-Failure codes: `approval_lineage.digest_mismatch`,
+Failure codes: `approval_lineage.receipt_absent` (the bundle carries no
+receipt for a version the snapshot names — including when
+`policy_approval_receipts.json` is absent entirely), `approval_lineage.receipt_malformed`
+(the file or receipt could not be read at all), `approval_lineage.digest_mismatch`
+(a present, well-formed receipt's digest genuinely disagrees with the signed
+snapshot binding — the only one of these three meaning tampering or
+substitution; see the Receipt Reference §4 CCR-309 note),
 `approval_lineage.signature_invalid`,
 `approval_lineage.unknown_ratifier`,
 `approval_lineage.policy_rules_hash_mismatch`.
