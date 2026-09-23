@@ -7,7 +7,7 @@ description: "API and SDK version history"
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog documents API and SDK functionality shipped into those deployments. Console UI changes are not tracked here.
 </Info>
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.17.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.18.0**.
 
 ## Versioning policy
 
@@ -24,6 +24,26 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract ve
 ## API version header
 
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
+
+---
+
+## v1.18.0
+
+**One pending version per policy**
+- A policy now has its version in force plus at most one **pending** version: a draft, a version submitted for review, or a ratified version that is not yet in force.
+- `POST /v1/policies/{id}/versions` refuses a second pending version with `409 DRAFT_CONFLICT`. `details.reason` is `OPEN_DRAFT`, `RATIFIED_AWAITING_ACTIVATION` or `PENDING_VERSION_EXISTS`, and `details.pending_version` names the pending version when it is known.
+
+**Reopen, set aside and supersede.** Each is a human-only act: a verified human session is required, and an API key receives `403 HUMAN_PRINCIPAL_REQUIRED`.
+- `POST /v1/policies/{id}/versions/{version}/reopen`: a ratified version that is not in force continues as a new draft, which must be ratified again. The ratified version is closed as `reopened` and can no longer be activated.
+- `POST /v1/policies/{id}/versions/{version}/set-aside`: the pending version is closed as `set_aside` with a required `reason`, so that a new draft can start from the version in force.
+- `POST /v1/policies/{id}/versions/{version}/supersede`: a correction to a draft. The draft is closed as `replaced` and kept unchanged, including its codification record, and the corrected content becomes a new draft. It takes `expected_revision`, `rules` and an optional `codification` block processed exactly as on version creation.
+
+**New version statuses and fields**
+- Version `status` may now also be `reopened`, `set_aside` or `replaced`. A closed version cannot be ratified or activated. `superseded` keeps its existing meaning: a version that was in force and has been replaced.
+- Closed versions carry `closed_at`, `closed_by` and `closed_reason`.
+- New audit actions: `policy_version_reopened`, `policy_version_set_aside`, `policy_version_replaced`.
+
+*Operation names, codes and fields above are taken from the regenerated `api/openapi.json` for this release (`postV1PoliciesByIdVersionsByVersionReopen`, `postV1PoliciesByIdVersionsByVersionSetAside`, `postV1PoliciesByIdVersionsByVersionSupersede`).*
 
 ---
 
