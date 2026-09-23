@@ -7,7 +7,7 @@ description: "API and SDK version history"
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog documents API and SDK functionality shipped into those deployments. Console UI changes are not tracked here.
 </Info>
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.14.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.15.0**.
 
 ## Versioning policy
 
@@ -24,6 +24,19 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract ve
 ## API version header
 
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
+
+---
+
+## v1.15.0
+
+**The codification lint's findings, on the wire**
+- Policy version responses carry an optional `codification_record.lint`. Present only on a version whose write ran the codification lint (an internal, model-assisted check comparing a declared clause's text against the codifier's stored rule); **absent** — not null — on every other version, including one written before the lint existed and one written with the lint disabled.
+- Each linted clause carries its `findings` (a code, a message, and diagnostic evidence) and a `needs_context` flag. `status: "ran"` with an empty `findings` array for a clause is a real statement — the lint ran and found nothing — distinct from an absent `lint`, which means the lint never ran at all.
+- This is a **projection**, not a mirror, of what is stored internally: it does not include the model's raw per-question answers (only the derived findings), and it does not include token-usage accounting. A finding's `evidence` is likewise limited to the one diagnostic value a reader needs, not the full internal diagnostic bag.
+
+**What it is not**
+- It is **advisory**, produced by an automated, model-assisted check. It is **unsigned and unhashed** — not covered by `policy_rules_hash` or `policy_snapshot_digest`, and it enters no receipt, digest, snapshot, export or evidence manifest.
+- It is **not part of review or ratification**. A finding is a prompt to whoever is codifying or ratifying the version, never a disposition — it does not change `codification_record.ledger` or `codification_record.counts`.
 
 ---
 

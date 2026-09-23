@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.14.0",
+    "version": "1.15.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -1657,6 +1657,194 @@
                                         "message": {
                                           "type": "string"
                                         }
+                                      }
+                                    }
+                                  },
+                                  "lint": {
+                                    "additionalProperties": false,
+                                    "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                                    "type": "object",
+                                    "required": [
+                                      "schema",
+                                      "status",
+                                      "answerer",
+                                      "questions_version",
+                                      "floor",
+                                      "clauses"
+                                    ],
+                                    "properties": {
+                                      "schema": {
+                                        "type": "string",
+                                        "enum": [
+                                          "meshqu-codification-lint/v1"
+                                        ]
+                                      },
+                                      "status": {
+                                        "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "ran"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "skipped"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "failed"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "reason": {
+                                        "type": "string"
+                                      },
+                                      "answerer": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "jev"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "keyword"
+                                            ]
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "none"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "model": {
+                                        "type": "string"
+                                      },
+                                      "questions_version": {
+                                        "type": "string"
+                                      },
+                                      "floor": {
+                                        "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                                        "type": "number"
+                                      },
+                                      "clauses": {
+                                        "type": "array",
+                                        "items": {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "required": [
+                                            "unit_id",
+                                            "findings",
+                                            "needs_context"
+                                          ],
+                                          "properties": {
+                                            "unit_id": {
+                                              "type": "string"
+                                            },
+                                            "findings": {
+                                              "type": "array",
+                                              "items": {
+                                                "additionalProperties": false,
+                                                "type": "object",
+                                                "required": [
+                                                  "code",
+                                                  "message",
+                                                  "evidence"
+                                                ],
+                                                "properties": {
+                                                  "code": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "guidance_as_obligation"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "boundary_mismatch"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "scope_as_rule"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "dropped_exception"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "dropped_continuing_duty"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "dropped_approver"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "dropped_obligation"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "should_have_mapped"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "needs_context"
+                                                        ]
+                                                      }
+                                                    ]
+                                                  },
+                                                  "message": {
+                                                    "type": "string"
+                                                  },
+                                                  "evidence": {
+                                                    "additionalProperties": false,
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "confidence": {
+                                                        "type": "number"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            "needs_context": {
+                                              "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                              "type": "boolean"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "elapsed_ms": {
+                                        "description": "Wall-clock time (ms) the lint run took, end to end.",
+                                        "type": "number"
                                       }
                                     }
                                   }
@@ -3361,6 +3549,194 @@
                                   "message": {
                                     "type": "string"
                                   }
+                                }
+                              }
+                            },
+                            "lint": {
+                              "additionalProperties": false,
+                              "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                              "type": "object",
+                              "required": [
+                                "schema",
+                                "status",
+                                "answerer",
+                                "questions_version",
+                                "floor",
+                                "clauses"
+                              ],
+                              "properties": {
+                                "schema": {
+                                  "type": "string",
+                                  "enum": [
+                                    "meshqu-codification-lint/v1"
+                                  ]
+                                },
+                                "status": {
+                                  "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "ran"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "skipped"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "failed"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "answerer": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "jev"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "keyword"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "none"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "model": {
+                                  "type": "string"
+                                },
+                                "questions_version": {
+                                  "type": "string"
+                                },
+                                "floor": {
+                                  "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                                  "type": "number"
+                                },
+                                "clauses": {
+                                  "type": "array",
+                                  "items": {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "unit_id",
+                                      "findings",
+                                      "needs_context"
+                                    ],
+                                    "properties": {
+                                      "unit_id": {
+                                        "type": "string"
+                                      },
+                                      "findings": {
+                                        "type": "array",
+                                        "items": {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "required": [
+                                            "code",
+                                            "message",
+                                            "evidence"
+                                          ],
+                                          "properties": {
+                                            "code": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "guidance_as_obligation"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "boundary_mismatch"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "scope_as_rule"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_exception"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_continuing_duty"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_approver"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_obligation"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "should_have_mapped"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "needs_context"
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            "message": {
+                                              "type": "string"
+                                            },
+                                            "evidence": {
+                                              "additionalProperties": false,
+                                              "type": "object",
+                                              "properties": {
+                                                "confidence": {
+                                                  "type": "number"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "needs_context": {
+                                        "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  }
+                                },
+                                "elapsed_ms": {
+                                  "description": "Wall-clock time (ms) the lint run took, end to end.",
+                                  "type": "number"
                                 }
                               }
                             }
@@ -5085,6 +5461,194 @@
                                   }
                                 }
                               }
+                            },
+                            "lint": {
+                              "additionalProperties": false,
+                              "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                              "type": "object",
+                              "required": [
+                                "schema",
+                                "status",
+                                "answerer",
+                                "questions_version",
+                                "floor",
+                                "clauses"
+                              ],
+                              "properties": {
+                                "schema": {
+                                  "type": "string",
+                                  "enum": [
+                                    "meshqu-codification-lint/v1"
+                                  ]
+                                },
+                                "status": {
+                                  "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "ran"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "skipped"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "failed"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "answerer": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "jev"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "keyword"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "none"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "model": {
+                                  "type": "string"
+                                },
+                                "questions_version": {
+                                  "type": "string"
+                                },
+                                "floor": {
+                                  "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                                  "type": "number"
+                                },
+                                "clauses": {
+                                  "type": "array",
+                                  "items": {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "unit_id",
+                                      "findings",
+                                      "needs_context"
+                                    ],
+                                    "properties": {
+                                      "unit_id": {
+                                        "type": "string"
+                                      },
+                                      "findings": {
+                                        "type": "array",
+                                        "items": {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "required": [
+                                            "code",
+                                            "message",
+                                            "evidence"
+                                          ],
+                                          "properties": {
+                                            "code": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "guidance_as_obligation"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "boundary_mismatch"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "scope_as_rule"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_exception"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_continuing_duty"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_approver"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_obligation"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "should_have_mapped"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "needs_context"
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            "message": {
+                                              "type": "string"
+                                            },
+                                            "evidence": {
+                                              "additionalProperties": false,
+                                              "type": "object",
+                                              "properties": {
+                                                "confidence": {
+                                                  "type": "number"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "needs_context": {
+                                        "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  }
+                                },
+                                "elapsed_ms": {
+                                  "description": "Wall-clock time (ms) the lint run took, end to end.",
+                                  "type": "number"
+                                }
+                              }
                             }
                           }
                         }
@@ -6224,6 +6788,194 @@
                                   "message": {
                                     "type": "string"
                                   }
+                                }
+                              }
+                            },
+                            "lint": {
+                              "additionalProperties": false,
+                              "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                              "type": "object",
+                              "required": [
+                                "schema",
+                                "status",
+                                "answerer",
+                                "questions_version",
+                                "floor",
+                                "clauses"
+                              ],
+                              "properties": {
+                                "schema": {
+                                  "type": "string",
+                                  "enum": [
+                                    "meshqu-codification-lint/v1"
+                                  ]
+                                },
+                                "status": {
+                                  "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "ran"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "skipped"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "failed"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "answerer": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "jev"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "keyword"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "none"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "model": {
+                                  "type": "string"
+                                },
+                                "questions_version": {
+                                  "type": "string"
+                                },
+                                "floor": {
+                                  "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                                  "type": "number"
+                                },
+                                "clauses": {
+                                  "type": "array",
+                                  "items": {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "unit_id",
+                                      "findings",
+                                      "needs_context"
+                                    ],
+                                    "properties": {
+                                      "unit_id": {
+                                        "type": "string"
+                                      },
+                                      "findings": {
+                                        "type": "array",
+                                        "items": {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "required": [
+                                            "code",
+                                            "message",
+                                            "evidence"
+                                          ],
+                                          "properties": {
+                                            "code": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "guidance_as_obligation"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "boundary_mismatch"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "scope_as_rule"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_exception"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_continuing_duty"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_approver"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_obligation"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "should_have_mapped"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "needs_context"
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            "message": {
+                                              "type": "string"
+                                            },
+                                            "evidence": {
+                                              "additionalProperties": false,
+                                              "type": "object",
+                                              "properties": {
+                                                "confidence": {
+                                                  "type": "number"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "needs_context": {
+                                        "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  }
+                                },
+                                "elapsed_ms": {
+                                  "description": "Wall-clock time (ms) the lint run took, end to end.",
+                                  "type": "number"
                                 }
                               }
                             }
@@ -8208,6 +8960,194 @@
                               }
                             }
                           }
+                        },
+                        "lint": {
+                          "additionalProperties": false,
+                          "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                          "type": "object",
+                          "required": [
+                            "schema",
+                            "status",
+                            "answerer",
+                            "questions_version",
+                            "floor",
+                            "clauses"
+                          ],
+                          "properties": {
+                            "schema": {
+                              "type": "string",
+                              "enum": [
+                                "meshqu-codification-lint/v1"
+                              ]
+                            },
+                            "status": {
+                              "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ran"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "skipped"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "failed"
+                                  ]
+                                }
+                              ]
+                            },
+                            "reason": {
+                              "type": "string"
+                            },
+                            "answerer": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "jev"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "keyword"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "none"
+                                  ]
+                                }
+                              ]
+                            },
+                            "model": {
+                              "type": "string"
+                            },
+                            "questions_version": {
+                              "type": "string"
+                            },
+                            "floor": {
+                              "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                              "type": "number"
+                            },
+                            "clauses": {
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "findings",
+                                  "needs_context"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "findings": {
+                                    "type": "array",
+                                    "items": {
+                                      "additionalProperties": false,
+                                      "type": "object",
+                                      "required": [
+                                        "code",
+                                        "message",
+                                        "evidence"
+                                      ],
+                                      "properties": {
+                                        "code": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "guidance_as_obligation"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "boundary_mismatch"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "scope_as_rule"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_exception"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_continuing_duty"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_approver"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_obligation"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "should_have_mapped"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "needs_context"
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        "message": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "properties": {
+                                            "confidence": {
+                                              "type": "number"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "needs_context": {
+                                    "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "elapsed_ms": {
+                              "description": "Wall-clock time (ms) the lint run took, end to end.",
+                              "type": "number"
+                            }
+                          }
                         }
                       }
                     }
@@ -9133,6 +10073,194 @@
                                 }
                               }
                             }
+                          },
+                          "lint": {
+                            "additionalProperties": false,
+                            "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                            "type": "object",
+                            "required": [
+                              "schema",
+                              "status",
+                              "answerer",
+                              "questions_version",
+                              "floor",
+                              "clauses"
+                            ],
+                            "properties": {
+                              "schema": {
+                                "type": "string",
+                                "enum": [
+                                  "meshqu-codification-lint/v1"
+                                ]
+                              },
+                              "status": {
+                                "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "ran"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "skipped"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "failed"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "answerer": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "jev"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "keyword"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "none"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "model": {
+                                "type": "string"
+                              },
+                              "questions_version": {
+                                "type": "string"
+                              },
+                              "floor": {
+                                "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                                "type": "number"
+                              },
+                              "clauses": {
+                                "type": "array",
+                                "items": {
+                                  "additionalProperties": false,
+                                  "type": "object",
+                                  "required": [
+                                    "unit_id",
+                                    "findings",
+                                    "needs_context"
+                                  ],
+                                  "properties": {
+                                    "unit_id": {
+                                      "type": "string"
+                                    },
+                                    "findings": {
+                                      "type": "array",
+                                      "items": {
+                                        "additionalProperties": false,
+                                        "type": "object",
+                                        "required": [
+                                          "code",
+                                          "message",
+                                          "evidence"
+                                        ],
+                                        "properties": {
+                                          "code": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "enum": [
+                                                  "guidance_as_obligation"
+                                                ]
+                                              },
+                                              {
+                                                "type": "string",
+                                                "enum": [
+                                                  "boundary_mismatch"
+                                                ]
+                                              },
+                                              {
+                                                "type": "string",
+                                                "enum": [
+                                                  "scope_as_rule"
+                                                ]
+                                              },
+                                              {
+                                                "type": "string",
+                                                "enum": [
+                                                  "dropped_exception"
+                                                ]
+                                              },
+                                              {
+                                                "type": "string",
+                                                "enum": [
+                                                  "dropped_continuing_duty"
+                                                ]
+                                              },
+                                              {
+                                                "type": "string",
+                                                "enum": [
+                                                  "dropped_approver"
+                                                ]
+                                              },
+                                              {
+                                                "type": "string",
+                                                "enum": [
+                                                  "dropped_obligation"
+                                                ]
+                                              },
+                                              {
+                                                "type": "string",
+                                                "enum": [
+                                                  "should_have_mapped"
+                                                ]
+                                              },
+                                              {
+                                                "type": "string",
+                                                "enum": [
+                                                  "needs_context"
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          "message": {
+                                            "type": "string"
+                                          },
+                                          "evidence": {
+                                            "additionalProperties": false,
+                                            "type": "object",
+                                            "properties": {
+                                              "confidence": {
+                                                "type": "number"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "needs_context": {
+                                      "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              },
+                              "elapsed_ms": {
+                                "description": "Wall-clock time (ms) the lint run took, end to end.",
+                                "type": "number"
+                              }
+                            }
                           }
                         }
                       }
@@ -9982,6 +11110,194 @@
                                   "message": {
                                     "type": "string"
                                   }
+                                }
+                              }
+                            },
+                            "lint": {
+                              "additionalProperties": false,
+                              "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                              "type": "object",
+                              "required": [
+                                "schema",
+                                "status",
+                                "answerer",
+                                "questions_version",
+                                "floor",
+                                "clauses"
+                              ],
+                              "properties": {
+                                "schema": {
+                                  "type": "string",
+                                  "enum": [
+                                    "meshqu-codification-lint/v1"
+                                  ]
+                                },
+                                "status": {
+                                  "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "ran"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "skipped"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "failed"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "answerer": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "jev"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "keyword"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "none"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "model": {
+                                  "type": "string"
+                                },
+                                "questions_version": {
+                                  "type": "string"
+                                },
+                                "floor": {
+                                  "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                                  "type": "number"
+                                },
+                                "clauses": {
+                                  "type": "array",
+                                  "items": {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "unit_id",
+                                      "findings",
+                                      "needs_context"
+                                    ],
+                                    "properties": {
+                                      "unit_id": {
+                                        "type": "string"
+                                      },
+                                      "findings": {
+                                        "type": "array",
+                                        "items": {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "required": [
+                                            "code",
+                                            "message",
+                                            "evidence"
+                                          ],
+                                          "properties": {
+                                            "code": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "guidance_as_obligation"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "boundary_mismatch"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "scope_as_rule"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_exception"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_continuing_duty"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_approver"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_obligation"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "should_have_mapped"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "needs_context"
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            "message": {
+                                              "type": "string"
+                                            },
+                                            "evidence": {
+                                              "additionalProperties": false,
+                                              "type": "object",
+                                              "properties": {
+                                                "confidence": {
+                                                  "type": "number"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "needs_context": {
+                                        "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  }
+                                },
+                                "elapsed_ms": {
+                                  "description": "Wall-clock time (ms) the lint run took, end to end.",
+                                  "type": "number"
                                 }
                               }
                             }
@@ -11070,6 +12386,194 @@
                               }
                             }
                           }
+                        },
+                        "lint": {
+                          "additionalProperties": false,
+                          "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                          "type": "object",
+                          "required": [
+                            "schema",
+                            "status",
+                            "answerer",
+                            "questions_version",
+                            "floor",
+                            "clauses"
+                          ],
+                          "properties": {
+                            "schema": {
+                              "type": "string",
+                              "enum": [
+                                "meshqu-codification-lint/v1"
+                              ]
+                            },
+                            "status": {
+                              "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ran"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "skipped"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "failed"
+                                  ]
+                                }
+                              ]
+                            },
+                            "reason": {
+                              "type": "string"
+                            },
+                            "answerer": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "jev"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "keyword"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "none"
+                                  ]
+                                }
+                              ]
+                            },
+                            "model": {
+                              "type": "string"
+                            },
+                            "questions_version": {
+                              "type": "string"
+                            },
+                            "floor": {
+                              "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                              "type": "number"
+                            },
+                            "clauses": {
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "findings",
+                                  "needs_context"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "findings": {
+                                    "type": "array",
+                                    "items": {
+                                      "additionalProperties": false,
+                                      "type": "object",
+                                      "required": [
+                                        "code",
+                                        "message",
+                                        "evidence"
+                                      ],
+                                      "properties": {
+                                        "code": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "guidance_as_obligation"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "boundary_mismatch"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "scope_as_rule"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_exception"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_continuing_duty"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_approver"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_obligation"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "should_have_mapped"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "needs_context"
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        "message": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "properties": {
+                                            "confidence": {
+                                              "type": "number"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "needs_context": {
+                                    "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "elapsed_ms": {
+                              "description": "Wall-clock time (ms) the lint run took, end to end.",
+                              "type": "number"
+                            }
+                          }
                         }
                       }
                     }
@@ -12027,6 +13531,194 @@
                               }
                             }
                           }
+                        },
+                        "lint": {
+                          "additionalProperties": false,
+                          "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                          "type": "object",
+                          "required": [
+                            "schema",
+                            "status",
+                            "answerer",
+                            "questions_version",
+                            "floor",
+                            "clauses"
+                          ],
+                          "properties": {
+                            "schema": {
+                              "type": "string",
+                              "enum": [
+                                "meshqu-codification-lint/v1"
+                              ]
+                            },
+                            "status": {
+                              "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ran"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "skipped"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "failed"
+                                  ]
+                                }
+                              ]
+                            },
+                            "reason": {
+                              "type": "string"
+                            },
+                            "answerer": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "jev"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "keyword"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "none"
+                                  ]
+                                }
+                              ]
+                            },
+                            "model": {
+                              "type": "string"
+                            },
+                            "questions_version": {
+                              "type": "string"
+                            },
+                            "floor": {
+                              "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                              "type": "number"
+                            },
+                            "clauses": {
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "findings",
+                                  "needs_context"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "findings": {
+                                    "type": "array",
+                                    "items": {
+                                      "additionalProperties": false,
+                                      "type": "object",
+                                      "required": [
+                                        "code",
+                                        "message",
+                                        "evidence"
+                                      ],
+                                      "properties": {
+                                        "code": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "guidance_as_obligation"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "boundary_mismatch"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "scope_as_rule"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_exception"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_continuing_duty"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_approver"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_obligation"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "should_have_mapped"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "needs_context"
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        "message": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "properties": {
+                                            "confidence": {
+                                              "type": "number"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "needs_context": {
+                                    "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "elapsed_ms": {
+                              "description": "Wall-clock time (ms) the lint run took, end to end.",
+                              "type": "number"
+                            }
+                          }
                         }
                       }
                     }
@@ -12959,6 +14651,194 @@
                               "message": {
                                 "type": "string"
                               }
+                            }
+                          }
+                        },
+                        "lint": {
+                          "additionalProperties": false,
+                          "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                          "type": "object",
+                          "required": [
+                            "schema",
+                            "status",
+                            "answerer",
+                            "questions_version",
+                            "floor",
+                            "clauses"
+                          ],
+                          "properties": {
+                            "schema": {
+                              "type": "string",
+                              "enum": [
+                                "meshqu-codification-lint/v1"
+                              ]
+                            },
+                            "status": {
+                              "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ran"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "skipped"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "failed"
+                                  ]
+                                }
+                              ]
+                            },
+                            "reason": {
+                              "type": "string"
+                            },
+                            "answerer": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "jev"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "keyword"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "none"
+                                  ]
+                                }
+                              ]
+                            },
+                            "model": {
+                              "type": "string"
+                            },
+                            "questions_version": {
+                              "type": "string"
+                            },
+                            "floor": {
+                              "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                              "type": "number"
+                            },
+                            "clauses": {
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "findings",
+                                  "needs_context"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "findings": {
+                                    "type": "array",
+                                    "items": {
+                                      "additionalProperties": false,
+                                      "type": "object",
+                                      "required": [
+                                        "code",
+                                        "message",
+                                        "evidence"
+                                      ],
+                                      "properties": {
+                                        "code": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "guidance_as_obligation"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "boundary_mismatch"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "scope_as_rule"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_exception"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_continuing_duty"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_approver"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_obligation"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "should_have_mapped"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "needs_context"
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        "message": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "properties": {
+                                            "confidence": {
+                                              "type": "number"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "needs_context": {
+                                    "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "elapsed_ms": {
+                              "description": "Wall-clock time (ms) the lint run took, end to end.",
+                              "type": "number"
                             }
                           }
                         }
@@ -15606,6 +17486,194 @@
                               }
                             }
                           }
+                        },
+                        "lint": {
+                          "additionalProperties": false,
+                          "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                          "type": "object",
+                          "required": [
+                            "schema",
+                            "status",
+                            "answerer",
+                            "questions_version",
+                            "floor",
+                            "clauses"
+                          ],
+                          "properties": {
+                            "schema": {
+                              "type": "string",
+                              "enum": [
+                                "meshqu-codification-lint/v1"
+                              ]
+                            },
+                            "status": {
+                              "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ran"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "skipped"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "failed"
+                                  ]
+                                }
+                              ]
+                            },
+                            "reason": {
+                              "type": "string"
+                            },
+                            "answerer": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "jev"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "keyword"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "none"
+                                  ]
+                                }
+                              ]
+                            },
+                            "model": {
+                              "type": "string"
+                            },
+                            "questions_version": {
+                              "type": "string"
+                            },
+                            "floor": {
+                              "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                              "type": "number"
+                            },
+                            "clauses": {
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "findings",
+                                  "needs_context"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "findings": {
+                                    "type": "array",
+                                    "items": {
+                                      "additionalProperties": false,
+                                      "type": "object",
+                                      "required": [
+                                        "code",
+                                        "message",
+                                        "evidence"
+                                      ],
+                                      "properties": {
+                                        "code": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "guidance_as_obligation"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "boundary_mismatch"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "scope_as_rule"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_exception"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_continuing_duty"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_approver"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_obligation"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "should_have_mapped"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "needs_context"
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        "message": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "properties": {
+                                            "confidence": {
+                                              "type": "number"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "needs_context": {
+                                    "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "elapsed_ms": {
+                              "description": "Wall-clock time (ms) the lint run took, end to end.",
+                              "type": "number"
+                            }
+                          }
                         }
                       }
                     }
@@ -16750,6 +18818,194 @@
                               "message": {
                                 "type": "string"
                               }
+                            }
+                          }
+                        },
+                        "lint": {
+                          "additionalProperties": false,
+                          "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                          "type": "object",
+                          "required": [
+                            "schema",
+                            "status",
+                            "answerer",
+                            "questions_version",
+                            "floor",
+                            "clauses"
+                          ],
+                          "properties": {
+                            "schema": {
+                              "type": "string",
+                              "enum": [
+                                "meshqu-codification-lint/v1"
+                              ]
+                            },
+                            "status": {
+                              "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ran"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "skipped"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "failed"
+                                  ]
+                                }
+                              ]
+                            },
+                            "reason": {
+                              "type": "string"
+                            },
+                            "answerer": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "jev"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "keyword"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "none"
+                                  ]
+                                }
+                              ]
+                            },
+                            "model": {
+                              "type": "string"
+                            },
+                            "questions_version": {
+                              "type": "string"
+                            },
+                            "floor": {
+                              "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                              "type": "number"
+                            },
+                            "clauses": {
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "findings",
+                                  "needs_context"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "findings": {
+                                    "type": "array",
+                                    "items": {
+                                      "additionalProperties": false,
+                                      "type": "object",
+                                      "required": [
+                                        "code",
+                                        "message",
+                                        "evidence"
+                                      ],
+                                      "properties": {
+                                        "code": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "guidance_as_obligation"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "boundary_mismatch"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "scope_as_rule"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_exception"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_continuing_duty"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_approver"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "dropped_obligation"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "should_have_mapped"
+                                              ]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": [
+                                                "needs_context"
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        "message": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "properties": {
+                                            "confidence": {
+                                              "type": "number"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "needs_context": {
+                                    "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "elapsed_ms": {
+                              "description": "Wall-clock time (ms) the lint run took, end to end.",
+                              "type": "number"
                             }
                           }
                         }
