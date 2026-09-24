@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.19.0",
+    "version": "1.20.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -49093,7 +49093,7 @@
         "tags": [
           "Authoring Capabilities"
         ],
-        "description": "Creates a revocation record naming the given grant and returns it. The grant row is left exactly as issued. Access is decided by the same two gates as issuance, in the same order, both answering 403: without the api-keys:admin scope the scope check refuses FORBIDDEN first; with it, an API key rather than a verified human session is refused HUMAN_PRINCIPAL_REQUIRED.",
+        "description": "Creates a revocation record naming the given grant and returns it. The grant row is left exactly as issued. Access is decided by the same two gates as issuance, in the same order, both answering 403: without the api-keys:admin scope the scope check refuses FORBIDDEN first; with it, an API key rather than a verified human session is refused HUMAN_PRINCIPAL_REQUIRED.\n\nA grant the server carried to a successor draft (it has `succeeds_capability_id`) is part of a chain that starts at the grant a human issued. Revoking ANY grant of a chain ends that grant and every grant carried from it, so a grant that was itself carried on may be revoked. 409 AUTHORING_CAPABILITY_ALREADY_REVOKED when the named grant already has a revocation or exhaustion of its own; 409 AUTHORING_CAPABILITY_CHAIN_ENDED when it has none but a grant it was carried from does, with `details` naming that record: `ending_record_id`, `ending_record_type` and `ended_grant_id`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -50022,6 +50022,2782 @@
         "operationId": "postV1ReviewSubmissionsBySubmissionIdWithdrawalRequests"
       }
     },
+    "/v1/authoring-capabilities/current": {
+      "get": {
+        "summary": "Read the authoring capability that governs this API key",
+        "tags": [
+          "Authoring Capabilities"
+        ],
+        "description": "Returns the authoring capability grant that currently governs the calling API key — the grant to name in `authoring_capability_id` — without its grantor signature, plus `root_capability_id`: the grant its chain starts at (equal to `id` unless the capability was carried to a successor draft by a supersession). Reachable only by a credential holding the `authoring:capability` scope and no `policies:read` / `policies:write`, whose capability grants `policy.read`. A broad key and a human session receive 403 FORBIDDEN; a capability that is missing, revoked or exhausted (anywhere in its chain), expired, not yet valid or fails integrity receives the gate's 403 AUTHORING_CAPABILITY_* code; a key holding `policies:read` or `policies:write` beside the carrier scope receives 403 AUTHORING_CAPABILITY_OBJECT_MISMATCH. Writes nothing.",
+        "responses": {
+          "200": {
+            "description": "The authoring capability grant that currently governs the calling API key, without its grantor signature.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "description": "The authoring capability grant that currently governs the calling API key, without its grantor signature.",
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tenant_id",
+                    "record_type",
+                    "key_id",
+                    "revokes_capability_id",
+                    "granted_by",
+                    "grant_authority",
+                    "policy_id",
+                    "policy_version_id",
+                    "policy_version_number",
+                    "allowed_actions",
+                    "source_item_ids",
+                    "valid_from",
+                    "valid_until",
+                    "issued_at",
+                    "capability_digest",
+                    "created_at",
+                    "root_capability_id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "tenant_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "record_type": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "grant"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "revocation"
+                          ]
+                        }
+                      ]
+                    },
+                    "key_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "revokes_capability_id": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "granted_by": {
+                      "type": "string"
+                    },
+                    "grant_authority": {
+                      "type": "string"
+                    },
+                    "policy_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "policy_version_number": {
+                      "type": "integer"
+                    },
+                    "allowed_actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "policy.read",
+                          "draft.edit",
+                          "draft.validate",
+                          "review.submit",
+                          "review.withdraw_request",
+                          "review.retrieve",
+                          "case.preview"
+                        ]
+                      }
+                    },
+                    "source_item_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "valid_from": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "valid_until": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "issued_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "agent_declaration": {
+                      "additionalProperties": false,
+                      "description": "What the agent DECLARES about itself, recorded on the capability at issuance. It is inside the capability digest preimage and therefore covered by the grantor signature, so it cannot be edited after issuance without breaking the record. That is the whole of the property: it does not establish that the named model exists, that it is the model that authenticated, or that it produced anything. Never read by any admission decision.",
+                      "type": "object",
+                      "required": [
+                        "model",
+                        "version",
+                        "instruction_digest"
+                      ],
+                      "properties": {
+                        "model": {
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "The model the agent declares itself to be. Self-declared; never checked.",
+                          "type": "string"
+                        },
+                        "version": {
+                          "minLength": 1,
+                          "maxLength": 128,
+                          "description": "The model or build version the agent declares. Self-declared; never checked.",
+                          "type": "string"
+                        },
+                        "instruction_digest": {
+                          "minLength": 1,
+                          "maxLength": 512,
+                          "description": "A digest the agent declares identifies the instructions it ran under. Opaque to this API: MeshQu does not compute it, hold the instructions it names, or verify it.",
+                          "type": "string"
+                        },
+                        "harness": {
+                          "minLength": 1,
+                          "maxLength": 256,
+                          "description": "The harness the agent declares it runs inside. Optional — an absent field and an empty one are different facts, so an empty string is refused.",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "succeeds_capability_id": {
+                      "format": "uuid",
+                      "description": "Present only on a grant the server minted when a draft supersession carried an authoring capability to the successor draft: the grant this one continues. Inside the capability digest preimage.",
+                      "type": "string"
+                    },
+                    "capability_digest": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "root_capability_id": {
+                      "format": "uuid",
+                      "description": "Derived, not stored: the grant this chain starts at. Equal to `id` for a grant a human issued.",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1AuthoringCapabilitiesCurrent"
+      }
+    },
+    "/v1/policies/{id}/versions/{version}/supersede-assigned": {
+      "post": {
+        "summary": "Supersede the assigned draft under an authoring capability",
+        "tags": [
+          "Policies"
+        ],
+        "description": "Corrects the DRAFT an authoring capability is bound to without overwriting it, and carries the capability to the corrected draft. In one transaction: the draft is closed with status \"replaced\" (kept as history exactly as it was, codification record and lint findings included); the corrected rules become a NEW draft through the same path as version creation (the required `codification` block is codified and linted afresh), whose `supersedes_version_id` names the replaced draft; and a NEW authoring capability grant is minted naming the new draft. The new grant copies every other field of the admitting grant verbatim (key, policy, granted_by, grant_authority, allowed actions, source items, validity window and agent declaration), carries `succeeds_capability_id` = the admitting grant, and is returned as `authoring_capability`. Send ITS id as `authoring_capability_id` from then on. If the response is lost, `GET /v1/authoring-capabilities/current` returns it. Nothing is written on any refusal.\n\nReachable only by a credential holding the `authoring:capability` scope and no `policies:read` / `policies:write`, whose capability grants `draft.edit` and is bound to exactly this `:id` and `:version`. A broad key and a human session receive 403 FORBIDDEN.\n\nRefusals: 400 FST_ERR_VALIDATION (unknown field, missing `codification`); 403 AUTHORING_CAPABILITY_ID_MISMATCH (no capability admitted this request, or `authoring_capability_id` is not, byte for byte, the admitting capability); 403 AUTHORING_CAPABILITY_* from the capability gate — missing, revoked or exhausted (anywhere in its chain), expired, not yet valid, out of scope, object mismatch, integrity failure — and the same codes when the capability is re-checked under the row lock and has changed since the request was admitted; 403 AUTHORING_CAPABILITY_SUBJECT_NOT_LICENSED (the tenant enforces agent licences and this key holds no live one), AUTHORING_CAPABILITY_SUBJECT_REVOKED or AUTHORING_CAPABILITY_SUBJECT_EXPIRED (this key was deactivated or expired after the request was admitted) — all three checked inside the transaction, after its locks; 404 NOT_FOUND; 409 INVALID_TRANSITION with details.reason VERSION_NOT_DRAFT; 409 STALE_DRAFT_REVISION with the current candidate; 409 DRAFT_CONFLICT; 409 AUTHORING_CAPABILITY_CHAIN_LIMIT (the capability a human issued has already been carried 20 times — a human must issue a new one); 422 VALIDATION_ERROR / UNSUPPORTED_RULE_TYPE / CODIFICATION_REFUSED; 500 RATIFIER_KEY_REQUIRED / RATIFIER_KID_NOT_TRUSTED / AUTHORING_CAPABILITY_SELF_VERIFICATION_FAILED (deployment faults).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "expected_revision",
+                  "rules",
+                  "codification",
+                  "authoring_capability_id"
+                ],
+                "properties": {
+                  "expected_revision": {
+                    "minimum": 0,
+                    "description": "The draft_revision of the draft being superseded, as last read. A stale value is refused 409 STALE_DRAFT_REVISION with the current candidate.",
+                    "type": "integer"
+                  },
+                  "rules": {
+                    "minItems": 1,
+                    "description": "The corrected candidate.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "name",
+                        "rule_type",
+                        "condition",
+                        "severity"
+                      ],
+                      "properties": {
+                        "code": {
+                          "minLength": 1,
+                          "maxLength": 50,
+                          "type": "string"
+                        },
+                        "name": {
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "type": "string"
+                        },
+                        "description": {
+                          "maxLength": 1000,
+                          "type": "string"
+                        },
+                        "rule_type": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "presence"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "temporal"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "threshold"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "list"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "expression"
+                              ]
+                            }
+                          ]
+                        },
+                        "condition": {
+                          "anyOf": [
+                            {
+                              "additionalProperties": true,
+                              "type": "object",
+                              "properties": {
+                                "required_fields": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "forbidden_fields": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "min_length": {
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": true,
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "not_expired": {
+                                  "type": "boolean"
+                                },
+                                "not_future": {
+                                  "type": "boolean"
+                                },
+                                "reference_field": {
+                                  "type": "string"
+                                },
+                                "max_days_after": {
+                                  "type": "integer"
+                                },
+                                "min_days_after": {
+                                  "type": "integer"
+                                },
+                                "min_days_before": {
+                                  "type": "integer"
+                                },
+                                "must_be_before": {
+                                  "type": "boolean"
+                                },
+                                "must_be_after": {
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": true,
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": true,
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "allowed": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "forbidden": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "case_sensitive": {
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": true,
+                              "type": "object",
+                              "properties": {
+                                "expression": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "severity": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "low"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "medium"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "high"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "critical"
+                              ]
+                            }
+                          ]
+                        },
+                        "is_active": {
+                          "default": true,
+                          "type": "boolean"
+                        },
+                        "when": {
+                          "anyOf": [
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "equals"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "equals": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ]
+                                },
+                                "case_sensitive": {
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "in"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "in": {
+                                  "type": "array",
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "boolean"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "case_sensitive": {
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "exists"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "exists": {
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "min"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "max"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "greater_than"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "field",
+                                "less_than"
+                              ],
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "min": {
+                                  "type": "number"
+                                },
+                                "max": {
+                                  "type": "number"
+                                },
+                                "greater_than": {
+                                  "type": "number"
+                                },
+                                "less_than": {
+                                  "type": "number"
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "all"
+                              ],
+                              "properties": {
+                                "all": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/def-0"
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "any"
+                              ],
+                              "properties": {
+                                "any": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/def-0"
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "source_ref": {
+                          "type": "object",
+                          "properties": {
+                            "document": {
+                              "maxLength": 500,
+                              "type": "string"
+                            },
+                            "section": {
+                              "maxLength": 200,
+                              "type": "string"
+                            },
+                            "url": {
+                              "maxLength": 2000,
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "replaces_rule_code": {
+                          "maxLength": 50,
+                          "description": "Advisory lineage: rule code this replaces (not included in snapshot hash)",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "codification": {
+                    "additionalProperties": false,
+                    "description": "Optional. When present, the stored rules are the ones `codify()` returns — including `source_ref`, which `codify()` derives from the declared clause and does not take from the caller — not the ones submitted. See `packages/meshqu-core/src/codification.ts`.",
+                    "type": "object",
+                    "required": [
+                      "source",
+                      "clauses",
+                      "rule_units"
+                    ],
+                    "properties": {
+                      "source": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "document"
+                        ],
+                        "properties": {
+                          "document": {
+                            "minLength": 1,
+                            "maxLength": 500,
+                            "description": "Human-facing document name, e.g. the filename or title.",
+                            "type": "string"
+                          },
+                          "url": {
+                            "maxLength": 2000,
+                            "description": "Optional link to the stored source object.",
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "clauses": {
+                        "minItems": 1,
+                        "description": "Every declared unit of the source document. `codify()` refuses the write unless each one has exactly one outcome (a rule via `rule_units`, or an entry in `dispositions`).",
+                        "type": "array",
+                        "items": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "unit_id",
+                            "locator",
+                            "text"
+                          ],
+                          "properties": {
+                            "unit_id": {
+                              "minLength": 1,
+                              "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                              "type": "string"
+                            },
+                            "locator": {
+                              "minLength": 1,
+                              "description": "How a human finds it in the source, e.g. \"4.1\".",
+                              "type": "string"
+                            },
+                            "text": {
+                              "minLength": 1,
+                              "description": "The clause text, verbatim.",
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "rule_units": {
+                        "description": "Maps a submitted rule's `code` to the `unit_id` of the clause it was derived from. A rule with no entry here is refused — an unattributed rule cannot be stored through this path.",
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "dispositions": {
+                        "description": "Clauses that yielded no rule, and why. Every declared clause not covered by `rule_units` must appear here.",
+                        "type": "array",
+                        "items": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "unit_id",
+                            "disposition",
+                            "reason"
+                          ],
+                          "properties": {
+                            "unit_id": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "disposition": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "ambiguous"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "unsupported"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "non_normative"
+                                  ]
+                                }
+                              ]
+                            },
+                            "reason": {
+                              "description": "Required. Shown to the reviewer as the thing they must decide about.",
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "change_reason": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "authoring_capability_id": {
+                    "format": "uuid",
+                    "description": "The id of the authoring capability that admits this request, byte for byte. It confirms which capability is acting; it never selects one.",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "in": "path",
+            "name": "version",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "replaced",
+                    "draft",
+                    "authoring_capability"
+                  ],
+                  "properties": {
+                    "replaced": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "policy_id",
+                        "version",
+                        "draft_revision",
+                        "is_active",
+                        "status",
+                        "created_at",
+                        "created_by",
+                        "change_reason"
+                      ],
+                      "properties": {
+                        "id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "policy_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "draft_revision": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "is_active": {
+                          "type": "boolean"
+                        },
+                        "status": {
+                          "description": "Lifecycle status: draft → submitted → ratified → (activated, then) superseded (or back to draft on reject); discarded = soft-discarded draft (PWB-039). A pending version that ends without governing is closed: reopened (a ratified version whose content continues as a new draft), set_aside (put aside with a reason), replaced (a draft whose correction continues as a new draft) — PAL-004/005.",
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "draft"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "submitted"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ratified"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "superseded"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "discarded"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "reopened"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "set_aside"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "replaced"
+                              ]
+                            }
+                          ]
+                        },
+                        "ratified_by": {
+                          "type": "string"
+                        },
+                        "ratified_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "submitted_by": {
+                          "type": "string"
+                        },
+                        "submitted_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "rejected_by": {
+                          "type": "string"
+                        },
+                        "rejected_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "rejection_reason": {
+                          "type": "string"
+                        },
+                        "closed_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "closed_by": {
+                          "type": "string"
+                        },
+                        "closed_reason": {
+                          "type": "string"
+                        },
+                        "supersedes_version_id": {
+                          "format": "uuid",
+                          "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
+                          "type": "string"
+                        },
+                        "created_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "created_by": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "change_reason": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "codification_record": {
+                          "additionalProperties": false,
+                          "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                          "type": "object",
+                          "required": [
+                            "schema",
+                            "source",
+                            "clauses",
+                            "ledger",
+                            "counts",
+                            "refusals"
+                          ],
+                          "properties": {
+                            "schema": {
+                              "type": "string",
+                              "enum": [
+                                "meshqu-codification-record/v1"
+                              ]
+                            },
+                            "source": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "document"
+                              ],
+                              "properties": {
+                                "document": {
+                                  "minLength": 1,
+                                  "maxLength": 500,
+                                  "description": "Human-facing document name, e.g. the filename or title.",
+                                  "type": "string"
+                                },
+                                "url": {
+                                  "maxLength": 2000,
+                                  "description": "Optional link to the stored source object.",
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "clauses": {
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "locator",
+                                  "text"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "minLength": 1,
+                                    "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                    "type": "string"
+                                  },
+                                  "locator": {
+                                    "minLength": 1,
+                                    "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                    "type": "string"
+                                  },
+                                  "text": {
+                                    "minLength": 1,
+                                    "description": "The clause text, verbatim.",
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "ledger": {
+                              "description": "Exactly one entry per declared clause.",
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "disposition"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "disposition": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "mapped"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "ambiguous"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "unsupported"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "non_normative"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "note": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "counts": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "clauses",
+                                "mapped",
+                                "ambiguous",
+                                "unsupported",
+                                "non_normative",
+                                "refused"
+                              ],
+                              "properties": {
+                                "clauses": {
+                                  "type": "integer"
+                                },
+                                "mapped": {
+                                  "type": "integer"
+                                },
+                                "ambiguous": {
+                                  "type": "integer"
+                                },
+                                "unsupported": {
+                                  "type": "integer"
+                                },
+                                "non_normative": {
+                                  "type": "integer"
+                                },
+                                "refused": {
+                                  "type": "integer"
+                                }
+                              }
+                            },
+                            "refusals": {
+                              "description": "Proposals the rule grammar refused. Never silently dropped.",
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "rule_code",
+                                  "kind",
+                                  "message"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "rule_code": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "lint": {
+                              "additionalProperties": false,
+                              "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                              "type": "object",
+                              "required": [
+                                "schema",
+                                "status",
+                                "answerer",
+                                "questions_version",
+                                "floor",
+                                "clauses"
+                              ],
+                              "properties": {
+                                "schema": {
+                                  "type": "string",
+                                  "enum": [
+                                    "meshqu-codification-lint/v1"
+                                  ]
+                                },
+                                "status": {
+                                  "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "ran"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "skipped"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "failed"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "answerer": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "jev"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "keyword"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "none"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "model": {
+                                  "type": "string"
+                                },
+                                "questions_version": {
+                                  "type": "string"
+                                },
+                                "floor": {
+                                  "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                                  "type": "number"
+                                },
+                                "clauses": {
+                                  "type": "array",
+                                  "items": {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "unit_id",
+                                      "findings",
+                                      "needs_context"
+                                    ],
+                                    "properties": {
+                                      "unit_id": {
+                                        "type": "string"
+                                      },
+                                      "findings": {
+                                        "type": "array",
+                                        "items": {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "required": [
+                                            "code",
+                                            "message",
+                                            "evidence"
+                                          ],
+                                          "properties": {
+                                            "code": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "guidance_as_obligation"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "boundary_mismatch"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "scope_as_rule"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_exception"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_continuing_duty"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_approver"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_obligation"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "should_have_mapped"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "needs_context"
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            "message": {
+                                              "type": "string"
+                                            },
+                                            "evidence": {
+                                              "additionalProperties": false,
+                                              "type": "object",
+                                              "properties": {
+                                                "confidence": {
+                                                  "type": "number"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "needs_context": {
+                                        "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  }
+                                },
+                                "elapsed_ms": {
+                                  "description": "Wall-clock time (ms) the lint run took, end to end.",
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "description": "The closed version, rules omitted (unchanged; GET the version to read them)."
+                    },
+                    "draft": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "policy_id",
+                        "version",
+                        "draft_revision",
+                        "rules",
+                        "is_active",
+                        "status",
+                        "created_at",
+                        "created_by",
+                        "change_reason"
+                      ],
+                      "properties": {
+                        "id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "policy_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "integer"
+                        },
+                        "draft_revision": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "rules": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "code",
+                              "name",
+                              "rule_type",
+                              "condition",
+                              "severity"
+                            ],
+                            "properties": {
+                              "code": {
+                                "minLength": 1,
+                                "maxLength": 50,
+                                "type": "string"
+                              },
+                              "name": {
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "type": "string"
+                              },
+                              "description": {
+                                "maxLength": 1000,
+                                "type": "string"
+                              },
+                              "rule_type": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "presence"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "temporal"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "threshold"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "list"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "expression"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "condition": {
+                                "anyOf": [
+                                  {
+                                    "additionalProperties": true,
+                                    "type": "object",
+                                    "properties": {
+                                      "required_fields": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "forbidden_fields": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "min_length": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "type": "integer"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": true,
+                                    "type": "object",
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "not_expired": {
+                                        "type": "boolean"
+                                      },
+                                      "not_future": {
+                                        "type": "boolean"
+                                      },
+                                      "reference_field": {
+                                        "type": "string"
+                                      },
+                                      "max_days_after": {
+                                        "type": "integer"
+                                      },
+                                      "min_days_after": {
+                                        "type": "integer"
+                                      },
+                                      "min_days_before": {
+                                        "type": "integer"
+                                      },
+                                      "must_be_before": {
+                                        "type": "boolean"
+                                      },
+                                      "must_be_after": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": true,
+                                    "type": "object",
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": true,
+                                    "type": "object",
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "allowed": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "forbidden": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "case_sensitive": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": true,
+                                    "type": "object",
+                                    "properties": {
+                                      "expression": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "severity": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "low"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "medium"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "high"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "critical"
+                                    ]
+                                  }
+                                ]
+                              },
+                              "is_active": {
+                                "default": true,
+                                "type": "boolean"
+                              },
+                              "when": {
+                                "anyOf": [
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "equals"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "equals": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "number"
+                                          },
+                                          {
+                                            "type": "boolean"
+                                          }
+                                        ]
+                                      },
+                                      "case_sensitive": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "in"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "in": {
+                                        "type": "array",
+                                        "items": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "number"
+                                            },
+                                            {
+                                              "type": "boolean"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "case_sensitive": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "exists"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "exists": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "min"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "max"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "greater_than"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "field",
+                                      "less_than"
+                                    ],
+                                    "properties": {
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "min": {
+                                        "type": "number"
+                                      },
+                                      "max": {
+                                        "type": "number"
+                                      },
+                                      "greater_than": {
+                                        "type": "number"
+                                      },
+                                      "less_than": {
+                                        "type": "number"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "all"
+                                    ],
+                                    "properties": {
+                                      "all": {
+                                        "type": "array",
+                                        "items": {
+                                          "$ref": "#/components/schemas/def-0"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "any"
+                                    ],
+                                    "properties": {
+                                      "any": {
+                                        "type": "array",
+                                        "items": {
+                                          "$ref": "#/components/schemas/def-0"
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "source_ref": {
+                                "type": "object",
+                                "properties": {
+                                  "document": {
+                                    "maxLength": 500,
+                                    "type": "string"
+                                  },
+                                  "section": {
+                                    "maxLength": 200,
+                                    "type": "string"
+                                  },
+                                  "url": {
+                                    "maxLength": 2000,
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "replaces_rule_code": {
+                                "maxLength": 50,
+                                "description": "Advisory lineage: rule code this replaces (not included in snapshot hash)",
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "is_active": {
+                          "type": "boolean"
+                        },
+                        "status": {
+                          "description": "Lifecycle status: draft → submitted → ratified → (activated, then) superseded (or back to draft on reject); discarded = soft-discarded draft (PWB-039). A pending version that ends without governing is closed: reopened (a ratified version whose content continues as a new draft), set_aside (put aside with a reason), replaced (a draft whose correction continues as a new draft) — PAL-004/005.",
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "draft"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "submitted"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "ratified"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "superseded"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "discarded"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "reopened"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "set_aside"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "replaced"
+                              ]
+                            }
+                          ]
+                        },
+                        "ratified_by": {
+                          "type": "string"
+                        },
+                        "ratified_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "submitted_by": {
+                          "type": "string"
+                        },
+                        "submitted_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "rejected_by": {
+                          "type": "string"
+                        },
+                        "rejected_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "rejection_reason": {
+                          "type": "string"
+                        },
+                        "closed_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "closed_by": {
+                          "type": "string"
+                        },
+                        "closed_reason": {
+                          "type": "string"
+                        },
+                        "supersedes_version_id": {
+                          "format": "uuid",
+                          "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
+                          "type": "string"
+                        },
+                        "created_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "created_by": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "change_reason": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "codification_record": {
+                          "additionalProperties": false,
+                          "description": "What the codification that produced this version accounted for. Unsigned and unhashed; NOT a sealed review package.",
+                          "type": "object",
+                          "required": [
+                            "schema",
+                            "source",
+                            "clauses",
+                            "ledger",
+                            "counts",
+                            "refusals"
+                          ],
+                          "properties": {
+                            "schema": {
+                              "type": "string",
+                              "enum": [
+                                "meshqu-codification-record/v1"
+                              ]
+                            },
+                            "source": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "document"
+                              ],
+                              "properties": {
+                                "document": {
+                                  "minLength": 1,
+                                  "maxLength": 500,
+                                  "description": "Human-facing document name, e.g. the filename or title.",
+                                  "type": "string"
+                                },
+                                "url": {
+                                  "maxLength": 2000,
+                                  "description": "Optional link to the stored source object.",
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "clauses": {
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "locator",
+                                  "text"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "minLength": 1,
+                                    "description": "Stable id within this document, e.g. \"unit-4-1\".",
+                                    "type": "string"
+                                  },
+                                  "locator": {
+                                    "minLength": 1,
+                                    "description": "How a human finds it in the source, e.g. \"4.1\".",
+                                    "type": "string"
+                                  },
+                                  "text": {
+                                    "minLength": 1,
+                                    "description": "The clause text, verbatim.",
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "ledger": {
+                              "description": "Exactly one entry per declared clause.",
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "disposition"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "disposition": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "mapped"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "ambiguous"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "unsupported"
+                                        ]
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "non_normative"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "note": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "counts": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "clauses",
+                                "mapped",
+                                "ambiguous",
+                                "unsupported",
+                                "non_normative",
+                                "refused"
+                              ],
+                              "properties": {
+                                "clauses": {
+                                  "type": "integer"
+                                },
+                                "mapped": {
+                                  "type": "integer"
+                                },
+                                "ambiguous": {
+                                  "type": "integer"
+                                },
+                                "unsupported": {
+                                  "type": "integer"
+                                },
+                                "non_normative": {
+                                  "type": "integer"
+                                },
+                                "refused": {
+                                  "type": "integer"
+                                }
+                              }
+                            },
+                            "refusals": {
+                              "description": "Proposals the rule grammar refused. Never silently dropped.",
+                              "type": "array",
+                              "items": {
+                                "additionalProperties": false,
+                                "type": "object",
+                                "required": [
+                                  "unit_id",
+                                  "rule_code",
+                                  "kind",
+                                  "message"
+                                ],
+                                "properties": {
+                                  "unit_id": {
+                                    "type": "string"
+                                  },
+                                  "rule_code": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "lint": {
+                              "additionalProperties": false,
+                              "description": "Advisory output of the codification lint: produced by an automated, model-assisted check comparing the declared clause TEXT to the codifier's stored RULE. Unsigned. Not part of review, ratification, or any receipt, digest, snapshot, export or evidence manifest. Present only when a lint ran for this write — ABSENT on `codification_record.lint` means \"not linted\", never \"no findings\": a lint that ran with nothing to report still appears with status \"ran\" and each clause's `findings` as an empty array.",
+                              "type": "object",
+                              "required": [
+                                "schema",
+                                "status",
+                                "answerer",
+                                "questions_version",
+                                "floor",
+                                "clauses"
+                              ],
+                              "properties": {
+                                "schema": {
+                                  "type": "string",
+                                  "enum": [
+                                    "meshqu-codification-lint/v1"
+                                  ]
+                                },
+                                "status": {
+                                  "description": "Advisory status of an automated, model-assisted check — not part of review, ratification, or any receipt. \"ran\" means findings (possibly none) were produced; \"skipped\"/\"failed\" mean the check did not complete, with `reason` saying why.",
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "ran"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "skipped"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "failed"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "answerer": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "jev"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "keyword"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "none"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "model": {
+                                  "type": "string"
+                                },
+                                "questions_version": {
+                                  "type": "string"
+                                },
+                                "floor": {
+                                  "description": "Confidence floor an answer had to clear to count. An answer below this is treated as no signal, never a negative answer.",
+                                  "type": "number"
+                                },
+                                "clauses": {
+                                  "type": "array",
+                                  "items": {
+                                    "additionalProperties": false,
+                                    "type": "object",
+                                    "required": [
+                                      "unit_id",
+                                      "findings",
+                                      "needs_context"
+                                    ],
+                                    "properties": {
+                                      "unit_id": {
+                                        "type": "string"
+                                      },
+                                      "findings": {
+                                        "type": "array",
+                                        "items": {
+                                          "additionalProperties": false,
+                                          "type": "object",
+                                          "required": [
+                                            "code",
+                                            "message",
+                                            "evidence"
+                                          ],
+                                          "properties": {
+                                            "code": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "guidance_as_obligation"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "boundary_mismatch"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "scope_as_rule"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_exception"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_continuing_duty"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_approver"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "dropped_obligation"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "should_have_mapped"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "needs_context"
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            "message": {
+                                              "type": "string"
+                                            },
+                                            "evidence": {
+                                              "additionalProperties": false,
+                                              "type": "object",
+                                              "properties": {
+                                                "confidence": {
+                                                  "type": "number"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "needs_context": {
+                                        "description": "True when the clause text names a cross-reference the lint cannot itself resolve — a flag, not a finding about a mismatch.",
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  }
+                                },
+                                "elapsed_ms": {
+                                  "description": "Wall-clock time (ms) the lint run took, end to end.",
+                                  "type": "number"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "authoring_capability": {
+                      "additionalProperties": false,
+                      "description": "The authoring capability grant minted when this supersession carried the admitting capability to the new draft, as stored.",
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "tenant_id",
+                        "record_type",
+                        "key_id",
+                        "revokes_capability_id",
+                        "granted_by",
+                        "grant_authority",
+                        "policy_id",
+                        "policy_version_id",
+                        "policy_version_number",
+                        "allowed_actions",
+                        "source_item_ids",
+                        "valid_from",
+                        "valid_until",
+                        "issued_at",
+                        "capability_digest",
+                        "grantor_signature",
+                        "created_at",
+                        "root_capability_id"
+                      ],
+                      "properties": {
+                        "id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "tenant_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "record_type": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "grant"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "revocation"
+                              ]
+                            }
+                          ]
+                        },
+                        "key_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "revokes_capability_id": {
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "granted_by": {
+                          "type": "string"
+                        },
+                        "grant_authority": {
+                          "type": "string"
+                        },
+                        "policy_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "policy_version_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "policy_version_number": {
+                          "type": "integer"
+                        },
+                        "allowed_actions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "policy.read",
+                              "draft.edit",
+                              "draft.validate",
+                              "review.submit",
+                              "review.withdraw_request",
+                              "review.retrieve",
+                              "case.preview"
+                            ]
+                          }
+                        },
+                        "source_item_ids": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "valid_from": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "valid_until": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "issued_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "agent_declaration": {
+                          "additionalProperties": false,
+                          "description": "What the agent DECLARES about itself, recorded on the capability at issuance. It is inside the capability digest preimage and therefore covered by the grantor signature, so it cannot be edited after issuance without breaking the record. That is the whole of the property: it does not establish that the named model exists, that it is the model that authenticated, or that it produced anything. Never read by any admission decision.",
+                          "type": "object",
+                          "required": [
+                            "model",
+                            "version",
+                            "instruction_digest"
+                          ],
+                          "properties": {
+                            "model": {
+                              "minLength": 1,
+                              "maxLength": 256,
+                              "description": "The model the agent declares itself to be. Self-declared; never checked.",
+                              "type": "string"
+                            },
+                            "version": {
+                              "minLength": 1,
+                              "maxLength": 128,
+                              "description": "The model or build version the agent declares. Self-declared; never checked.",
+                              "type": "string"
+                            },
+                            "instruction_digest": {
+                              "minLength": 1,
+                              "maxLength": 512,
+                              "description": "A digest the agent declares identifies the instructions it ran under. Opaque to this API: MeshQu does not compute it, hold the instructions it names, or verify it.",
+                              "type": "string"
+                            },
+                            "harness": {
+                              "minLength": 1,
+                              "maxLength": 256,
+                              "description": "The harness the agent declares it runs inside. Optional — an absent field and an empty one are different facts, so an empty string is refused.",
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "succeeds_capability_id": {
+                          "format": "uuid",
+                          "description": "Present only on a grant the server minted when a draft supersession carried an authoring capability to the successor draft: the grant this one continues. Inside the capability digest preimage.",
+                          "type": "string"
+                        },
+                        "capability_digest": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "grantor_signature": {
+                          "additionalProperties": false,
+                          "type": "object",
+                          "required": [
+                            "signature",
+                            "signature_kid",
+                            "signature_algorithm"
+                          ],
+                          "properties": {
+                            "signature": {
+                              "type": "string"
+                            },
+                            "signature_kid": {
+                              "type": "string"
+                            },
+                            "signature_algorithm": {
+                              "type": "string",
+                              "enum": [
+                                "ed25519"
+                              ]
+                            }
+                          }
+                        },
+                        "created_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "root_capability_id": {
+                          "format": "uuid",
+                          "description": "Derived, not stored: the grant this chain starts at (reached by following succeeds_capability_id). Not in the digest preimage.",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1PoliciesByIdVersionsByVersionSupersedeAssigned"
+      }
+    },
     "/v1/audit-log": {
       "get": {
         "summary": "List audit events",
@@ -50285,6 +53061,12 @@
                   "type": "string",
                   "enum": [
                     "authoring_capability_revoked"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "authoring_capability_carried"
                   ]
                 },
                 {
@@ -50660,6 +53442,12 @@
                                 "type": "string",
                                 "enum": [
                                   "authoring_capability_revoked"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "authoring_capability_carried"
                                 ]
                               },
                               {
@@ -51137,6 +53925,12 @@
                             "type": "string",
                             "enum": [
                               "authoring_capability_revoked"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "authoring_capability_carried"
                             ]
                           },
                           {
@@ -59409,6 +62203,12 @@
                                 "type": "string",
                                 "enum": [
                                   "authoring_capability_revoked"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "authoring_capability_carried"
                                 ]
                               },
                               {
