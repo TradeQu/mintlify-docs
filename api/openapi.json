@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.20.0",
+    "version": "1.21.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -52796,6 +52796,391 @@
           }
         },
         "operationId": "postV1PoliciesByIdVersionsByVersionSupersedeAssigned"
+      }
+    },
+    "/v1/authoring-capabilities/current/pending-work": {
+      "get": {
+        "summary": "List the pending work in this API key's authoring capability's scope",
+        "tags": [
+          "Authoring Capabilities"
+        ],
+        "description": "The pending review and activation work (the `GET /v1/work/pending` items) for the policy version the calling key's governing authoring capability names and, at most, the ONE earlier draft that version's next seal is bound to (included only when a grant of the same capability chain names it); the return that next seal must name as `answers_record_id`, if any; and the unanswered returns in view that no seal can answer, as information. The scope comes only from the key's signed grants: the request takes no path, body or query parameters. Nothing in the response names who acts next or grants anything; review, ratify and activate stay human.\n\nReachable only by a credential holding the `authoring:capability` scope and no `policies:read` / `policies:write`, whose capability grants BOTH `policy.read` and `review.retrieve` (after any intent narrowing). A broad key and a human session receive 403 FORBIDDEN; a capability that is missing, revoked or exhausted (anywhere in its chain), expired, not yet valid or fails integrity receives the gate's 403 AUTHORING_CAPABILITY_* code; a grant lacking either action receives 403 AUTHORING_CAPABILITY_OUT_OF_SCOPE; a key holding `policies:read` or `policies:write` beside the carrier scope, or a capability carried to a successor while the read ran, receives 403 AUTHORING_CAPABILITY_OBJECT_MISMATCH.\n\nNot a snapshot: several statements, and a seal, return or record can commit between them. Re-read the exact subject before acting. Poll no more than once a minute while something is pending, backing off to five minutes when nothing changes. Writes nothing.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "capability_id",
+                    "root_capability_id",
+                    "policy_id",
+                    "policy_version_id",
+                    "policy_version_number",
+                    "observed_at",
+                    "items",
+                    "returns_not_answerable"
+                  ],
+                  "properties": {
+                    "capability_id": {
+                      "format": "uuid",
+                      "description": "The grant whose signed chain scoped this read: the grant governing the key when the read ran. Compare it with the grant you hold; a difference means the capability was carried.",
+                      "type": "string"
+                    },
+                    "root_capability_id": {
+                      "format": "uuid",
+                      "description": "The grant that chain starts at (equal to `capability_id` unless it was carried).",
+                      "type": "string"
+                    },
+                    "policy_id": {
+                      "format": "uuid",
+                      "description": "The governing grant's policy.",
+                      "type": "string"
+                    },
+                    "policy_version_id": {
+                      "format": "uuid",
+                      "description": "The governing grant's policy version: the head.",
+                      "type": "string"
+                    },
+                    "policy_version_number": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "observed_at": {
+                      "format": "date-time",
+                      "description": "Server time at the start of the read. It is NOT a snapshot time: the read is several statements, and a seal, return or record can commit between them. Before acting, re-read the exact subject.",
+                      "type": "string"
+                    },
+                    "items": {
+                      "description": "SW-201 pending-work items for the head and, at most, the ONE earlier draft the head's next seal is bound to (the lineage-previous version, when a grant of this capability's chain names it). Always present; may be empty. Names no actor and no eligibility.",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "kind",
+                          "requested_act",
+                          "policy_id",
+                          "policy_name",
+                          "policy_code",
+                          "policy_version_id",
+                          "version",
+                          "status",
+                          "draft_revision",
+                          "entered_state_at",
+                          "entered_state_source"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "activation"
+                                ]
+                              }
+                            ]
+                          },
+                          "requested_act": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "review"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "ratify"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "activate"
+                                ]
+                              }
+                            ]
+                          },
+                          "policy_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "policy_name": {
+                            "type": "string"
+                          },
+                          "policy_code": {
+                            "type": "string"
+                          },
+                          "policy_version_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "version": {
+                            "minimum": 1,
+                            "description": "Policy version number.",
+                            "type": "integer"
+                          },
+                          "status": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "draft"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "submitted"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "ratified"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "replaced"
+                                ]
+                              }
+                            ]
+                          },
+                          "draft_revision": {
+                            "minimum": 0,
+                            "description": "The version's CURRENT draft revision.",
+                            "type": "integer"
+                          },
+                          "submission_id": {
+                            "format": "uuid",
+                            "description": "The latest sealed review submission of the version, when the item derives from one. Absent otherwise.",
+                            "type": "string"
+                          },
+                          "submission_sequence": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "candidate_revision": {
+                            "minimum": 1,
+                            "description": "The candidate revision that submission sealed. It can trail `draft_revision` when the draft was edited after sealing; currentness is checked on the submission detail route.",
+                            "type": "integer"
+                          },
+                          "accept_record_id": {
+                            "format": "uuid",
+                            "description": "The ACCEPT review record a `ratify` item derives from. Absent otherwise.",
+                            "type": "string"
+                          },
+                          "superseded_by_version": {
+                            "minimum": 1,
+                            "description": "MCP-020. Present only when `status` is `replaced`: the version at the head of the draft lineage that replaced this one. The review stays bound to this item's sealed package; the item clears once the head is sealed, ratified or set aside.",
+                            "type": "integer"
+                          },
+                          "entered_state_at": {
+                            "format": "date-time",
+                            "description": "When the item entered this state, read from the stored column `entered_state_source` names.",
+                            "type": "string"
+                          },
+                          "entered_state_source": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "submitted_at"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "sealed_at"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "accept_recorded_at"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "ratified_at"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "next_seal_answers": {
+                      "additionalProperties": false,
+                      "description": "The one return the NEXT SEAL OF THIS VERSION must name as `answers_record_id`, whoever makes it. Present exactly when the lineage-previous submission (the same lookup the seal route refuses on) was returned and this version is draft or submitted. Absent otherwise.",
+                      "type": "object",
+                      "required": [
+                        "policy_version_id",
+                        "version",
+                        "submission_id",
+                        "review_record_id",
+                        "returned_by",
+                        "returned_at"
+                      ],
+                      "properties": {
+                        "policy_version_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "version": {
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "submission_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "review_record_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "returned_by": {
+                          "description": "The stable principal that returned it.",
+                          "type": "string"
+                        },
+                        "returned_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "returns_not_answerable": {
+                      "description": "Unanswered returns in view that no seal is required to answer and none can. Information, not a task. Always present; may be empty.",
+                      "type": "array",
+                      "items": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "policy_version_id",
+                          "version",
+                          "submission_id",
+                          "review_record_id",
+                          "returned_by",
+                          "returned_at",
+                          "reason"
+                        ],
+                        "properties": {
+                          "policy_version_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "version": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "submission_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "review_record_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "returned_by": {
+                            "description": "The stable principal that returned it.",
+                            "type": "string"
+                          },
+                          "returned_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "reason": {
+                            "description": "`not_lineage_previous`: the return is on a submission other than the one the next seal answers (an older seal of this version, or an earlier draft's seal after a later seal exists); a seal naming it is refused 409 RESUBMISSION_PRIOR_NOT_RETURNED or RESUBMISSION_ANSWERS_RECORD_MISMATCH. `head_not_sealable`: the return is on that submission, but this version is neither draft nor submitted; a seal naming it is refused 409 INVALID_TRANSITION with details.reason VERSION_NOT_SEALABLE, and one omitting it 400 RESUBMISSION_ANSWERS_RECORD_REQUIRED.",
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "not_lineage_previous"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "head_not_sealable"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "lineage_unresolved": {
+                      "description": "Present when this version's draft-supersession lineage could not be followed back (a cycle, more than 64 links, or a dangling link) at ANY point — the same meaning as on the review-submission list read. The absence of `next_seal_answers`, of an earlier draft's item, or of a return then says nothing. Only when no sealed version was reached before the failure is the next seal refused 409 LINEAGE_UNRESOLVED; a failure beyond the sealed version the next seal answers does not refuse it, and `next_seal_answers` is then still given.",
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "lineage_not_backed_by_grant": {
+                      "description": "Present when the lineage-previous version (the one the next seal is bound to) was found but no grant of this capability's chain names it, so that version's items are not listed. The seal is not refused for this reason, which is why `next_seal_answers` is still given. It can appear together with `lineage_unresolved` when the walk failed only BEYOND that version.",
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1AuthoringCapabilitiesCurrentPendingWork"
       }
     },
     "/v1/audit-log": {
