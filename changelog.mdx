@@ -7,7 +7,7 @@ description: "API and SDK version history"
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog documents API and SDK functionality shipped into those deployments. Console UI changes are not tracked here.
 </Info>
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.20.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.21.0**.
 
 ## Versioning policy
 
@@ -24,6 +24,52 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract ve
 ## API version header
 
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
+
+---
+
+## v1.21.0
+
+**The capability-scoped pending-work read.** A read release: an
+authoring-capability key can now read its own pending work directly, without a
+human session or a broader key.
+
+- **New: `GET /v1/authoring-capabilities/current/pending-work`.** For an API
+  key holding only the `authoring:capability` scope, whose capability grants
+  both `policy.read` and `review.retrieve`, this returns:
+  - `items`: the `GET /v1/work/pending` items (the same item schema) for the
+    governing grant's policy version, plus — only when a grant of the same
+    capability chain, on the same policy, names it — the items of at most one
+    earlier draft: the lineage-previous version the head's next seal is bound
+    to.
+  - `next_seal_answers` (optional): the one return the next seal of this
+    version must name as `answers_record_id`. Present only while the version
+    is draft or submitted.
+  - `returns_not_answerable`: unanswered returns in view that no seal can
+    currently answer, each with a `reason` of `not_lineage_previous` or
+    `head_not_sealable`. Informational, not a task list.
+  - `capability_id`, `root_capability_id`, `policy_id`, `policy_version_id`,
+    `policy_version_number`, and `observed_at` (server time at the start of
+    the read — the response is not a snapshot).
+  - Optional flags `lineage_unresolved` (same meaning as on the
+    review-submission list read) and `lineage_not_backed_by_grant` (new: the
+    lineage-previous version is not named by any grant of the chain, so its
+    items are not listed; a seal is not refused for this reason). Both flags
+    can be present together.
+  - Returns carry identifiers only: `returned_by` is the stable
+    `user:<uuid>`, never the returner's display name.
+  - The request takes no path, body or query parameters — the scope comes
+    only from the key's signed grant chain.
+  - Refusals reuse existing gate codes: 403 `FORBIDDEN` for a broad key or a
+    human session; the gate's 403 `AUTHORING_CAPABILITY_*` codes (missing,
+    revoked or exhausted anywhere in the chain, expired, not yet valid,
+    integrity); `AUTHORING_CAPABILITY_OUT_OF_SCOPE` when either action is
+    missing; `AUTHORING_CAPABILITY_OBJECT_MISMATCH` for a key holding
+    `policies:*` beside the carrier scope, or when the capability was carried
+    while the read ran.
+  - Not in the agent-openapi (ChatGPT Actions) subset.
+- **Known limit, unchanged:** no capability read joins the agent licence — it
+  is joined only at issuance and at carry — so a revoked licence under
+  `enforce` still admits all five capability reads, with one verdict.
 
 ---
 
