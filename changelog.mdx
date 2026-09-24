@@ -7,7 +7,7 @@ description: "API and SDK version history"
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog documents API and SDK functionality shipped into those deployments. Console UI changes are not tracked here.
 </Info>
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.18.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.19.0**.
 
 ## Versioning policy
 
@@ -24,6 +24,46 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract ve
 ## API version header
 
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
+
+---
+
+## v1.19.0
+
+**Review loop across draft supersession; capability chain reader.** A reader
+release: it mints no successor capability and adds no route, and changes these
+existing behaviours instead.
+
+- **BREAKING — `GET /v1/work/pending`: `status` gains `replaced`.** The closed
+  union widens, and an exhaustive client must handle the new value. A replaced
+  version's pending review is listed while a successor links to it, the
+  lineage head (at most 64 corrections ahead) is draft or submitted, and no
+  later version in its lineage has a seal. Such items carry the new
+  `superseded_by_version` (the head's number).
+- **The review gate is once on, always on.** Once any seal in a version's
+  lineage was made under an authoring capability, ratify needs an ACCEPT on
+  the head's own latest seal, whoever made it — a human or broad-key re-seal
+  no longer lifts the gate. `RATIFY_NO_ACCEPT_RECORD` gains `details.reason`
+  (`NO_SEAL_ON_HEAD`, `NO_ACCEPT_RECORD` or `LINEAGE_UNRESOLVED`) and
+  `details.gate_submission_id` / `gate_policy_version_id`.
+- **Every seal is refused on a version that is not draft or submitted.** New
+  409 `INVALID_TRANSITION` with `details.reason: VERSION_NOT_SEALABLE`,
+  checked under the version row lock. Before, the seal route never read the
+  status.
+- **`GET /v1/review-submissions/{submissionId}` gains two optional,
+  never-blocking observations**, each omitted when empty:
+  - `newer_draft_observed` compares the sealed codes and `active_rules_hash`
+    with the lineage head.
+  - `unanswered_lineage_returns` lists returns on an earlier draft that no
+    later seal has answered. The same field (derived for the version) is added
+    to `GET /v1/policies/{id}/versions/{version}/review-submissions`.
+- **Not previously changelogged (#1188):**
+  `POST /v1/review-submissions/{submissionId}/withdrawal-requests` refuses a
+  key that holds `policies:read` or `policies:write` beside the carrier scope,
+  with 403 `AUTHORING_CAPABILITY_OBJECT_MISMATCH`.
+
+*Operation names, codes and fields above are taken from the regenerated
+`api/openapi.json` for this release and from the API's own changelog
+(`apps/meshqu-api/CHANGELOG.md`, MCP-020 R1) in `tradequ`.*
 
 ---
 

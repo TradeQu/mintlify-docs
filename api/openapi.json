@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.18.0",
+    "version": "1.19.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -1486,6 +1486,11 @@
                                 "type": "string"
                               },
                               "closed_reason": {
+                                "type": "string"
+                              },
+                              "supersedes_version_id": {
+                                "format": "uuid",
+                                "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
                                 "type": "string"
                               },
                               "created_at": {
@@ -3424,6 +3429,11 @@
                           "type": "string"
                         },
                         "closed_reason": {
+                          "type": "string"
+                        },
+                        "supersedes_version_id": {
+                          "format": "uuid",
+                          "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
                           "type": "string"
                         },
                         "created_at": {
@@ -5382,6 +5392,11 @@
                         "closed_reason": {
                           "type": "string"
                         },
+                        "supersedes_version_id": {
+                          "format": "uuid",
+                          "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
+                          "type": "string"
+                        },
                         "created_at": {
                           "format": "date-time",
                           "type": "string"
@@ -6755,6 +6770,11 @@
                           "type": "string"
                         },
                         "closed_reason": {
+                          "type": "string"
+                        },
+                        "supersedes_version_id": {
+                          "format": "uuid",
+                          "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
                           "type": "string"
                         },
                         "created_at": {
@@ -8973,6 +8993,11 @@
                     "closed_reason": {
                       "type": "string"
                     },
+                    "supersedes_version_id": {
+                      "format": "uuid",
+                      "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
+                      "type": "string"
+                    },
                     "created_at": {
                       "format": "date-time",
                       "type": "string"
@@ -10114,6 +10139,11 @@
                       "closed_reason": {
                         "type": "string"
                       },
+                      "supersedes_version_id": {
+                        "format": "uuid",
+                        "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
+                        "type": "string"
+                      },
                       "created_at": {
                         "format": "date-time",
                         "type": "string"
@@ -10559,7 +10589,7 @@
         "tags": [
           "Policies"
         ],
-        "description": "Records that a human approved this exact draft version: the version becomes ratified. Ratification does not put the version in force — the version currently in force keeps governing evaluations until the ratified version is activated with POST /v1/policies/{id}/versions/{version}/activate. Returns a signed PolicyApprovalReceipt when a ratifier key is configured.",
+        "description": "Records that a human approved this exact draft version: the version becomes ratified. Ratification does not put the version in force — the version currently in force keeps governing evaluations until the ratified version is activated with POST /v1/policies/{id}/versions/{version}/activate. Returns a signed PolicyApprovalReceipt when a ratifier key is configured.\n\n**The review gate (OPD-130, MCP-020 R-A).** Once any seal of this version, or of a draft it supersedes, was made under an authoring capability, ratification requires an ACCEPT review record as the newest record on THIS version's own latest sealed submission, whoever sealed it; otherwise 409 `RATIFY_NO_ACCEPT_RECORD` with `details.reason` `NO_SEAL_ON_HEAD`, `NO_ACCEPT_RECORD` or `LINEAGE_UNRESOLVED`. The human who issued that capability and the human who recorded the ACCEPT may not ratify (403). An ACCEPT recorded against an earlier draft never carries.",
         "requestBody": {
           "required": true,
           "content": {
@@ -11179,6 +11209,11 @@
                           "type": "string"
                         },
                         "closed_reason": {
+                          "type": "string"
+                        },
+                        "supersedes_version_id": {
+                          "format": "uuid",
+                          "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
                           "type": "string"
                         },
                         "created_at": {
@@ -12382,6 +12417,11 @@
                         "closed_reason": {
                           "type": "string"
                         },
+                        "supersedes_version_id": {
+                          "format": "uuid",
+                          "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
+                          "type": "string"
+                        },
                         "created_at": {
                           "format": "date-time",
                           "type": "string"
@@ -13336,6 +13376,11 @@
                           "type": "string"
                         },
                         "closed_reason": {
+                          "type": "string"
+                        },
+                        "supersedes_version_id": {
+                          "format": "uuid",
+                          "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
                           "type": "string"
                         },
                         "created_at": {
@@ -14511,6 +14556,11 @@
                       "type": "string"
                     },
                     "closed_reason": {
+                      "type": "string"
+                    },
+                    "supersedes_version_id": {
+                      "format": "uuid",
+                      "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
                       "type": "string"
                     },
                     "created_at": {
@@ -15811,6 +15861,11 @@
                         "closed_reason": {
                           "type": "string"
                         },
+                        "supersedes_version_id": {
+                          "format": "uuid",
+                          "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
+                          "type": "string"
+                        },
                         "created_at": {
                           "format": "date-time",
                           "type": "string"
@@ -16765,6 +16820,11 @@
                           "type": "string"
                         },
                         "closed_reason": {
+                          "type": "string"
+                        },
+                        "supersedes_version_id": {
+                          "format": "uuid",
+                          "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
                           "type": "string"
                         },
                         "created_at": {
@@ -17958,6 +18018,11 @@
                     "closed_reason": {
                       "type": "string"
                     },
+                    "supersedes_version_id": {
+                      "format": "uuid",
+                      "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
+                      "type": "string"
+                    },
                     "created_at": {
                       "format": "date-time",
                       "type": "string"
@@ -19131,6 +19196,11 @@
                     "closed_reason": {
                       "type": "string"
                     },
+                    "supersedes_version_id": {
+                      "format": "uuid",
+                      "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
+                      "type": "string"
+                    },
                     "created_at": {
                       "format": "date-time",
                       "type": "string"
@@ -20279,6 +20349,11 @@
                       "type": "string"
                     },
                     "closed_reason": {
+                      "type": "string"
+                    },
+                    "supersedes_version_id": {
+                      "format": "uuid",
+                      "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
                       "type": "string"
                     },
                     "created_at": {
@@ -23142,6 +23217,11 @@
                     "closed_reason": {
                       "type": "string"
                     },
+                    "supersedes_version_id": {
+                      "format": "uuid",
+                      "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
+                      "type": "string"
+                    },
                     "created_at": {
                       "format": "date-time",
                       "type": "string"
@@ -23538,6 +23618,45 @@
             }
           },
           "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -24502,6 +24621,11 @@
                       "type": "string"
                     },
                     "closed_reason": {
+                      "type": "string"
+                    },
+                    "supersedes_version_id": {
+                      "format": "uuid",
+                      "description": "Present only on a version created by draft supersession: the id of the replaced draft this version continues. Written when the version is created and never changed. Absent on every other version, including one started after a set-aside or a reopen.",
                       "type": "string"
                     },
                     "created_at": {
@@ -27025,6 +27149,59 @@
                     },
                     "total": {
                       "type": "integer"
+                    },
+                    "unanswered_lineage_returns": {
+                      "description": "Returns recorded on an EARLIER draft this version supersedes that no seal in the lineage answers (ruling R-B: shown, not blocking — this version remains ratifiable). Derived for the version, so it is present even when the version has no seal of its own. Absent when there are none.",
+                      "type": "array",
+                      "items": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "policy_version_id",
+                          "version",
+                          "submission_id",
+                          "review_record_id",
+                          "returned_by",
+                          "returned_by_display",
+                          "returned_at"
+                        ],
+                        "properties": {
+                          "policy_version_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "version": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "submission_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "review_record_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "returned_by": {
+                            "description": "The stable principal that returned it.",
+                            "type": "string"
+                          },
+                          "returned_by_display": {
+                            "type": "string"
+                          },
+                          "returned_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "lineage_unresolved": {
+                      "description": "Present when the draft-supersession lineage could not be followed back (more than 64 corrections, a cycle or a dangling link). `unanswered_lineage_returns` is then incomplete, and its absence says nothing.",
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     }
                   }
                 }
@@ -27565,6 +27742,134 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "newer_draft_observed": {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "head_version",
+                        "head_draft_revision",
+                        "observed_at",
+                        "intermediate_versions",
+                        "head_has_own_seal",
+                        "codes_added",
+                        "codes_removed",
+                        "active_rules_changed"
+                      ],
+                      "properties": {
+                        "head_version": {
+                          "minimum": 1,
+                          "description": "The version number at the head of the lineage now — the draft that continues this one.",
+                          "type": "integer"
+                        },
+                        "head_draft_revision": {
+                          "minimum": 0,
+                          "description": "The head's draft revision when this was read.",
+                          "type": "integer"
+                        },
+                        "observed_at": {
+                          "format": "date-time",
+                          "description": "When this read made the comparison.",
+                          "type": "string"
+                        },
+                        "intermediate_versions": {
+                          "description": "Versions between this one and the head, oldest first. Empty when the head directly continues this version.",
+                          "type": "array",
+                          "items": {
+                            "minimum": 1,
+                            "type": "integer"
+                          }
+                        },
+                        "head_has_own_seal": {
+                          "description": "Whether the head has a sealed submission of its own. When true, review continues on the head.",
+                          "type": "boolean"
+                        },
+                        "codes_added": {
+                          "description": "Rule codes the head's active rules carry that this submission's sealed `candidate_policy` does not.",
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "codes_removed": {
+                          "description": "Rule codes this submission sealed that the head's active rules no longer carry.",
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "active_rules_changed": {
+                          "description": "Whether the head's active-rule projection hashes differently from the `active_rules_hash` this submission sealed (the same function the seal uses).",
+                          "type": "boolean"
+                        },
+                        "codes_changed": {
+                          "description": "Codes present on both sides whose projected rule (condition, severity, when) differs. Present only when the replaced version's frozen rules still hash to the sealed `active_rules_hash`, so they ARE the sealed rules; otherwise absent and `baseline` says why.",
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "baseline": {
+                          "description": "Present when `codes_changed` cannot be computed: the replaced version's stored rules no longer hash to what was sealed (it was edited after sealing), so they are not the sealed rules.",
+                          "type": "string",
+                          "enum": [
+                            "unavailable"
+                          ]
+                        }
+                      }
+                    },
+                    "unanswered_lineage_returns": {
+                      "description": "Returns recorded on an EARLIER draft this version supersedes that no later seal in the lineage answers (ruling R-B: shown, not blocking). A later seal of this version is not required to answer them, and they do not block ratification. Absent when there are none.",
+                      "type": "array",
+                      "items": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "policy_version_id",
+                          "version",
+                          "submission_id",
+                          "review_record_id",
+                          "returned_by",
+                          "returned_by_display",
+                          "returned_at"
+                        ],
+                        "properties": {
+                          "policy_version_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "version": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "submission_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "review_record_id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "returned_by": {
+                            "description": "The stable principal that returned it.",
+                            "type": "string"
+                          },
+                          "returned_by_display": {
+                            "type": "string"
+                          },
+                          "returned_at": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "lineage_unresolved": {
+                      "description": "Present when the draft-supersession lineage could not be followed (a cycle, more than 64 links, or a dangling link). `newer_draft_observed` and `unanswered_lineage_returns` are then incomplete or absent, and their absence says nothing. The seal and ratify routes refuse such a lineage.",
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
                     }
                   }
                 }
@@ -27901,7 +28206,7 @@
         "tags": [
           "Policy Review"
         ],
-        "description": "Marks a sealed submission RETURNED against a `CORRECT_AND_RESUBMIT` review record, so the agent that authored it can read the record under its capability and seal a revision that answers it.\n\n**A human governance act (ADR 0003).** Only a verified human-session principal is admitted. A credential that holds `policies:write` but is not a human session is refused 403 `HUMAN_PRINCIPAL_REQUIRED`; one that does not hold `policies:write` is refused 403 `FORBIDDEN` by the scope gate first, before the human check is reached. Two controls, two codes — neither renders as permission.\n\n**Who may.** The human whose session recorded the named record (`recording_reviewer`), or a tenant admin as the ruled FALLBACK (`tenant_admin`). Anyone else receives 403 `REVIEW_RETURN_NOT_REVIEWER_OR_ADMIN`. The fallback is ANY tenant admin — it does not mean a named second reviewer, and nothing checks that the admin read anything. `return_authority` records which door was taken.\n\n**The record must be a `CORRECT_AND_RESUBMIT` of THIS submission.** Another disposition is 409 `REVIEW_RECORD_NOT_CORRECT_AND_RESUBMIT`; a record that is not on this submission (or does not exist, or belongs to another tenant) is one 404 `REVIEW_RECORD_NOT_ON_SUBMISSION` covering all three, deliberately, so the route is not an existence oracle.\n\n**Once.** The machine is SEALED → RETURNED; a second return is 409 `REVIEW_SUBMISSION_ALREADY_RETURNED`.\n\n**What it changes and what it does not.** One append-only return row and one `review_submission_returned` audit row, on the same transaction. The sealed subject is untouched, the authoring capability stays valid, and the shell version stays draft.\n\nRECORDS that this human under this authority returned this subject naming this record. It does NOT establish that the author saw it, that the record is correct, or that anything was corrected. It is not a receipt and nothing here is signed.",
+        "description": "Marks a sealed submission RETURNED against a `CORRECT_AND_RESUBMIT` review record, so the agent that authored it can read the record under its capability and seal a revision that answers it.\n\n**A human governance act (ADR 0003).** Only a verified human-session principal is admitted. A credential that holds `policies:write` but is not a human session is refused 403 `HUMAN_PRINCIPAL_REQUIRED`; one that does not hold `policies:write` is refused 403 `FORBIDDEN` by the scope gate first, before the human check is reached. Two controls, two codes — neither renders as permission.\n\n**Who may.** The human whose session recorded the named record (`recording_reviewer`), or a tenant admin as the ruled FALLBACK (`tenant_admin`). Anyone else receives 403 `REVIEW_RETURN_NOT_REVIEWER_OR_ADMIN`. The fallback is ANY tenant admin — it does not mean a named second reviewer, and nothing checks that the admin read anything. `return_authority` records which door was taken.\n\n**The record must be a `CORRECT_AND_RESUBMIT` of THIS submission.** Another disposition is 409 `REVIEW_RECORD_NOT_CORRECT_AND_RESUBMIT`; a record that is not on this submission (or does not exist, or belongs to another tenant) is one 404 `REVIEW_RECORD_NOT_ON_SUBMISSION` covering all three, deliberately, so the route is not an existence oracle.\n\n**Once.** The machine is SEALED → RETURNED; a second return is 409 `REVIEW_SUBMISSION_ALREADY_RETURNED`.\n\n**What it changes and what it does not.** One append-only return row and one `review_submission_returned` audit row, on the same transaction. The sealed subject is untouched. The return does not revoke, exhaust or otherwise change any authoring capability, and it does not transition the policy version. Whether the capability can still act, and whether the version is still a draft, depend on other acts — a revocation, a set-aside, or a supersession that has already replaced the draft (a submission of a replaced draft can still be returned; its revision is then sealed on the version that replaced it).\n\nRECORDS that this human under this authority returned this subject naming this record. It does NOT establish that the author saw it, that the record is correct, or that anything was corrected. It is not a receipt and nothing here is signed.",
         "requestBody": {
           "required": true,
           "content": {
@@ -32858,6 +33163,12 @@
                                 "enum": [
                                   "ratified"
                                 ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "replaced"
+                                ]
                               }
                             ]
                           },
@@ -32884,6 +33195,11 @@
                             "format": "uuid",
                             "description": "The ACCEPT review record a `ratify` item derives from. Absent otherwise.",
                             "type": "string"
+                          },
+                          "superseded_by_version": {
+                            "minimum": 1,
+                            "description": "MCP-020. Present only when `status` is `replaced`: the version at the head of the draft lineage that replaced this one. The review stays bound to this item's sealed package; the item clears once the head is sealed, ratified or set aside.",
+                            "type": "integer"
                           },
                           "entered_state_at": {
                             "format": "date-time",
@@ -47998,6 +48314,11 @@
                         }
                       }
                     },
+                    "succeeds_capability_id": {
+                      "format": "uuid",
+                      "description": "Present only on a grant the server minted when a draft supersession carried an authoring capability to the successor draft: the grant this one continues. Inside the capability digest preimage.",
+                      "type": "string"
+                    },
                     "capability_digest": {
                       "pattern": "^[0-9a-f]{64}$",
                       "type": "string"
@@ -48436,6 +48757,11 @@
                               }
                             }
                           },
+                          "succeeds_capability_id": {
+                            "format": "uuid",
+                            "description": "Present only on a grant the server minted when a draft supersession carried an authoring capability to the successor draft: the grant this one continues. Inside the capability digest preimage.",
+                            "type": "string"
+                          },
                           "capability_digest": {
                             "pattern": "^[0-9a-f]{64}$",
                             "type": "string"
@@ -48618,6 +48944,11 @@
                                         "type": "string"
                                       }
                                     }
+                                  },
+                                  "succeeds_capability_id": {
+                                    "format": "uuid",
+                                    "description": "Present only on a grant the server minted when a draft supersession carried an authoring capability to the successor draft: the grant this one continues. Inside the capability digest preimage.",
+                                    "type": "string"
                                   },
                                   "capability_digest": {
                                     "pattern": "^[0-9a-f]{64}$",
@@ -48949,6 +49280,11 @@
                           "type": "string"
                         }
                       }
+                    },
+                    "succeeds_capability_id": {
+                      "format": "uuid",
+                      "description": "Present only on a grant the server minted when a draft supersession carried an authoring capability to the successor draft: the grant this one continues. Inside the capability digest preimage.",
+                      "type": "string"
                     },
                     "capability_digest": {
                       "pattern": "^[0-9a-f]{64}$",
@@ -49357,6 +49693,11 @@
                           "type": "string"
                         }
                       }
+                    },
+                    "succeeds_capability_id": {
+                      "format": "uuid",
+                      "description": "Present only on a grant the server minted when a draft supersession carried an authoring capability to the successor draft: the grant this one continues. Inside the capability digest preimage.",
+                      "type": "string"
                     },
                     "capability_digest": {
                       "pattern": "^[0-9a-f]{64}$",
