@@ -7,7 +7,7 @@ description: "API and SDK version history"
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog documents API and SDK functionality shipped into those deployments. Console UI changes are not tracked here.
 </Info>
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.19.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.20.0**.
 
 ## Versioning policy
 
@@ -24,6 +24,79 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract ve
 ## API version header
 
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
+
+---
+
+## v1.20.0
+
+**Capability-bound draft supersession; the capability carry.** A writer
+release: correcting a capability-bound draft now mints a new authoring
+capability grant for the correction, and a chain of such grants can be
+followed and ended.
+
+- **New: `POST /v1/policies/{id}/versions/{version}/supersede-assigned`.** An
+  API key holding only the `authoring:capability` scope, whose capability
+  grants `draft.edit` and is bound to exactly this draft, corrects the draft
+  by superseding it. In one transaction: the draft is closed `replaced`,
+  byte-identical; the corrected rules become a new draft (`codification` is
+  required on this route); and a new authoring capability grant is minted for
+  the new draft, naming the admitting grant in `succeeds_capability_id`. Every
+  other field on the new grant (key, policy, `granted_by`, `grant_authority`,
+  actions, source items, window, agent declaration) is copied from the
+  admitting grant.
+  - Body: `expected_revision`, `rules`, `codification`, `change_reason?`,
+    `authoring_capability_id` (must match the admitting capability),
+    `additionalProperties: false`.
+  - Response `200 { replaced, draft, authoring_capability }`, where
+    `authoring_capability` is the new grant plus its derived
+    `root_capability_id`. Callers should name the new grant in
+    `authoring_capability_id` from then on.
+  - Refusals: 400 validation; 403 `AUTHORING_CAPABILITY_ID_MISMATCH`; the
+    existing `AUTHORING_CAPABILITY_*` gate codes (re-checked under the row
+    lock), including `AUTHORING_CAPABILITY_SUBJECT_NOT_LICENSED`,
+    `_SUBJECT_REVOKED` and `_SUBJECT_EXPIRED`; 404; 409 `INVALID_TRANSITION`,
+    `STALE_DRAFT_REVISION`, `DRAFT_CONFLICT`, and new 409
+    `AUTHORING_CAPABILITY_CHAIN_LIMIT` — a capability a human issued may be
+    carried at most 20 times; 422; 500. Nothing is written on any refusal.
+  - Not in the agent-openapi (ChatGPT Actions) subset.
+- **New: `GET /v1/authoring-capabilities/current`.** Carrier scope only,
+  action `policy.read`. Returns the grant that currently governs the calling
+  key, without its signature, plus `root_capability_id` — so a caller whose
+  supersession response was lost can learn which grant to name next.
+- **Revoke: new 409 `AUTHORING_CAPABILITY_CHAIN_ENDED`.** Revoking any grant
+  in a chain ends that grant and every grant carried from it, so a grant that
+  was itself carried on may still be revoked. A grant whose own ending
+  already exists still gets `AUTHORING_CAPABILITY_ALREADY_REVOKED`; a grant
+  with no ending of its own but an ended ancestor now gets `CHAIN_ENDED`,
+  with `details.ending_record_id`, `ending_record_type` and
+  `ended_grant_id`.
+- **PATCH and the withdrawal request re-check the capability under locks.** A
+  capability-admitted `PATCH /v1/policies/{id}/versions/{version}` and
+  `POST /v1/review-submissions/{submissionId}/withdrawal-requests` now lock
+  the policy row, then the version row, and re-resolve the admitting
+  capability in their own transaction. If it was revoked or exhausted
+  anywhere in its chain (including a revocation still in flight when the
+  request arrived), expired, or no longer governs because a supersession
+  carried it, the write is refused with the same gate 403 code and nothing is
+  written. Before this release, a write admitted a moment before a
+  revocation could still land after it. Human and broad-key PATCHes are
+  unchanged.
+- **Seals take the policy row lock before the version row lock.** A seal
+  racing a supersession of the same draft no longer risks a 500 from a
+  deadlock — it waits and then answers normally. A capability seal also
+  waits for an in-flight revocation of its root, and is refused
+  `AUTHORING_CAPABILITY_REVOKED` rather than succeeding after it.
+- **BREAKING — the audit action enum widens.** New action
+  `authoring_capability_carried` is a closed-enum widening on
+  `GET /v1/audit-log`, `GET /v1/audit-log/entity/{type}/{id}` and
+  `GET /v1/admin/audit-log`. An exhaustive client that switches over the
+  audit action enum must be updated to handle it.
+- `policy_versions.closed_by` may now hold a key's display identity (the key
+  that superseded the draft), not only a human's.
+
+*Operation names, codes and fields above are taken from the regenerated
+`api/openapi.json` for this release and from the API's own changelog
+(`apps/meshqu-api/CHANGELOG.md`, MCP-020 R2) in `tradequ`.*
 
 ---
 
