@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.22.0",
+    "version": "1.23.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -22250,7 +22250,7 @@
         "tags": [
           "Policies"
         ],
-        "description": "Autosave-style mutation of an in-flight draft version. `expected_revision` must match the current `draft_revision`; a successful write increments it atomically. Replaces the rules JSONB on the existing draft row — does NOT create a new version and does NOT write an audit entry. Returns 409 with `STALE_DRAFT_REVISION` and the current candidate after a conflicting write, or if the target version is not a draft; returns 404 if the version does not exist for the caller's tenant.\n\nTwo callers are admitted, on different grounds: the draft's own author, and an authoring-capability principal whose capability names this exact version id (the draft shell minted when the capability was issued). Everyone else receives 403 `FORBIDDEN_NOT_AUTHOR`.",
+        "description": "Autosave-style mutation of an in-flight draft version. `expected_revision` must match the current `draft_revision`; a successful write increments it atomically. Replaces the rules JSONB on the existing draft row — does NOT create a new version and does NOT write an audit entry. Returns 409 with `STALE_DRAFT_REVISION` and the current candidate after a conflicting write, or if the target version is not a draft; returns 404 if the version does not exist for the caller's tenant.\n\nTwo callers are admitted, on different grounds: the draft's own author, and an authoring-capability principal whose capability names this exact version id (the draft shell minted when the capability was issued). Everyone else receives 403 `FORBIDDEN_NOT_AUTHOR`.\n\nBounded write (MCP-034): the server abandons this write if any one lock wait exceeds 2000 ms, or if it is not ready to commit 4000 ms after the server began handling the request. An abandoned write is rolled back — nothing is written — and answered 503 `AUTHORING_WRITE_CONTENDED` with `details.committed: false` and a `Retry-After` header. That answer is a definite non-commit, safe to retry; it is distinct from a lost response or any other 5xx, whose outcome is unknown. The bound is counted from when THIS SERVER began handling the request, which a client cannot observe, and nothing bounds how late a request reaches the server: a client whose request timed out cannot conclude from any wait that it did not commit.",
         "requestBody": {
           "required": true,
           "content": {
@@ -23870,6 +23870,45 @@
             }
           },
           "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -26179,7 +26218,7 @@
         "tags": [
           "Policy Review"
         ],
-        "description": "Assembles the ten ruled review-package components from a declared source corpus, a TOTAL disposition ledger and a bidirectional source-to-rule map, then seals them as an immutable review subject together with their exact canonical bytes.\n\n**RECORDS** which bytes a reviewer will be shown, in which named slot, under which policy version, in what order, at what time, attributed to which principal.\n\n**PROVES** byte equality under `meshqu-review-package/v1`, and nothing else. It does not prove source truth, source completeness, correct interpretation, human review or authority.\n\n**Source custody.** A manifest item naming custodian `urn:meshqu:custodian:meshqu` asserts that MeshQu HOLDS those bytes, and the seal refuses unless it does: the server looks for a finalised, read-back-verified object at that tenant's content address, in the same transaction that seals, and returns `source_item_not_finalised_in_custody` if there is none or `source_custody_attestation_disagrees_with_manifest` if the digest or length disagrees. Custody is MeshQu-controlled and tenant-scoped; upload the bytes through `/v1/source-uploads` first. Items naming any other custodian are unchecked here — MeshQu resolves no external locator and makes no claim about a custodian's store.\n\nThe `availability` field sealed into the manifest stays `NOT_CHECKED` in every case, deliberately: availability is a CHECKED OBSERVATION made at a moment, and sealing one would freeze a time-varying fact into an immutable subject. Current availability is reported separately by `GET /v1/review-submissions/{submissionId}?check_source_availability=true`.\n\n**The candidate this seal binds to.** Both checks below run inside the sealing transaction, under a `FOR UPDATE` row lock on the policy version, so they and the seal see one state of it.\n\n`expected_draft_revision` is OPTIONAL. When supplied it must equal the stored `draft_revision`; a disagreement is 409 `STALE_DRAFT_REVISION` with `expected_revision` and `current_revision` in details — the same refusal PATCH and ratify answer — and nothing is sealed. **RECORDS** nothing: the field enters no component, no digest preimage and no stored column.\n\nSupplied or not, the body's `candidate_policy` rule codes are compared with the stored version's active-rule projection (`projectActiveRules`, the same predicate `active_rules_hash` is taken over) and a disagreement is 422 `CANDIDATE_POLICY_NOT_CURRENT`, whose details carry one `candidate_policy_not_current` entry naming the first differing rule code. That code is this route's own and is NOT part of the assembler's closed vocabulary. **PROVES** only that the two name the same ordered set of executable rule CODES: a rule whose condition, severity or `when` changed while its code stayed put does not differ here — it moves `active_rules_hash`, which is computed from the same locked read, so the hash is current either way.\n\n**Resubmission creates a NEW subject.** Posting identical bytes again returns a different `id` with the next `submission_sequence`; it never returns or updates the earlier one. A judgment recorded against one subject can never be applied to another.\n\nAssembly failures return 422 carrying every violation found, each with its own distinct code (`unit_without_disposition`, `mapped_unit_without_rule`, `internal_control_claims_source_mapping`, and the rest of the closed set) and the offending identifier, so a defect class is diagnosable rather than reported as \"validation failed\".\n\nThis route ratifies nothing, activates nothing and records no decision. It is not a receipt and no receipt binds its output.",
+        "description": "Assembles the ten ruled review-package components from a declared source corpus, a TOTAL disposition ledger and a bidirectional source-to-rule map, then seals them as an immutable review subject together with their exact canonical bytes.\n\n**RECORDS** which bytes a reviewer will be shown, in which named slot, under which policy version, in what order, at what time, attributed to which principal.\n\n**PROVES** byte equality under `meshqu-review-package/v1`, and nothing else. It does not prove source truth, source completeness, correct interpretation, human review or authority.\n\n**Source custody.** A manifest item naming custodian `urn:meshqu:custodian:meshqu` asserts that MeshQu HOLDS those bytes, and the seal refuses unless it does: the server looks for a finalised, read-back-verified object at that tenant's content address, in the same transaction that seals, and returns `source_item_not_finalised_in_custody` if there is none or `source_custody_attestation_disagrees_with_manifest` if the digest or length disagrees. Custody is MeshQu-controlled and tenant-scoped; upload the bytes through `/v1/source-uploads` first. Items naming any other custodian are unchecked here — MeshQu resolves no external locator and makes no claim about a custodian's store.\n\nThe `availability` field sealed into the manifest stays `NOT_CHECKED` in every case, deliberately: availability is a CHECKED OBSERVATION made at a moment, and sealing one would freeze a time-varying fact into an immutable subject. Current availability is reported separately by `GET /v1/review-submissions/{submissionId}?check_source_availability=true`.\n\n**The candidate this seal binds to.** Both checks below run inside the sealing transaction, under a `FOR UPDATE` row lock on the policy version, so they and the seal see one state of it.\n\n`expected_draft_revision` is OPTIONAL. When supplied it must equal the stored `draft_revision`; a disagreement is 409 `STALE_DRAFT_REVISION` with `expected_revision` and `current_revision` in details — the same refusal PATCH and ratify answer — and nothing is sealed. **RECORDS** nothing: the field enters no component, no digest preimage and no stored column.\n\nSupplied or not, the body's `candidate_policy` rule codes are compared with the stored version's active-rule projection (`projectActiveRules`, the same predicate `active_rules_hash` is taken over) and a disagreement is 422 `CANDIDATE_POLICY_NOT_CURRENT`, whose details carry one `candidate_policy_not_current` entry naming the first differing rule code. That code is this route's own and is NOT part of the assembler's closed vocabulary. **PROVES** only that the two name the same ordered set of executable rule CODES: a rule whose condition, severity or `when` changed while its code stayed put does not differ here — it moves `active_rules_hash`, which is computed from the same locked read, so the hash is current either way.\n\n**Resubmission creates a NEW subject.** Posting identical bytes again returns a different `id` with the next `submission_sequence`; it never returns or updates the earlier one. A judgment recorded against one subject can never be applied to another.\n\nAssembly failures return 422 carrying every violation found, each with its own distinct code (`unit_without_disposition`, `mapped_unit_without_rule`, `internal_control_claims_source_mapping`, and the rest of the closed set) and the offending identifier, so a defect class is diagnosable rather than reported as \"validation failed\".\n\nThis route ratifies nothing, activates nothing and records no decision. It is not a receipt and no receipt binds its output.\n\nBounded write (MCP-034): the server abandons this write if any one lock wait exceeds 2000 ms, or if it is not ready to commit 4000 ms after the server began handling the request. An abandoned write is rolled back — nothing is written — and answered 503 `AUTHORING_WRITE_CONTENDED` with `details.committed: false` and a `Retry-After` header. That answer is a definite non-commit, safe to retry; it is distinct from a lost response or any other 5xx, whose outcome is unknown. The bound is counted from when THIS SERVER began handling the request, which a client cannot observe, and nothing bounds how late a request reaches the server: a client whose request timed out cannot conclude from any wait that it did not commit.",
         "requestBody": {
           "required": true,
           "content": {
@@ -27012,6 +27051,45 @@
             }
           },
           "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -49925,7 +50003,7 @@
         "tags": [
           "Policy Review"
         ],
-        "description": "Appends an immutable record that the caller asked for this submission to be withdrawn from review.\n\n**RECORDS** who asked, for which sealed submission, when, and why.\n\n**CHANGES NOTHING.** The sealed submission is untouched, nothing is unsealed, and no policy version changes status. This is not a recall: disposal is a human act that this route neither performs nor schedules.\n\n**Reachable only by a credential holding the `authoring:capability` scope**, bound by the server to one assigned policy version. A `policies:write` key and a human session both receive 403: this route is the machine's way to ask, and a human disposes of a submission directly rather than requesting it.",
+        "description": "Appends an immutable record that the caller asked for this submission to be withdrawn from review.\n\n**RECORDS** who asked, for which sealed submission, when, and why.\n\n**CHANGES NOTHING.** The sealed submission is untouched, nothing is unsealed, and no policy version changes status. This is not a recall: disposal is a human act that this route neither performs nor schedules.\n\n**Reachable only by a credential holding the `authoring:capability` scope**, bound by the server to one assigned policy version. A `policies:write` key and a human session both receive 403: this route is the machine's way to ask, and a human disposes of a submission directly rather than requesting it.\n\nBounded write (MCP-034): the server abandons this write if any one lock wait exceeds 2000 ms, or if it is not ready to commit 4000 ms after the server began handling the request. An abandoned write is rolled back — nothing is written — and answered 503 `AUTHORING_WRITE_CONTENDED` with `details.committed: false` and a `Retry-After` header. That answer is a definite non-commit, safe to retry; it is distinct from a lost response or any other 5xx, whose outcome is unknown. The bound is counted from when THIS SERVER began handling the request, which a client cannot observe, and nothing bounds how late a request reaches the server: a client whose request timed out cannot conclude from any wait that it did not commit.",
         "requestBody": {
           "required": true,
           "content": {
@@ -50082,6 +50160,45 @@
             }
           },
           "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -50358,7 +50475,7 @@
         "tags": [
           "Policies"
         ],
-        "description": "Corrects the DRAFT an authoring capability is bound to without overwriting it, and carries the capability to the corrected draft. In one transaction: the draft is closed with status \"replaced\" (kept as history exactly as it was, codification record and lint findings included); the corrected rules become a NEW draft through the same path as version creation (the required `codification` block is codified and linted afresh), whose `supersedes_version_id` names the replaced draft; and a NEW authoring capability grant is minted naming the new draft. The new grant copies every other field of the admitting grant verbatim (key, policy, granted_by, grant_authority, allowed actions, source items, validity window and agent declaration), carries `succeeds_capability_id` = the admitting grant, and is returned as `authoring_capability`. Send ITS id as `authoring_capability_id` from then on. If the response is lost, `GET /v1/authoring-capabilities/current` returns it. Nothing is written on any refusal.\n\nReachable only by a credential holding the `authoring:capability` scope and no `policies:read` / `policies:write`, whose capability grants `draft.edit` and is bound to exactly this `:id` and `:version`. A broad key and a human session receive 403 FORBIDDEN.\n\nRefusals: 400 FST_ERR_VALIDATION (unknown field, missing `codification`); 403 AUTHORING_CAPABILITY_ID_MISMATCH (no capability admitted this request, or `authoring_capability_id` is not, byte for byte, the admitting capability); 403 AUTHORING_CAPABILITY_* from the capability gate — missing, revoked or exhausted (anywhere in its chain), expired, not yet valid, out of scope, object mismatch, integrity failure — and the same codes when the capability is re-checked under the row lock and has changed since the request was admitted; 403 AUTHORING_CAPABILITY_SUBJECT_NOT_LICENSED (the tenant enforces agent licences and this key holds no live one), AUTHORING_CAPABILITY_SUBJECT_REVOKED or AUTHORING_CAPABILITY_SUBJECT_EXPIRED (this key was deactivated or expired after the request was admitted) — all three checked inside the transaction, after its locks; 404 NOT_FOUND; 409 INVALID_TRANSITION with details.reason VERSION_NOT_DRAFT; 409 STALE_DRAFT_REVISION with the current candidate; 409 DRAFT_CONFLICT; 409 AUTHORING_CAPABILITY_CHAIN_LIMIT (the capability a human issued has already been carried 20 times — a human must issue a new one); 422 VALIDATION_ERROR / UNSUPPORTED_RULE_TYPE / CODIFICATION_REFUSED; 500 RATIFIER_KEY_REQUIRED / RATIFIER_KID_NOT_TRUSTED / AUTHORING_CAPABILITY_SELF_VERIFICATION_FAILED (deployment faults).",
+        "description": "Corrects the DRAFT an authoring capability is bound to without overwriting it, and carries the capability to the corrected draft. In one transaction: the draft is closed with status \"replaced\" (kept as history exactly as it was, codification record and lint findings included); the corrected rules become a NEW draft through the same path as version creation (the required `codification` block is codified and linted afresh), whose `supersedes_version_id` names the replaced draft; and a NEW authoring capability grant is minted naming the new draft. The new grant copies every other field of the admitting grant verbatim (key, policy, granted_by, grant_authority, allowed actions, source items, validity window and agent declaration), carries `succeeds_capability_id` = the admitting grant, and is returned as `authoring_capability`. Send ITS id as `authoring_capability_id` from then on. If the response is lost, `GET /v1/authoring-capabilities/current` returns it. Nothing is written on any refusal.\n\nReachable only by a credential holding the `authoring:capability` scope and no `policies:read` / `policies:write`, whose capability grants `draft.edit` and is bound to exactly this `:id` and `:version`. A broad key and a human session receive 403 FORBIDDEN.\n\nRefusals: 400 FST_ERR_VALIDATION (unknown field, missing `codification`); 403 AUTHORING_CAPABILITY_ID_MISMATCH (no capability admitted this request, or `authoring_capability_id` is not, byte for byte, the admitting capability); 403 AUTHORING_CAPABILITY_* from the capability gate — missing, revoked or exhausted (anywhere in its chain), expired, not yet valid, out of scope, object mismatch, integrity failure — and the same codes when the capability is re-checked under the row lock and has changed since the request was admitted; 403 AUTHORING_CAPABILITY_SUBJECT_NOT_LICENSED (the tenant enforces agent licences and this key holds no live one), AUTHORING_CAPABILITY_SUBJECT_REVOKED or AUTHORING_CAPABILITY_SUBJECT_EXPIRED (this key was deactivated or expired after the request was admitted) — all three checked inside the transaction, after its locks; 404 NOT_FOUND; 409 INVALID_TRANSITION with details.reason VERSION_NOT_DRAFT; 409 STALE_DRAFT_REVISION with the current candidate; 409 DRAFT_CONFLICT; 409 AUTHORING_CAPABILITY_CHAIN_LIMIT (the capability a human issued has already been carried 20 times — a human must issue a new one); 422 VALIDATION_ERROR / UNSUPPORTED_RULE_TYPE / CODIFICATION_REFUSED; 500 RATIFIER_KEY_REQUIRED / RATIFIER_KID_NOT_TRUSTED / AUTHORING_CAPABILITY_SELF_VERIFICATION_FAILED (deployment faults); 503 AUTHORING_WRITE_CONTENDED (below).\n\nBounded write (MCP-034): the server abandons this write if any one lock wait exceeds 2000 ms, or if it is not ready to commit 4000 ms after the server began handling the request. An abandoned write is rolled back — nothing is written — and answered 503 `AUTHORING_WRITE_CONTENDED` with `details.committed: false` and a `Retry-After` header. That answer is a definite non-commit, safe to retry; it is distinct from a lost response or any other 5xx, whose outcome is unknown. The bound is counted from when THIS SERVER began handling the request, which a client cannot observe, and nothing bounds how late a request reaches the server: a client whose request timed out cannot conclude from any wait that it did not commit.",
         "requestBody": {
           "required": true,
           "content": {
@@ -52870,6 +52987,45 @@
             }
           },
           "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
             "description": "Default Response",
             "content": {
               "application/json": {
