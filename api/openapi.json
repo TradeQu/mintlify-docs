@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.21.0",
+    "version": "1.22.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -932,6 +932,7 @@
                               "version",
                               "draft_revision",
                               "rules",
+                              "active_rules_hash",
                               "is_active",
                               "status",
                               "created_at",
@@ -1397,6 +1398,11 @@
                                     }
                                   }
                                 }
+                              },
+                              "active_rules_hash": {
+                                "pattern": "^[0-9a-f]{64}$",
+                                "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                                "type": "string"
                               },
                               "is_active": {
                                 "type": "boolean"
@@ -2876,6 +2882,7 @@
                         "version",
                         "draft_revision",
                         "rules",
+                        "active_rules_hash",
                         "is_active",
                         "status",
                         "created_at",
@@ -3340,6 +3347,11 @@
                               }
                             }
                           }
+                        },
+                        "active_rules_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                          "type": "string"
                         },
                         "is_active": {
                           "type": "boolean"
@@ -4837,6 +4849,7 @@
                         "version",
                         "draft_revision",
                         "rules",
+                        "active_rules_hash",
                         "is_active",
                         "status",
                         "created_at",
@@ -5301,6 +5314,11 @@
                               }
                             }
                           }
+                        },
+                        "active_rules_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                          "type": "string"
                         },
                         "is_active": {
                           "type": "boolean"
@@ -6217,6 +6235,7 @@
                         "version",
                         "draft_revision",
                         "rules",
+                        "active_rules_hash",
                         "is_active",
                         "status",
                         "created_at",
@@ -6681,6 +6700,11 @@
                               }
                             }
                           }
+                        },
+                        "active_rules_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                          "type": "string"
                         },
                         "is_active": {
                           "type": "boolean"
@@ -8438,6 +8462,7 @@
                     "version",
                     "draft_revision",
                     "rules",
+                    "active_rules_hash",
                     "is_active",
                     "status",
                     "created_at",
@@ -8902,6 +8927,11 @@
                           }
                         }
                       }
+                    },
+                    "active_rules_hash": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                      "type": "string"
                     },
                     "is_active": {
                       "type": "boolean"
@@ -9584,6 +9614,7 @@
                       "version",
                       "draft_revision",
                       "rules",
+                      "active_rules_hash",
                       "is_active",
                       "status",
                       "created_at",
@@ -10048,6 +10079,11 @@
                             }
                           }
                         }
+                      },
+                      "active_rules_hash": {
+                        "pattern": "^[0-9a-f]{64}$",
+                        "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                        "type": "string"
                       },
                       "is_active": {
                         "type": "boolean"
@@ -10656,6 +10692,7 @@
                         "version",
                         "draft_revision",
                         "rules",
+                        "active_rules_hash",
                         "is_active",
                         "status",
                         "created_at",
@@ -11120,6 +11157,11 @@
                               }
                             }
                           }
+                        },
+                        "active_rules_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                          "type": "string"
                         },
                         "is_active": {
                           "type": "boolean"
@@ -12305,6 +12347,7 @@
                         "policy_id",
                         "version",
                         "draft_revision",
+                        "active_rules_hash",
                         "is_active",
                         "status",
                         "created_at",
@@ -12326,6 +12369,11 @@
                         "draft_revision": {
                           "minimum": 0,
                           "type": "integer"
+                        },
+                        "active_rules_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                          "type": "string"
                         },
                         "is_active": {
                           "type": "boolean"
@@ -12823,6 +12871,7 @@
                         "version",
                         "draft_revision",
                         "rules",
+                        "active_rules_hash",
                         "is_active",
                         "status",
                         "created_at",
@@ -13287,6 +13336,11 @@
                               }
                             }
                           }
+                        },
+                        "active_rules_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                          "type": "string"
                         },
                         "is_active": {
                           "type": "boolean"
@@ -14003,6 +14057,7 @@
                     "version",
                     "draft_revision",
                     "rules",
+                    "active_rules_hash",
                     "is_active",
                     "status",
                     "created_at",
@@ -14467,6 +14522,11 @@
                           }
                         }
                       }
+                    },
+                    "active_rules_hash": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                      "type": "string"
                     },
                     "is_active": {
                       "type": "boolean"
@@ -15749,6 +15809,7 @@
                         "policy_id",
                         "version",
                         "draft_revision",
+                        "active_rules_hash",
                         "is_active",
                         "status",
                         "created_at",
@@ -15770,6 +15831,11 @@
                         "draft_revision": {
                           "minimum": 0,
                           "type": "integer"
+                        },
+                        "active_rules_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                          "type": "string"
                         },
                         "is_active": {
                           "type": "boolean"
@@ -16267,6 +16333,7 @@
                         "version",
                         "draft_revision",
                         "rules",
+                        "active_rules_hash",
                         "is_active",
                         "status",
                         "created_at",
@@ -16731,6 +16798,11 @@
                               }
                             }
                           }
+                        },
+                        "active_rules_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                          "type": "string"
                         },
                         "is_active": {
                           "type": "boolean"
@@ -17463,6 +17535,7 @@
                     "version",
                     "draft_revision",
                     "rules",
+                    "active_rules_hash",
                     "is_active",
                     "status",
                     "created_at",
@@ -17927,6 +18000,11 @@
                           }
                         }
                       }
+                    },
+                    "active_rules_hash": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                      "type": "string"
                     },
                     "is_active": {
                       "type": "boolean"
@@ -18641,6 +18719,7 @@
                     "version",
                     "draft_revision",
                     "rules",
+                    "active_rules_hash",
                     "is_active",
                     "status",
                     "created_at",
@@ -19105,6 +19184,11 @@
                           }
                         }
                       }
+                    },
+                    "active_rules_hash": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                      "type": "string"
                     },
                     "is_active": {
                       "type": "boolean"
@@ -19796,6 +19880,7 @@
                     "version",
                     "draft_revision",
                     "rules",
+                    "active_rules_hash",
                     "is_active",
                     "status",
                     "created_at",
@@ -20260,6 +20345,11 @@
                           }
                         }
                       }
+                    },
+                    "active_rules_hash": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                      "type": "string"
                     },
                     "is_active": {
                       "type": "boolean"
@@ -22662,6 +22752,7 @@
                     "version",
                     "draft_revision",
                     "rules",
+                    "active_rules_hash",
                     "is_active",
                     "status",
                     "created_at",
@@ -23126,6 +23217,11 @@
                           }
                         }
                       }
+                    },
+                    "active_rules_hash": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                      "type": "string"
                     },
                     "is_active": {
                       "type": "boolean"
@@ -24068,6 +24164,7 @@
                     "version",
                     "draft_revision",
                     "rules",
+                    "active_rules_hash",
                     "is_active",
                     "status",
                     "created_at",
@@ -24532,6 +24629,11 @@
                           }
                         }
                       }
+                    },
+                    "active_rules_hash": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                      "type": "string"
                     },
                     "is_active": {
                       "type": "boolean"
@@ -50891,6 +50993,7 @@
                         "policy_id",
                         "version",
                         "draft_revision",
+                        "active_rules_hash",
                         "is_active",
                         "status",
                         "created_at",
@@ -50912,6 +51015,11 @@
                         "draft_revision": {
                           "minimum": 0,
                           "type": "integer"
+                        },
+                        "active_rules_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                          "type": "string"
                         },
                         "is_active": {
                           "type": "boolean"
@@ -51409,6 +51517,7 @@
                         "version",
                         "draft_revision",
                         "rules",
+                        "active_rules_hash",
                         "is_active",
                         "status",
                         "created_at",
@@ -51873,6 +51982,11 @@
                               }
                             }
                           }
+                        },
+                        "active_rules_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "description": "SHA-256 hex of projectActiveRules(rules) — the same projection and hash the review-submission seal's active_rules_hash and the ratification receipt's policy_rules_hash use. Compare against a sealed subject's active_rules_hash to tell whether the ACTIVE RULES' EVALUATED CONTENT (code/condition/severity/when, in stored order) is unchanged since that seal — not whether the rule objects as a whole (name, description, source_ref, an added inactive rule) are unchanged.",
+                          "type": "string"
                         },
                         "is_active": {
                           "type": "boolean"
