@@ -7,7 +7,7 @@ description: "API and SDK version history"
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog documents API and SDK functionality shipped into those deployments. Console UI changes are not tracked here.
 </Info>
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.24.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.26.0**.
 
 ## Versioning policy
 
@@ -24,6 +24,134 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract ve
 ## API version header
 
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
+
+---
+
+## v1.26.0
+
+**Clearer refusals across key, licence, capability, discard, ratify, tenant and
+codification writes.** Most changes below replace a status a caller already
+got on the same input, whether a success, a bare 500 or a misleading 404, with
+a named refusal. One widens who may discard a draft. The set of routes and
+their request schemas are unchanged.
+
+**This entry is the current statement of some of these behaviours.** The
+OpenAPI reference is regenerated for this release. It carries the revoke-key
+409 and the licence and capability changes below, apart from UUID letter case.
+The reference descriptions of the other routes named here (key creation,
+draft discard, `GET /v1/policies/{id}`, ratify, tenant provisioning and the
+`codification` block) are unchanged in this release, so they do not yet
+describe the changes below.
+
+**API keys**
+
+- **Revoking a key that is already revoked is refused.**
+  `DELETE /v1/api-keys/{id}` and `DELETE /v1/admin/api-keys/{id}` answer
+  **409 `API_KEY_ALREADY_REVOKED`**, with `details.revoked_at` giving the
+  revocation that stands. Nothing is written: the original revocation time and
+  actor are kept and no second audit entry is appended. Before, the second
+  call answered 200 or 204 and overwrote the revocation time and actor. An
+  unknown key is still 404 `NOT_FOUND`. The reference now declares the 409 on
+  both routes.
+- **Creating a key: an API key cannot ask for more than it holds.**
+  `POST /v1/api-keys` and `POST /v1/admin/api-keys`, when the caller is an API
+  key:
+  - Every requested scope must be one the calling key holds, otherwise
+    **403 `API_KEY_SCOPE_ESCALATION`**, with the scopes it lacks in
+    `details.exceeding_scopes`.
+  - The requested `role` must be one the calling key's role may create,
+    otherwise **403 `API_KEY_ROLE_ESCALATION`**, with `details.requested_role`
+    and `details.minter_role`. `admin` may create any role; every role may
+    create itself and `viewer`; `operator` and `auditor` may not create each
+    other.
+  - An omitted `scopes` or `role` is checked as the value it would default to.
+    A request whose default exceeds the calling key is refused, not narrowed.
+  - **What this does not cover.** A request from a verified human session is
+    not bounded this way. The expiry of the new key is not bounded by the
+    calling key's. And the check applies to these two routes only: it does not
+    change what any other route lets the holder of a key grant.
+
+**Licences and capabilities**
+
+These changes are on `POST /v1/agent-licences`,
+`POST /v1/agent-licences/{id}/revoke`, `POST /v1/authoring-capabilities` and
+`POST /v1/authoring-capabilities/{id}/revoke`.
+
+- **`POST /v1/agent-licences`: a version that is not in force.** When the
+  named version exists, matches `policy_id` and `policy_version_number`, and is
+  not ratified and in force, or its policy is archived, the answer is
+  **409 `AGENT_LICENCE_POLICY_VERSION_NOT_IN_FORCE`**. It used to be a 500.
+  Nothing is issued. A `policy_version_id` that does not exist, or does not
+  match the policy and number named, still answers 500.
+- **`POST /v1/agent-licences`: a future start while a licence is live.** A
+  `valid_from` after now, for a key that has a licence in force now, is
+  refused **409 `AGENT_LICENCE_FUTURE_START_WHILE_LIVE`**, with
+  `details.live_licence_id`, `details.live_valid_until` and
+  `details.requested_valid_from`. It used to be a 201 that would govern at
+  once and leave the key with no valid licence until its start. Nothing is
+  issued. A licence that starts now is not refused for this reason, and neither
+  is a future start for a key with no licence in force.
+- **The four routes: a committed write whose read-back failed.** When the
+  read after the commit returns nothing, or itself fails, the answer is
+  **500 `AUTHORING_CAPABILITY_READBACK_FAILED`** or
+  **500 `AGENT_LICENCE_READBACK_FAILED`**, with `details.committed` set to
+  `true`. The record exists: read it rather than issuing again. Before, these
+  answered a 404 `*_NOT_FOUND` or a bare 500. A 404 on these routes means nothing
+  was written.
+- **The four routes: UUID letter case.** The UUIDs these routes take, that
+  is `key_id`, `policy_id` and the version id (`policy_version_id` or
+  `source_policy_version_id`) in the body, and the grant id in the revoke path,
+  are lower-cased before use, so an upper-case spelling names the same record
+  as the lower-case one. Before, an upper-case `policy_id` or version id could
+  be refused as not found or as a 500, and a licence issued with upper-case ids
+  was accepted but then failed integrity verification when read.
+
+**Policies**
+
+- **Discarding a draft is a human act.**
+  `DELETE /v1/policies/{id}/versions/{version}` now refuses a request
+  authenticated by an API key with **403 `HUMAN_PRINCIPAL_REQUIRED`**,
+  before the route looks at the draft. That includes a key that authored the
+  draft, which could discard it before. A verified human session reaches the
+  route as before. It is the refusal ratify, reject and activation already
+  give an API key.
+- **A tenant admin may discard an unbound draft that an API key created.**
+  With discard closed to keys, a tenant admin's human session may discard a
+  draft that is bound to no authoring capability and whose creation record in
+  the audit chain names one of the tenant's API keys as the actor, whether or
+  not that key can still act. Before, this needed a key that could no longer
+  act (revoked, inactive, or failing capability verification), and a draft
+  whose author key was still live was refused. The body must carry
+  `{ "reason": string }` (400 `DISCARD_REASON_REQUIRED` without it), and the
+  reason is recorded in the audit chain. Nothing is exhausted, because nothing
+  is bound. A draft whose creation record names a person, names no key of the
+  tenant, or cannot be resolved to a single record is still refused this way.
+- **`GET /v1/policies/{id}` no longer offers a key a discard it would be
+  refused.** For a request authenticated by an API key, `permissions.canDiscard`
+  is `false` and `actions` does not include `discard`.
+- **Ratify refuses a version whose policy is archived.**
+  `POST /v1/policies/{id}/versions/{version}/ratify` answers
+  **409 `INVALID_TRANSITION`** with `details.reason` `POLICY_ARCHIVED`, the
+  code and reason activation already gives for an archived policy. The
+  version stays as it was and nothing is recorded. Before, the ratify
+  succeeded, leaving a ratified version that activation then refuses.
+- **A `codification` block that declares one `unit_id` on two clauses is
+  refused.** On `POST /v1/policies`, `POST /v1/policies/{id}/versions`,
+  `POST /v1/policies/{id}/versions/{version}/supersede` and
+  `POST /v1/policies/{id}/versions/{version}/supersede-assigned`, a
+  `codification.clauses` list with the same `unit_id` on more than one clause
+  answers **422 `CODIFICATION_REFUSED`** with `details.code`
+  `DUPLICATE_UNIT_ID`. Nothing is stored. Before, the later clause silently
+  replaced the earlier in the lookup, so one outcome accounted for both. `unit_id`
+  values are compared exactly, so `u-1` and `U-1` are two clauses. A version
+  already stored with a duplicate is not rewritten.
+
+**Tenants**
+
+- **`POST /v1/admin/tenants`: a `parent_tenant_id` that names no tenant.** A
+  well-formed `parent_tenant_id` that matches no tenant answers
+  **422 `INVALID_PARENT`**. It used to be a 500. The existing cycle and depth
+  refusal is unchanged.
 
 ---
 

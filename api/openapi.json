@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.24.0",
+    "version": "1.26.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -46725,7 +46725,7 @@
         "tags": [
           "API Keys"
         ],
-        "description": "Revokes an API key. Revoked keys cannot be used for authentication.",
+        "description": "Revokes an API key. Revoked keys cannot be used for authentication. A key that is already revoked is refused with 409 API_KEY_ALREADY_REVOKED and nothing is written: its original revocation time and actor stand.",
         "parameters": [
           {
             "schema": {
@@ -46779,6 +46779,45 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "operationId": "deleteV1ApiKeysById"
@@ -46790,7 +46829,7 @@
         "tags": [
           "Agent Licences"
         ],
-        "description": "Creates an agent licence record binding an API key to a policy version, a scope and a validity window. Requires a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED.",
+        "description": "Creates an agent licence record binding an API key to a policy version, a scope and a validity window. Requires a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED. 409 AGENT_LICENCE_POLICY_VERSION_NOT_IN_FORCE when the named version exists, matches policy_id and policy_version_number, and is not ratified and in force, or its policy is archived; a version id that does not exist or does not match still answers 500. 409 AGENT_LICENCE_FUTURE_START_WHILE_LIVE when valid_from is after now and the key holds a licence in force now (`details.live_licence_id` names it); the new licence would govern at once and leave the key unlicensed until it starts. Neither writes anything. 500 AGENT_LICENCE_READBACK_FAILED means the licence WAS committed and only the read of it afterwards came back empty or failed (`details.committed` is true); read it back rather than issuing again, since a second licence would govern in place of the first.",
         "requestBody": {
           "required": true,
           "content": {
@@ -47625,7 +47664,7 @@
         "tags": [
           "Agent Licences"
         ],
-        "description": "Creates a revocation record naming the given grant and returns it. Requires a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED.",
+        "description": "Creates a revocation record naming the given grant and returns it. Requires a verified human principal; an API key receives 403 HUMAN_PRINCIPAL_REQUIRED. 500 AGENT_LICENCE_READBACK_FAILED means the revocation WAS committed and only the read of it afterwards came back empty or failed (`details.committed` is true). A 404 means nothing was written.",
         "requestBody": {
           "required": true,
           "content": {
@@ -48241,7 +48280,7 @@
         "tags": [
           "Authoring Capabilities"
         ],
-        "description": "Mints a new DRAFT policy version under `policy_id` — rules copied from `source_policy_version_id`, `created_by` set to the issuing human — and, in the same transaction, creates an authoring capability record bound to THAT minted version, a closed set of authoring actions, a set of granted source items and a validity window. The bound `policy_version_id` and `policy_version_number` are chosen by the server and returned; a caller cannot name them. Access is decided by two gates, in this order, both answering 403: the scope check runs first, so a principal without the api-keys:admin scope — including an authoring:capability carrier key — is refused FORBIDDEN and never reaches the second gate; a principal that HAS api-keys:admin but is an API key rather than a verified human session is then refused HUMAN_PRINCIPAL_REQUIRED. Only a verified human principal holding api-keys:admin reaches the handler. The subject key named in the body must hold the authoring:capability scope and must not hold policies:read or policies:write. Returns 404 AUTHORING_CAPABILITY_SOURCE_VERSION_NOT_FOUND when the source version is not a version of that policy in this tenant, and 409 AUTHORING_CAPABILITY_DRAFT_CONFLICT when the policy already has an open draft or submitted version, so no shell can be minted. Five further 400s, none of which writes anything. Two refuse a record that could never be used, because the subject key cannot authenticate at all: AUTHORING_CAPABILITY_SUBJECT_REVOKED (it is revoked or inactive) and AUTHORING_CAPABILITY_SUBJECT_EXPIRED (its expires_at is at or before now). One refuses a window that could never open: AUTHORING_CAPABILITY_WINDOW_ELAPSED (valid_until is at or before now). One refuses a window that outlives its carrier: AUTHORING_CAPABILITY_WINDOW_OUTLIVES_SUBJECT (valid_until is after the subject key's expires_at, so the part of the window past that instant is unusable while the part before it is not — a window ending exactly at the expiry is accepted, and a key with no expires_at does not constrain the window). One fails closed on an expiry the platform cannot read: AUTHORING_CAPABILITY_SUBJECT_EXPIRY_UNREADABLE (the subject key's expires_at is not a readable timestamp, so whether it can still authenticate cannot be established, and issuance refuses rather than assumes). These are evaluated in one order and the first that applies is the answer: the subject key must exist, then hold the right scopes, then be live, and only then is the window checked — against the clock, then against the key's expiry.",
+        "description": "Mints a new DRAFT policy version under `policy_id` — rules copied from `source_policy_version_id`, `created_by` set to the issuing human — and, in the same transaction, creates an authoring capability record bound to THAT minted version, a closed set of authoring actions, a set of granted source items and a validity window. The bound `policy_version_id` and `policy_version_number` are chosen by the server and returned; a caller cannot name them. Access is decided by two gates, in this order, both answering 403: the scope check runs first, so a principal without the api-keys:admin scope — including an authoring:capability carrier key — is refused FORBIDDEN and never reaches the second gate; a principal that HAS api-keys:admin but is an API key rather than a verified human session is then refused HUMAN_PRINCIPAL_REQUIRED. Only a verified human principal holding api-keys:admin reaches the handler. The subject key named in the body must hold the authoring:capability scope and must not hold policies:read or policies:write. Returns 404 AUTHORING_CAPABILITY_SOURCE_VERSION_NOT_FOUND when the source version is not a version of that policy in this tenant, and 409 AUTHORING_CAPABILITY_DRAFT_CONFLICT when the policy already has an open draft or submitted version, so no shell can be minted. Five further 400s, none of which writes anything. Two refuse a record that could never be used, because the subject key cannot authenticate at all: AUTHORING_CAPABILITY_SUBJECT_REVOKED (it is revoked or inactive) and AUTHORING_CAPABILITY_SUBJECT_EXPIRED (its expires_at is at or before now). One refuses a window that could never open: AUTHORING_CAPABILITY_WINDOW_ELAPSED (valid_until is at or before now). One refuses a window that outlives its carrier: AUTHORING_CAPABILITY_WINDOW_OUTLIVES_SUBJECT (valid_until is after the subject key's expires_at, so the part of the window past that instant is unusable while the part before it is not — a window ending exactly at the expiry is accepted, and a key with no expires_at does not constrain the window). One fails closed on an expiry the platform cannot read: AUTHORING_CAPABILITY_SUBJECT_EXPIRY_UNREADABLE (the subject key's expires_at is not a readable timestamp, so whether it can still authenticate cannot be established, and issuance refuses rather than assumes). These are evaluated in one order and the first that applies is the answer: the subject key must exist, then hold the right scopes, then be live, and only then is the window checked — against the clock, then against the key's expiry.\n\n500 AUTHORING_CAPABILITY_READBACK_FAILED means the capability WAS committed and only the read of it afterwards came back empty or failed (`details.committed` is true); read it back rather than issuing again. A 404 on this route means nothing was written.",
         "requestBody": {
           "required": true,
           "content": {
@@ -49285,7 +49324,7 @@
         "tags": [
           "Authoring Capabilities"
         ],
-        "description": "Creates a revocation record naming the given grant and returns it. The grant row is left exactly as issued. Access is decided by the same two gates as issuance, in the same order, both answering 403: without the api-keys:admin scope the scope check refuses FORBIDDEN first; with it, an API key rather than a verified human session is refused HUMAN_PRINCIPAL_REQUIRED.\n\nA grant the server carried to a successor draft (it has `succeeds_capability_id`) is part of a chain that starts at the grant a human issued. Revoking ANY grant of a chain ends that grant and every grant carried from it, so a grant that was itself carried on may be revoked. 409 AUTHORING_CAPABILITY_ALREADY_REVOKED when the named grant already has a revocation or exhaustion of its own; 409 AUTHORING_CAPABILITY_CHAIN_ENDED when it has none but a grant it was carried from does, with `details` naming that record: `ending_record_id`, `ending_record_type` and `ended_grant_id`.",
+        "description": "Creates a revocation record naming the given grant and returns it. The grant row is left exactly as issued. Access is decided by the same two gates as issuance, in the same order, both answering 403: without the api-keys:admin scope the scope check refuses FORBIDDEN first; with it, an API key rather than a verified human session is refused HUMAN_PRINCIPAL_REQUIRED.\n\nA grant the server carried to a successor draft (it has `succeeds_capability_id`) is part of a chain that starts at the grant a human issued. Revoking ANY grant of a chain ends that grant and every grant carried from it, so a grant that was itself carried on may be revoked. 409 AUTHORING_CAPABILITY_ALREADY_REVOKED when the named grant already has a revocation or exhaustion of its own; 409 AUTHORING_CAPABILITY_CHAIN_ENDED when it has none but a grant it was carried from does, with `details` naming that record: `ending_record_id`, `ending_record_type` and `ended_grant_id`. 500 AUTHORING_CAPABILITY_READBACK_FAILED means the revocation WAS committed and only the read of it afterwards came back empty or failed (`details.committed` is true). A 404 on this route means nothing was written.",
         "requestBody": {
           "required": true,
           "content": {
@@ -63916,7 +63955,7 @@
         "tags": [
           "Admin"
         ],
-        "description": "Revokes an API key. Revoked keys cannot be used for authentication.",
+        "description": "Revokes an API key. Revoked keys cannot be used for authentication. A key that is already revoked is refused with 409 API_KEY_ALREADY_REVOKED and nothing is written: its original revocation time and actor stand.",
         "parameters": [
           {
             "schema": {
@@ -64064,6 +64103,45 @@
             }
           },
           "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
             "description": "Default Response",
             "content": {
               "application/json": {
