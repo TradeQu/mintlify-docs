@@ -110,7 +110,7 @@ This array is the single source of truth for which buttons to render. Unavailabl
 | `recall` | Withdraw your own submitted draft back to draft state. _Gated._ |
 | `approve` | Ratify a submitted draft authored by someone else. _Gated._ |
 | `reject` | Return a submitted draft to draft with a reason. _Gated._ |
-| `discard` | Delete the current draft. |
+| `discard` | Delete the current draft. Human session only: for a request authenticated by an API key it is omitted, and `permissions.canDiscard` is `false`. |
 | `restore` | Create a new draft from a historical version. Label: `"Create draft from v{n}"`. |
 | `compare` | Open the diff view against another version. |
 
@@ -126,7 +126,7 @@ For a given version state, authored-by relationship, and role, the server emits 
 | --- | --- | --- |
 | `active` | write-capable | `start_editing`, `compare` |
 | `active` | read-only | `compare` |
-| `draft` — author | write-capable | `continue_editing`, `discard`, `compare` (_+ submit_) |
+| `draft` — author | write-capable | `continue_editing`, `discard` (human session only), `compare` (_+ submit_) |
 | `draft` — non-author | write-capable | `continue_reviewing`, `compare` |
 | `submitted` — author | write-capable | `compare` (_+ recall_) |
 | `submitted` — non-author | write-capable | `compare` (_+ approve, reject_) |

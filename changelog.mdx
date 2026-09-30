@@ -35,6 +35,16 @@ got on the same input, whether a success, a bare 500 or a misleading 404, with
 a named refusal. One widens who may discard a draft. The set of routes and
 their request schemas are unchanged.
 
+**1.25.0 was not released.** This release follows 1.24.0 directly.
+
+**Callers that relied on the old behaviour.** Six requests that used to
+succeed are now refused: revoking a key that is already revoked (409),
+creating a key that asks for more than the calling API key holds (403),
+discarding a draft with an API key (403), ratifying a version of an archived
+policy (409), issuing a licence with a future start while the key's governing
+licence is in force (409), and a `codification` block that repeats a `unit_id`
+(422).
+
 **This entry is the current statement of some of these behaviours.** The
 OpenAPI reference is regenerated for this release. It carries the revoke-key
 409 and the licence and capability changes below, apart from UUID letter case.
@@ -84,27 +94,33 @@ These changes are on `POST /v1/agent-licences`,
   Nothing is issued. A `policy_version_id` that does not exist, or does not
   match the policy and number named, still answers 500.
 - **`POST /v1/agent-licences`: a future start while a licence is live.** A
-  `valid_from` after now, for a key that has a licence in force now, is
+  `valid_from` after now, for a key whose governing licence is in force now, is
   refused **409 `AGENT_LICENCE_FUTURE_START_WHILE_LIVE`**, with
   `details.live_licence_id`, `details.live_valid_until` and
   `details.requested_valid_from`. It used to be a 201 that would govern at
   once and leave the key with no valid licence until its start. Nothing is
-  issued. A licence that starts now is not refused for this reason, and neither
-  is a future start for a key with no licence in force.
+  issued. The governing licence is the most recently issued one for the key. A licence
+  that starts now is not refused for this reason, and neither is a future start
+  for a key whose governing licence is not in force.
 - **The four routes: a committed write whose read-back failed.** When the
   read after the commit returns nothing, or itself fails, the answer is
   **500 `AUTHORING_CAPABILITY_READBACK_FAILED`** or
   **500 `AGENT_LICENCE_READBACK_FAILED`**, with `details.committed` set to
-  `true`. The record exists: read it rather than issuing again. Before, these
-  answered a 404 `*_NOT_FOUND` or a bare 500. A 404 on these routes means nothing
-  was written.
+  `true`. The record exists: `details.licence_id` or `details.capability_id` is
+  its id. On the revoke routes that id is the revocation record, and
+  `details.revokes_licence_id` or `details.revokes_capability_id` names the
+  grant being revoked. Do not repeat the request: a second licence issue would
+  govern in place of the first, and a repeated revoke is refused 409. Before,
+  these answered a 404 `*_NOT_FOUND` or a bare 500. A 404 on these routes means
+  nothing was written.
 - **The four routes: UUID letter case.** The UUIDs these routes take, that
   is `key_id`, `policy_id` and the version id (`policy_version_id` or
   `source_policy_version_id`) in the body, and the grant id in the revoke path,
   are lower-cased before use, so an upper-case spelling names the same record
-  as the lower-case one. Before, an upper-case `policy_id` or version id could
-  be refused as not found or as a 500, and a licence issued with upper-case ids
-  was accepted but then failed integrity verification when read.
+  as the lower-case one. Before, an upper-case `policy_id` on
+  `POST /v1/authoring-capabilities` was refused as not found for a version that
+  exists, and a licence issued with upper-case ids was accepted but then failed
+  integrity verification when read.
 
 **Policies**
 
@@ -112,9 +128,10 @@ These changes are on `POST /v1/agent-licences`,
   `DELETE /v1/policies/{id}/versions/{version}` now refuses a request
   authenticated by an API key with **403 `HUMAN_PRINCIPAL_REQUIRED`**,
   before the route looks at the draft. That includes a key that authored the
-  draft, which could discard it before. A verified human session reaches the
-  route as before. It is the refusal ratify, reject and activation already
-  give an API key.
+  draft, which could discard it before. The scope check runs first: a key
+  without `policies:write` still gets 403 `FORBIDDEN`. A verified human session
+  reaches the route as before. `HUMAN_PRINCIPAL_REQUIRED` is the refusal
+  ratify, reject and activation already give an API key.
 - **A tenant admin may discard an unbound draft that an API key created.**
   With discard closed to keys, a tenant admin's human session may discard a
   draft that is bound to no authoring capability and whose creation record in
