@@ -7,7 +7,7 @@ description: "API and SDK version history"
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog documents API and SDK functionality shipped into those deployments. Console UI changes are not tracked here.
 </Info>
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.26.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.29.0**.
 
 ## Versioning policy
 
@@ -24,6 +24,150 @@ MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract ve
 ## API version header
 
 All endpoints are prefixed with `/v1`. When a new major version is released, the previous version will remain available for a documented deprecation period.
+
+---
+
+## v1.29.0
+
+**Breaking: a request body with a key the reference does not declare is now
+refused.** `POST /v1/decisions/evaluate`, `POST /v1/decisions/record` and
+`POST /v1/policies/{id}/versions/{version}/ratify` answer
+**400 `FST_ERR_VALIDATION`** to a body that carries an unknown top-level key.
+Before, such a key was accepted and ignored. Callers that send extra keys now
+get 400. Ratify also checks what was reviewed, and the audit actions gain a
+value. No operation is added or removed and no response status changes. The
+reference descriptions of draft discard and key creation are rewritten to state
+behaviour that 1.26.0 introduced.
+
+**1.27.0 was not released.** Its change, a new audit `action` value, is
+documented here. **1.28.0 has no entry of its own:** its changes, the ratify
+checks, the closed ratify body and the rewritten discard and key-creation
+descriptions, are documented here too. This release follows 1.26.0 directly in
+this changelog.
+
+**Callers that relied on the old behaviour.** These requests used to succeed
+and are now refused:
+
+- A body to `POST /v1/decisions/evaluate` or `POST /v1/decisions/record` with a
+  top-level key other than the ones listed under "Decisions" below (400).
+- A body to `POST /v1/policies/{id}/versions/{version}/ratify` with a key other
+  than `expected_revision`, `approval_authority` and `ratifier_role` (400).
+- A ratify of a version whose active rules changed since its latest sealed
+  submission was sealed, when the newest review record on that submission is an
+  ACCEPT (409).
+- A ratify, when no seal of the version or of a draft it supersedes was made
+  under an authoring capability, of a version whose newest review record on its
+  latest sealed submission is `CORRECT_AND_RESUBMIT` or `STOP` (409).
+
+Separately, a client that treats the list of audit actions as closed, for
+example by validating `action` against the values the reference listed before,
+will reject an event that carries the new value.
+
+**Decisions: evaluate and record**
+
+- **Unknown top-level keys are refused.** `POST /v1/decisions/evaluate` accepts
+  `context` (required), `options`, `action` and `source`.
+  `POST /v1/decisions/record` accepts `context` (required), `options`, `action`,
+  `actor`, `evidence_manifest_digest`, `evidence_manifest` and `source`. Any
+  other top-level key is refused **400 `FST_ERR_VALIDATION`**, including a key
+  that only the other route takes, such as `actor` on evaluate. The refused body
+  reaches neither the policy read nor the decision write. Before, an unknown
+  top-level key was accepted and ignored.
+- **`source` is accepted and not read.** Both bodies now declare a top-level
+  `source`, described as "Accepted and not read." It accepts any value, and
+  nothing reads it. Before, it was accepted and ignored as an unknown key.
+- **Only the top level is closed.** An unknown key inside `context` or `options`
+  is still accepted on both routes. The reference declares no
+  `additionalProperties` for `context`, `options`, `action` or `actor`, and
+  `context.fields`, `context.metadata` and `action.metadata` accept any key.
+- **The form API contract.** In `GET /v1/forms/{formId}/api-contract`, the
+  evaluate request schema in `openapi_snippet` is now closed
+  (`additionalProperties: false`) and declares `options` and `action` beside the
+  required `context`. It does not list `source`, which the endpoint accepts.
+  Before, it declared `context` only and did not close the schema.
+
+**Ratify**
+
+- **The body is closed.** A body with any key other than `expected_revision`,
+  `approval_authority` and `ratifier_role` is refused
+  **400 `FST_ERR_VALIDATION`**, and nothing is ratified. Before, an unknown key
+  was accepted and ignored. `expected_revision` is still required. A request
+  authenticated by an API key is still refused 403 `HUMAN_PRINCIPAL_REQUIRED`
+  before the body is checked, and a key without `policies:write` still gets
+  403 `FORBIDDEN` first.
+- **A version whose reviewed rules changed is refused.** When the newest review
+  record on the version's latest sealed submission is an ACCEPT, the version's
+  current active rules must still hash to the `active_rules_hash` that
+  submission sealed. A change to the active rules since the submission was
+  sealed is refused, including reordering them: the hash is taken over the
+  active rules in stored order. The answer is
+  **409 `REVIEWED_SUBJECT_STALE`**, with `details.submission_id`,
+  `details.review_record_id`, `details.sealed_active_rules_hash`,
+  `details.current_active_rules_hash`, `details.candidate_revision` and
+  `details.draft_revision`. Nothing is ratified. Seal the current rules and
+  have them reviewed again, or restore the rules that were accepted. Before, a
+  change to the active rules after the seal did not stop the ratify. This
+  applies whether or not an authoring capability sealed the version.
+- **A version whose latest review is adverse is refused.** When no seal of the
+  version or of a draft it supersedes was made under an authoring capability,
+  and the newest review record on its latest sealed submission is
+  `CORRECT_AND_RESUBMIT` or `STOP`, the answer is
+  **409 `RATIFY_REVIEW_ADVERSE`**, with `details.reason` set to that
+  disposition and `details.submission_id` and `details.review_record_id`.
+  Nothing is ratified. Before, it was ratified. When a seal was made under an
+  authoring capability, the same records are still refused
+  409 `RATIFY_NO_ACCEPT_RECORD`, as before.
+- **What these checks do not cover.**
+  - Only the hashed fields of the active rules (`code`, `condition`,
+    `severity`, `when`) are compared. A change to a rule's name, description,
+    `source_ref`, `replaces_rule_code` or `rule_type`, or to the content of a
+    rule that is inactive before and after, is not refused. Making a rule
+    active or inactive does change what is compared.
+  - Neither refusal applies to a version with no sealed submission, or whose
+    latest sealed submission has no review record. Where an authoring
+    capability sealed the version or a draft it supersedes, such a version is
+    still refused 409 `RATIFY_NO_ACCEPT_RECORD`, as before.
+  - A version that can no longer be ratified, such as one already ratified, is
+    still refused 409 `INVALID_TRANSITION`.
+  - A request whose `expected_revision` is stale is still refused
+    409 `STALE_DRAFT_REVISION` first.
+- **The `policy_ratified` audit entry cites the ACCEPT.** When a ratification
+  relied on an ACCEPT, the entry's `changes` carries `review_record_id` and
+  `review_submission_id`, whether or not an authoring capability was involved.
+  Before, only a ratification under the review gate carried them.
+
+**Audit actions**
+
+- **`connection_consented` is a new audit `action` value.** No operation in
+  this reference records it, so the reference does not say when it appears.
+- **Where it can appear.** As `action` on the events returned by
+  `GET /v1/audit-log`, `GET /v1/admin/audit-log` and
+  `GET /v1/audit-log/entity/{type}/{id}`.
+- **As a filter.** `GET /v1/audit-log` accepts it as the `action` query
+  parameter. Before, it was refused like any other value that is not a listed
+  audit action: 400 `FST_ERR_VALIDATION`.
+
+**Reference descriptions**
+
+These change what the reference says, not what the API does.
+
+- **`DELETE /v1/policies/{id}/versions/{version}`.** The description now states
+  the 1.26.0 behaviour: only a verified human session may discard, an API key is
+  refused 403 `HUMAN_PRINCIPAL_REQUIRED` (after the `policies:write` scope
+  check), and a tenant admin may discard a draft that is not theirs in three
+  cases, each with a `reason`. Before, it said an API key never takes the admin
+  path and that a draft whose author key is still live is refused.
+- **`POST /v1/api-keys` and `POST /v1/admin/api-keys`.** The `scopes` and `role`
+  descriptions now state the refusals 1.26.0 introduced
+  (`API_KEY_SCOPE_ESCALATION` and `API_KEY_ROLE_ESCALATION`), the default
+  scopes and the default role, and that a human session caller is not bounded.
+  The default role depends on a deployment setting. Before, `scopes` said only
+  that it defaulted to "read + evaluate", and `role` had no description.
+- **Still described only in the v1.26.0 entry.** The reference does not yet
+  describe the refusal of a ratify for an archived policy's version,
+  `permissions.canDiscard` on `GET /v1/policies/{id}`, `INVALID_PARENT` on
+  `POST /v1/admin/tenants`, or the duplicate `unit_id` refusal on the
+  `codification` block.
 
 ---
 
@@ -51,7 +195,8 @@ OpenAPI reference is regenerated for this release. It carries the revoke-key
 The reference descriptions of the other routes named here (key creation,
 draft discard, `GET /v1/policies/{id}`, ratify, tenant provisioning and the
 `codification` block) are unchanged in this release, so they do not yet
-describe the changes below.
+describe the changes below. Key creation and draft discard are described in the
+reference from v1.29.0.
 
 **API keys**
 
