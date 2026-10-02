@@ -7,7 +7,7 @@ description: "API and SDK version history"
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog documents API and SDK functionality shipped into those deployments. Console UI changes are not tracked here.
 </Info>
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.28.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.29.0**.
 
 ## Versioning policy
 
@@ -27,31 +27,64 @@ All endpoints are prefixed with `/v1`. When a new major version is released, the
 
 ---
 
-## v1.28.0
+## v1.29.0
 
-**Ratify checks what was reviewed and its body is closed, and the audit
-actions gain a value.** Three requests to
-`POST /v1/policies/{id}/versions/{version}/ratify` that used to succeed are now
-refused. No operation is added or removed and no response status changes. What
-a request may contain changes in two places: the ratify body is now closed, and
-the `action` filter on `GET /v1/audit-log` accepts one more value. The reference
-descriptions of draft discard and key creation are rewritten to state behaviour
-that 1.26.0 introduced.
+**Breaking: a request body with a key the reference does not declare is now
+refused.** `POST /v1/decisions/evaluate`, `POST /v1/decisions/record` and
+`POST /v1/policies/{id}/versions/{version}/ratify` answer
+**400 `FST_ERR_VALIDATION`** to a body that carries an unknown top-level key.
+Before, such a key was accepted and ignored. Callers that send extra keys now
+get 400. Ratify also checks what was reviewed, and the audit actions gain a
+value. No operation is added or removed and no response status changes. The
+reference descriptions of draft discard and key creation are rewritten to state
+behaviour that 1.26.0 introduced.
 
-**1.27.0 was not released.** Its change, a new audit `action` value, ships in
-this release. This release follows 1.26.0 directly.
+**1.27.0 was not released.** Its change, a new audit `action` value, is
+documented here. **1.28.0 has no entry of its own:** its changes, the ratify
+checks, the closed ratify body and the rewritten discard and key-creation
+descriptions, are documented here too. This release follows 1.26.0 directly in
+this changelog.
 
-**Callers that relied on the old behaviour.** A ratify request that used to
-succeed is now refused when its body carries a key other than
-`expected_revision`, `approval_authority` and `ratifier_role` (400), when the
-active rules of the version changed since its latest sealed submission was
-sealed and the newest review record on that submission is an ACCEPT (409), or,
-when no seal of the version or of a draft it supersedes was made under an
-authoring capability, when the newest review record on its latest sealed
-submission is `CORRECT_AND_RESUBMIT` or `STOP` (409). Separately, a client that
-treats the list of audit actions as closed, for example by validating `action`
-against the values the reference listed before, will reject an event that
-carries the new value.
+**Callers that relied on the old behaviour.** These requests used to succeed
+and are now refused:
+
+- A body to `POST /v1/decisions/evaluate` or `POST /v1/decisions/record` with a
+  top-level key other than the ones listed under "Decisions" below (400).
+- A body to `POST /v1/policies/{id}/versions/{version}/ratify` with a key other
+  than `expected_revision`, `approval_authority` and `ratifier_role` (400).
+- A ratify of a version whose active rules changed since its latest sealed
+  submission was sealed, when the newest review record on that submission is an
+  ACCEPT (409).
+- A ratify, when no seal of the version or of a draft it supersedes was made
+  under an authoring capability, of a version whose newest review record on its
+  latest sealed submission is `CORRECT_AND_RESUBMIT` or `STOP` (409).
+
+Separately, a client that treats the list of audit actions as closed, for
+example by validating `action` against the values the reference listed before,
+will reject an event that carries the new value.
+
+**Decisions: evaluate and record**
+
+- **Unknown top-level keys are refused.** `POST /v1/decisions/evaluate` accepts
+  `context` (required), `options`, `action` and `source`.
+  `POST /v1/decisions/record` accepts `context` (required), `options`, `action`,
+  `actor`, `evidence_manifest_digest`, `evidence_manifest` and `source`. Any
+  other top-level key is refused **400 `FST_ERR_VALIDATION`**, including a key
+  that only the other route takes, such as `actor` on evaluate. The refused body
+  reaches neither the policy read nor the decision write. Before, an unknown
+  top-level key was accepted and ignored.
+- **`source` is accepted and not read.** Both bodies now declare a top-level
+  `source`, described as "Accepted and not read." It accepts any value, and
+  nothing reads it. Before, it was accepted and ignored as an unknown key.
+- **Only the top level is closed.** An unknown key inside `context` or `options`
+  is still accepted on both routes. The reference declares no
+  `additionalProperties` for `context`, `options`, `action` or `actor`, and
+  `context.fields`, `context.metadata` and `action.metadata` accept any key.
+- **The form API contract.** In `GET /v1/forms/{formId}/api-contract`, the
+  evaluate request schema in `openapi_snippet` is now closed
+  (`additionalProperties: false`) and declares `options` and `action` beside the
+  required `context`. It does not list `source`, which the endpoint accepts.
+  Before, it declared `context` only and did not close the schema.
 
 **Ratify**
 

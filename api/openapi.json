@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.28.0",
+    "version": "1.29.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -10625,7 +10625,7 @@
         "tags": [
           "Policies"
         ],
-        "description": "Records that a human approved this exact draft version: the version becomes ratified. Ratification does not put the version in force — the version currently in force keeps governing evaluations until the ratified version is activated with POST /v1/policies/{id}/versions/{version}/activate. Returns a signed PolicyApprovalReceipt when a ratifier key is configured.\n\n**The review gate (OPD-130, MCP-020 R-A).** Once any seal of this version, or of a draft it supersedes, was made under an authoring capability, ratification requires an ACCEPT review record as the newest record on THIS version's own latest sealed submission, whoever sealed it; otherwise 409 `RATIFY_NO_ACCEPT_RECORD` with `details.reason` `NO_SEAL_ON_HEAD`, `NO_ACCEPT_RECORD` or `LINEAGE_UNRESOLVED`. The human who issued that capability and the human who recorded the ACCEPT may not ratify (403). An ACCEPT recorded against an earlier draft never carries.\n\n**The reviewed subject (B1-01).** On every path, while the version is still ratifiable: if the newest record on this version's latest sealed submission is an ACCEPT, the version's current active rules must hash to the `active_rules_hash` that submission sealed; otherwise 409 `REVIEWED_SUBJECT_STALE` (`details`: `submission_id`, `review_record_id`, `sealed_active_rules_hash`, `current_active_rules_hash`, `candidate_revision`, `draft_revision`). Reseal and have the current rules reviewed, or restore the accepted rules. When no authoring capability is involved and that newest record is `CORRECT_AND_RESUBMIT` or `STOP`, 409 `RATIFY_REVIEW_ADVERSE` (`details.reason` is the disposition). A ratification that relied on an ACCEPT cites it in the `policy_ratified` audit row on both paths. **Limit:** only the hashed fields of the active rules (code, condition, severity, `when`) are compared; a rule's name, description, `source_ref`, `replaces_rule_code` and `rule_type`, and inactive rules, are not.\n\n`expected_revision` is deprecated: it will be superseded by `expected_preconditions_token` (ADR 0012 D4) once that lands, and is still required until then. The body accepts no other keys: an unknown key is 400.",
+        "description": "Records that a human approved this exact draft version: the version becomes ratified. Ratification does not put the version in force — the version currently in force keeps governing evaluations until the ratified version is activated with POST /v1/policies/{id}/versions/{version}/activate. Returns a signed PolicyApprovalReceipt when a ratifier key is configured.\n\n**The review gate (OPD-130, MCP-020 R-A).** Once any seal of this version, or of a draft it supersedes, was made under an authoring capability, ratification requires an ACCEPT review record as the newest record on THIS version's own latest sealed submission, whoever sealed it; otherwise 409 `RATIFY_NO_ACCEPT_RECORD` with `details.reason` `NO_SEAL_ON_HEAD`, `NO_ACCEPT_RECORD` or `LINEAGE_UNRESOLVED`. The human who issued that capability and the human who recorded the ACCEPT may not ratify (403). An ACCEPT recorded against an earlier draft never carries.\n\n**The reviewed subject (B1-01).** On every path, while the version is still ratifiable: if the newest record on this version's latest sealed submission is an ACCEPT, the version's current active rules must hash to the `active_rules_hash` that submission sealed; otherwise 409 `REVIEWED_SUBJECT_STALE` (`details`: `submission_id`, `review_record_id`, `sealed_active_rules_hash`, `current_active_rules_hash`, `candidate_revision`, `draft_revision`). Reseal and have the current rules reviewed, or restore the accepted rules. When no authoring capability is involved and that newest record is `CORRECT_AND_RESUBMIT` or `STOP`, 409 `RATIFY_REVIEW_ADVERSE` (`details.reason` is the disposition). A ratification that relied on an ACCEPT cites it in the `policy_ratified` audit row on both paths. **Limit:** only the hashed fields of the active rules (code, condition, severity, `when`) are compared; a rule's name, description, `source_ref`, `replaces_rule_code` and `rule_type`, and inactive rules, are not.\n\n`expected_revision` is required. The body accepts only `expected_revision`, `approval_authority` and `ratifier_role`: any other key is 400.",
         "requestBody": {
           "required": true,
           "content": {
@@ -10639,7 +10639,7 @@
                 "properties": {
                   "expected_revision": {
                     "minimum": 0,
-                    "description": "The draft_revision of the version the ratifier read. Deprecated: superseded by expected_preconditions_token (ADR 0012 D4) once that lands; still required until then.",
+                    "description": "The draft_revision of the version the ratifier read. While the version can still be ratified, a value that is not its current draft_revision is refused 409 STALE_DRAFT_REVISION.",
                     "type": "integer"
                   },
                   "approval_authority": {
@@ -34739,6 +34739,7 @@
             "application/json": {
               "schema": {
                 "description": "Request to evaluate policies against a decision context",
+                "additionalProperties": false,
                 "type": "object",
                 "required": [
                   "context"
@@ -34936,6 +34937,9 @@
                         "additionalProperties": {}
                       }
                     }
+                  },
+                  "source": {
+                    "description": "Accepted and not read."
                   }
                 }
               }
@@ -35823,6 +35827,7 @@
             "application/json": {
               "schema": {
                 "description": "Request to record a decision with evaluation",
+                "additionalProperties": false,
                 "type": "object",
                 "required": [
                   "context"
@@ -36282,6 +36287,9 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "source": {
+                    "description": "Accepted and not read."
                   }
                 }
               }
