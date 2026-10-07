@@ -855,6 +855,16 @@ have published what it names.
   root set still carries it. The bundle's `trusted_keys.json` records which
   keys were current at export time, which is useful for a fingerprint UI; it
   is not what makes the old signature verify.
+- **Key standing is a separate check from the signature.** A signature that
+  verifies shows which key signed; it does not show that the key is still in
+  good standing. Given a verified signed key registry, the verifier also
+  reports where the signing key stands at the moment of verification: in good
+  standing, revoked, retired, expired or not yet valid. Given none, it reports
+  the standing as **not checked**. That is not a failure, and it is not
+  evidence the key is in good standing. No signed key registry is published,
+  so verify.meshqu.com, and the CLI without `--trust-registry`, report **not
+  checked** for every signed receipt, and verify.meshqu.com headlines such a
+  receipt *Signature Verified* rather than *Receipt is Valid*.
 - Custodian (evidence) keys and ratifier (approval) keys are supplied to the
   verifier out-of-band via `custodianTrustedRoots` / `ratifierTrustedRoots`.
   MeshQu never holds them.
@@ -900,6 +910,7 @@ the structured `actor` row, decision outcomes.
 | --- | --- | --- |
 | Ed25519 signing of receipts | Implemented | "Signed against published keys" — safe |
 | Offline integrity + signature verification | Implemented | "Verifiable offline / no MeshQu API" — safe |
+| Signing-key standing (revocation, retirement, validity window) against a signed key registry | Implemented in the verifier; **no signed registry published** | "Signature verified" is the accurate public phrasing for a receipt checked today; don't call it "fully verified" or claim revocation checking. |
 | Snapshot replay (deterministic re-evaluation) | Implemented | "Replayable: same inputs and snapshot → same result" — safe |
 | Self-contained verification bundle | Implemented | "Portable" / "self-contained proof" — safe |
 | Chain linkage + chain integrity hash | Implemented | "Chainable" — safe |
