@@ -93,7 +93,7 @@ Each API key carries one or more scopes that control what it can access:
 | `audit:read` | Read audit events |
 | `audit:admin` | Verify audit log integrity |
 | `members:read` | List and read tenant members |
-| `members:write` | Invite, update, and remove tenant members |
+| `members:write` | Remove tenant members. An API key that holds it is refused 403 `HUMAN_PRINCIPAL_REQUIRED` on invite and role update |
 | `api-keys:admin` | Create, list, and revoke API keys |
 
 <Note>

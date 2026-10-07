@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.29.0",
+    "version": "1.30.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -62277,6 +62277,7 @@
         "tags": [
           "Admin"
         ],
+        "description": "Requires a verified human principal: a credential holding `members:write` that is not a human session receives 403 HUMAN_PRINCIPAL_REQUIRED.",
         "requestBody": {
           "required": true,
           "content": {
@@ -62393,6 +62394,45 @@
               }
             }
           },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "409": {
             "description": "Default Response",
             "content": {
@@ -62442,6 +62482,7 @@
         "tags": [
           "Admin"
         ],
+        "description": "Requires a verified human principal: a credential holding `members:write` that is not a human session receives 403 HUMAN_PRINCIPAL_REQUIRED.",
         "requestBody": {
           "required": true,
           "content": {
@@ -62513,6 +62554,45 @@
                       "type": "string"
                     },
                     "email": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "description": "Error code",
+                          "type": "string"
+                        },
+                        "message": {
+                          "description": "Human-readable message",
+                          "type": "string"
+                        },
+                        "details": {
+                          "description": "Additional error details"
+                        }
+                      }
+                    },
+                    "correlation_id": {
+                      "description": "Request correlation ID",
                       "type": "string"
                     }
                   }
