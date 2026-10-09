@@ -3,7 +3,7 @@
   "info": {
     "title": "MeshQu API",
     "description": "Governance infrastructure for policy-aware AI decisions. MeshQu does not run tools. It governs decisions about them.",
-    "version": "1.30.0",
+    "version": "1.31.0",
     "contact": {
       "name": "MeshQu Support",
       "email": "support@meshqu.com"
@@ -53886,6 +53886,12 @@
                   "enum": [
                     "connection_consented"
                   ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "connection_permission_outcome"
+                  ]
                 }
               ]
             },
@@ -54272,6 +54278,12 @@
                                 "type": "string",
                                 "enum": [
                                   "connection_consented"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "connection_permission_outcome"
                                 ]
                               }
                             ]
@@ -54761,6 +54773,12 @@
                             "type": "string",
                             "enum": [
                               "connection_consented"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "connection_permission_outcome"
                             ]
                           }
                         ]
@@ -63125,6 +63143,12 @@
                                 "type": "string",
                                 "enum": [
                                   "connection_consented"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "connection_permission_outcome"
                                 ]
                               }
                             ]
