@@ -19,7 +19,7 @@ A Decision Receipt is a signed, replayable record of how a consequential decisio
 
 It records the policy in force, relevant decision context, the outcome and the integrity information needed to determine later whether the signed record has changed.
 
-See the [Receipt Reference](concepts/receipt-reference) for the field-level contract, and [Verifying Offline](guides/verifying-offline) to check one yourself. New to MeshQu? [Start with what a Decision Receipt is](https://www.meshqu.com/receipts) — the public overview, written for a reader who has not yet decided to integrate.
+See the [Receipt Reference](/concepts/receipt-reference) for the field-level contract, and [Verifying Offline](/guides/verifying-offline) to check one yourself. New to MeshQu? [Start with what a Decision Receipt is](https://www.meshqu.com/receipts) — the public overview, written for a reader who has not yet decided to integrate.
 
 > **Mental model:** MeshQu sits at the decision boundary. You send context, it returns a governed verdict and a verifiable receipt. You own enforcement.
 
@@ -31,7 +31,7 @@ Logs show what happened. They do not prove policy compliance.
 
 MeshQu closes that gap. It makes decisions governable, replayable, and independently verifiable — at the decision boundary.
 
-**Key concepts:** [Decision context](concepts/overview#decision-context) · [Policy](concepts/overview#policy) · [Decision](concepts/overview#decision) · [Alert](concepts/overview#alert)
+**Key concepts:** [Decision context](/concepts/overview#decision-context) · [Policy](/concepts/overview#policy) · [Decision](/concepts/overview#decision) · [Alert](/concepts/overview#alert)
 
 ## What MeshQu does
 
@@ -79,7 +79,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
 </Warning>
 
 <Info>
-  **Evaluate vs Record** — `evaluate` is fast and records no decision; resolving the active policies may still append one row to the tenant's append-only `policy_snapshots` table, and a repeat call resolving to the same policies appends nothing. `record` persists the decision itself for audit. Most production systems use `evaluate` on the hot path and `record` for compliance-critical actions. See [Evaluate vs Record](concepts/overview#evaluate-vs-record).
+  **Evaluate vs Record** — `evaluate` is fast and records no decision; resolving the active policies may still append one row to the tenant's append-only `policy_snapshots` table, and a repeat call resolving to the same policies appends nothing. `record` persists the decision itself for audit. Most production systems use `evaluate` on the hot path and `record` for compliance-critical actions. See [Evaluate vs Record](/concepts/overview#evaluate-vs-record).
 </Info>
 
 ## What happens after you integrate
@@ -103,11 +103,11 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
 
 ## Quick links
 
-- [Quickstart](getting-started/quickstart) — make your first API call in minutes.
-- [Authentication](getting-started/authentication) — how API keys and scopes work.
-- [API Reference](api/reference) — full endpoint listing.
+- [Quickstart](/getting-started/quickstart) — make your first API call in minutes.
+- [Authentication](/getting-started/authentication) — how API keys and scopes work.
+- [API Reference](/api/reference) — full endpoint listing.
 - [TypeScript SDK](sdk/typescript) — install and use the client library.
-- [Integration Patterns](guides/integration-patterns) — common ways to wire MeshQu into your stack.
+- [Integration Patterns](/guides/integration-patterns) — common ways to wire MeshQu into your stack.
 
 ## Base URLs
 
