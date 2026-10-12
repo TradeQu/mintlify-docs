@@ -41787,7 +41787,7 @@
         "tags": [
           "Fields"
         ],
-        "description": "Returns recorded definition revisions oldest first, each with the full definition snapshot, author and time. These entries record changes but are unsigned and are not included in a digest or receipt. A `choices` domain is business metadata and does not change the allowed values of existing rules. An empty list can mean the key has no declared definition or no revision has been recorded. A point-in-time read before the first recorded revision reports \"not defined at the time\".",
+        "description": "Returns recorded definition revisions oldest first, each with the full definition snapshot, author and time. These entries record changes but are unsigned and are not included in a digest or receipt. A recorded `owner` is a name for business attribution, not proof of authority or authorization. A `choices` domain is business metadata and does not change the allowed values of existing rules. An empty list can mean the key has no declared definition or no revision has been recorded. A point-in-time read before the first recorded revision reports \"not defined at the time\".",
         "parameters": [
           {
             "schema": {
