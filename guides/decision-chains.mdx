@@ -135,7 +135,10 @@ Each decision in a chain produces the same cryptographic receipt as standalone d
 - **Parent linkage** — confirms parents exist in the chain with lower step numbers
 
 <Note>
-Chain structure (grouping, ordering, parent linkage) relies on database constraints and immutability triggers. Cryptographic proof of the chain as a unit (provable completeness and ordering without trusting the database) is planned for Phase 2.
+The chain seal adds a cryptographic completeness check for a sealed chain. A
+basic chain verification response and a sealed-chain proof answer different
+questions; see [Receipt Reference](/concepts/receipt-reference) for their
+verification scope.
 </Note>
 
 ## Multi-actor chains

@@ -3,8 +3,9 @@ title: "Verification Bundle"
 description: "A self-contained, digest-addressed archive that lets a third party verify a Decision Receipt offline."
 ---
 
-A **Verification Bundle** is a self-contained archive of everything an
-external verifier needs to validate a Decision Receipt offline:
+A **Verification Bundle** is a portable archive of the receipt and the
+material needed for offline checks, apart from independently trusted public
+keys:
 
 - the signed receipt itself,
 - the policy snapshot the receipt was evaluated against (so rules can
@@ -17,8 +18,8 @@ external verifier needs to validate a Decision Receipt offline:
 Trust roots come from out-of-band channels — sigstore.dev's well-known Rekor
 key for transparency proofs, and for receipt signatures a key set you pin
 yourself, through whatever channel your policy accepts. MeshQu's own
-`GET /v1/.well-known/signing-keys` is **deprecated and self-asserted** and must
-not be used as a trust root. The bundle's own `trusted_keys.json` is
+`GET /v1/.well-known/signing-keys` is issuer-provided discovery material and
+does not independently establish a trust root. The bundle's own `trusted_keys.json` is
 informational and **never used** to authenticate signatures.
 
 ## At-a-glance
@@ -175,7 +176,7 @@ receipt for a version the snapshot names — including when
 (the file or receipt could not be read at all), `approval_lineage.digest_mismatch`
 (a present, well-formed receipt's digest genuinely disagrees with the signed
 snapshot binding — the only one of these three meaning tampering or
-substitution; see the Receipt Reference §4 CCR-309 note),
+substitution; see [Approval Receipts](/concepts/receipt-reference#4-approval-receipts-lineage)),
 `approval_lineage.signature_invalid`,
 `approval_lineage.unknown_ratifier`,
 `approval_lineage.policy_rules_hash_mismatch`.

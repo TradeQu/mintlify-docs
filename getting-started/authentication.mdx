@@ -3,8 +3,7 @@ title: "Authentication"
 description: "API keys, scopes, and tenant isolation"
 ---
 
-Every request to the MeshQu API requires two headers, **except on the public
-paths listed below**:
+Authenticated MeshQu API calls require two headers:
 
 | Header | Description |
 | --- | --- |
@@ -13,20 +12,16 @@ paths listed below**:
 
 ## Public paths
 
-These paths carry no API key and no tenant header. They are not an oversight —
-each hosts its own access control, and offline verification and hosted forms
-depend on them being reachable without a key. But the exception is wider than
-"health checks", so it is set out in full:
+The paths below require neither an API key nor a tenant header. Public receipt
+and form identifiers must be handled as access
+capabilities: a caller who has one may be able to read the corresponding
+resource, subject to the endpoint's limits.
 
 **Infrastructure:**
 
-- `GET /v1/health`, `GET /v1/ready`
-- `GET /v1/.well-known/signing-keys`, `GET /v1/.well-known/trust-registry`
+- `GET /v1/health`
+- `GET /v1/.well-known/signing-keys`
 - the OpenAPI document and docs UI, when the operator enables them
-- `GET /metrics` — **not** free of tenant data. Many metric families carry a
-  `tenant` label, so the endpoint exposes per-tenant volumes and outcomes. It
-  is guarded by a bearer token (`METRICS_BEARER_TOKEN`, required in
-  production), not by an API key — which is why it sits on this list at all.
 
 **Tenant-scoped, unauthenticated** — these *do* reach tenant data, addressed by
 an unguessable identifier rather than by a key:
@@ -95,12 +90,6 @@ Each API key carries one or more scopes that control what it can access:
 | `members:read` | List and read tenant members |
 | `members:write` | Remove tenant members. An API key that holds it is refused 403 `HUMAN_PRINCIPAL_REQUIRED` on invite and role update |
 | `api-keys:admin` | Create, list, and revoke API keys |
-
-<Note>
-  A `tenants:provision` scope also exists for cross-tenant operator keys, but
-  it is **not grantable through the API** — an `api-keys:admin` key cannot mint
-  itself one. It is assigned out-of-band by MeshQu operators only.
-</Note>
 
 **Principle of least privilege**: create separate keys for different services. A service that only evaluates decisions needs `decisions:evaluate` — not `api-keys:admin`.
 

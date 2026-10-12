@@ -3,11 +3,13 @@ title: "Decision Assurance"
 description: "What MeshQu cryptographically proves to a regulator, auditor, or counterparty — and what's still informational."
 ---
 
-Decision Assurance is the contract MeshQu offers a regulator, auditor, or
-counterparty: given a downloaded artifact and the right out-of-band public
-keys, you can independently prove what decision was made, under which
-policy, against which evidence, by which actor, at what externally-verifiable
-time — without trusting MeshQu's live database or dashboard.
+Decision Assurance describes what a regulator, auditor, or counterparty can
+check in a downloaded artifact. With independently trusted public keys, a
+verifier can check the recorded verdict, bound policy snapshot, submitted
+context and evidence references, and any available lineage or transparency
+proofs without relying on MeshQu's live database. Actor identity and the
+truthfulness of submitted evidence remain outside the cryptographic proof;
+external time evidence is available only when a transparency anchor is present.
 
 <Info>
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. The statuses below describe what is implemented and verifiable in the artefact today, independently of any particular deployment.
@@ -23,7 +25,9 @@ MeshQu is currently available for research, evaluation and design-partner deploy
 | **L4** Lineage verified | Approval, custodian and chain relationships can be checked | Approval receipts, custodian item signatures, chain proofs and seal, offline transparency proof |
 | **L5** Independently governed trust | Verification relies on independently distributed trust roots, operational key governance and deployment-specific external assurance | Operating architecture around the artefact — not a receipt field |
 
-**L1 to L4 are properties of the artefact**, carried by the receipt v2 envelope and checked by the offline bundle verifier — **10 sub-claims**, at parity between the Node and browser implementations.
+**L1 to L4 describe checks available from the artefact**, as applicable to its
+contents. The offline bundle verifier reports **10 sub-claims** in both its
+Node and browser implementations.
 
 **L5 is a property of a deployment.** It is not a missing receipt feature; it is reached through how trust roots are distributed and how keys are governed. See [Implemented mechanics vs deployment responsibilities](#implemented-mechanics-vs-deployment-responsibilities) below, and the [Trust Model](/security/trust-model) for the long form.
 
@@ -38,7 +42,7 @@ verification.
 
 | Trust domain | What it covers | Where the public keys live |
 | --- | --- | --- |
-| MeshQu signing keys | Receipt, chain-link, chain-seal signatures | `GET /v1/.well-known/signing-keys` (JWKS); bundled defaults in `verify.meshqu.com` |
+| MeshQu signing keys | Receipt, chain-link, chain-seal signatures | Independently authenticated keys or fingerprints pinned by the verifier; the JWKS endpoint is issuer-supplied discovery material |
 | Rekor log keys | Rekor `signedEntryTimestamp` (SET) on transparency anchors | Sigstore-published; bundled as `c0d23d6ad406…` for production |
 | Custodian keys | External evidence custodian signatures on manifest items | Supplied to the verifier as `custodianTrustedRoots`; per-deployment distribution |
 | Ratifier keys | Policy approval receipts | Supplied to the verifier as `ratifierTrustedRoots`; per-tenant distribution |
@@ -68,47 +72,24 @@ sub-claim taxonomy and failure codes.
 ## What still requires trusting MeshQu
 
 - MeshQu's signing-private-key custody.
-- The authenticity of the out-of-band public-key distribution channel
-  (we publish via JWKS and bundle defaults; you can pin fingerprints).
+- The authenticity of the independently obtained public-key fingerprints used
+  as trust roots. Issuer-provided JWKS and bundled defaults alone do not
+  establish this.
 - That `DecisionContext.evidence` references and `source_artifact`
   hashes the caller submits are truthful — we hash what we're given.
 
-## Storage-layer immutability — what it enforces, and against whom
+## Storage-layer immutability
 
-MeshQu enforces immutability with database triggers. Every trigger binds the
-API's runtime role and every application caller. **No trigger binds the table
-owner or a DB superuser**, either of whom can defeat one with
-`ALTER TABLE ... DISABLE TRIGGER` or `SET session_replication_role = 'replica'`.
-That is inherent to the mechanism, not a defect in any particular rule, and it
-bounds every claim below.
+MeshQu's database controls block ordinary application callers from changing
+or deleting recorded receipts and policy snapshots. A transparency anchor can
+be added to a recorded receipt once, after signing; the signed content cannot
+be changed through the application API.
 
-**Enforced against the runtime role and every application caller:**
-
-- Deleting a recorded receipt or policy snapshot is blocked.
-- Updating any integrity-bound field is blocked. `result.transparency_anchor`
-  is the one legitimate post-record mutation, and it is **one-time-set**: it may
-  go from null to an anchor exactly once, and can then never be replaced or
-  erased — only re-written identically as a no-op.
-- `TRUNCATE` on the append-only tables is blocked by a statement-level guard.
-
-**Not established by the above:**
-
-- A privileged operator holding the table-owner or superuser role can disable
-  these triggers and then delete or rewrite rows. Constraining that is a
-  **deployment responsibility** — the API runtime connecting as a non-owner
-  role that holds DML only — and not a property any release delivers. Detection
-  is bounded too: disabling a trigger via `session_replication_role` leaves
-  `pg_trigger.tgenabled` unchanged, so a health check reading that column does
-  not see it.
-- Forging a *new* receipt still requires the signing key, whatever the database
-  role. Rekor anchoring and external attestor signatures narrow that further;
-  independent custody of the signing key itself is an L5 concern.
-
-The durable statement is therefore about the *signing key*, not the database:
-a receipt that verifies against an out-of-band trust root was signed by the
-key, and no database privilege substitutes for it. Deletion, by contrast, is a
-retention and access-control property an operator arranges — see the
-responsibilities table below.
+These controls do not establish that a privileged database operator could
+never change or remove stored data. Limiting and monitoring privileged access,
+as well as retaining and publishing bundles, are deployment responsibilities.
+An independently verified receipt establishes that the trusted signing key
+signed its contents; database access alone cannot create that signature.
 
 ## Implemented mechanics vs deployment responsibilities
 

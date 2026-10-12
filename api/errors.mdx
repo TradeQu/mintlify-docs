@@ -16,7 +16,9 @@ All error responses follow a consistent structure:
 }
 ```
 
-The `correlation_id` is included on every response and can be provided to MeshQu support for troubleshooting.
+Every response includes an `x-correlation-id` header, which you can provide to
+MeshQu support for troubleshooting. Error bodies also include
+`correlation_id`.
 
 ## HTTP status codes
 
@@ -126,7 +128,8 @@ try {
 
 ## Correlation IDs
 
-Every response includes a `correlation_id` (also available as the `x-correlation-id` response header). Include this when contacting support.
+Every response includes an `x-correlation-id` header. Error bodies also
+include `correlation_id`. Include the header value when contacting support.
 
 ## Retry guidance
 

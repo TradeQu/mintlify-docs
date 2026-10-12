@@ -97,7 +97,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
 | **Decision recording** | Persist evaluation results for audit and compliance. |
 | **Idempotent recording** | Supply an `idempotency_key` to safely retry without duplicate records. |
 | **Alert webhooks** | Receive real-time notifications when alerts are raised. |
-| **Multi-tenant** | Every request is scoped to a tenant via the `X-MeshQu-Tenant-Id` header. |
+| **Multi-tenant** | Authenticated tenant-scoped calls require `X-MeshQu-Tenant-Id`; public receipt, chain, and form endpoints use resource identifiers. |
 | **Scoped API keys** | Fine-grained access control with per-key scopes. |
 | **Advisory mode** | Safely test new policies in production; violations generate alerts but do not block traffic. |
 
