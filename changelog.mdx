@@ -4,10 +4,10 @@ description: "API and SDK version history"
 ---
 
 <Info>
-MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog documents API and SDK functionality shipped into those deployments. Console UI changes are not tracked here.
+MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. This changelog covers changes to the publicly documented API and SDK contracts. Releases with no change to those contracts have no entry here.
 </Info>
 
-MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current **release** (this changelog's latest entry, the OpenAPI spec `info.version`, and the API package version) is **1.31.0**.
+MeshQu follows [Semantic Versioning](https://semver.org/). The **API contract version is `v1`** — the `/v1` URL prefix, which is stable and only changes on a major release. The current release is **1.31.0**.
 
 ## Versioning policy
 
@@ -78,8 +78,7 @@ is already a member now gets 403 as well; before, it got 409.
 - **Two refusals, in order.** An API key without `members:write` is still
   refused 403 `FORBIDDEN` first. A credential that holds `members:write` but is
   not a human session is then refused 403 `HUMAN_PRINCIPAL_REQUIRED`, and
-  nothing is written. Before, neither operation declared a 403 or said who may
-  call it. The reference now declares the 403 on both and describes the rule.
+  nothing is written.
 - **A human session is unaffected.** Only the admin role holds `members:write`,
   so a verified admin session reaches both operations as before, and anyone
   else was already refused 403 `FORBIDDEN`.
@@ -96,16 +95,8 @@ refused.** `POST /v1/decisions/evaluate`, `POST /v1/decisions/record` and
 `POST /v1/policies/{id}/versions/{version}/ratify` answer
 **400 `FST_ERR_VALIDATION`** to a body that carries an unknown top-level key.
 Before, such a key was accepted and ignored. Callers that send extra keys now
-get 400. Ratify also checks what was reviewed, and the audit actions gain a
-value. No operation is added or removed and no response status changes. The
-reference descriptions of draft discard and key creation are rewritten to state
-behaviour that 1.26.0 introduced.
-
-**1.27.0 was not released.** Its change, a new audit `action` value, is
-documented here. **1.28.0 has no entry of its own:** its changes, the ratify
-checks, the closed ratify body and the rewritten discard and key-creation
-descriptions, are documented here too. This release follows 1.26.0 directly in
-this changelog.
+get 400. Ratify also adds review-state checks where they apply, and the audit
+actions gain a value. No operation is added or removed.
 
 **Callers that relied on the old behaviour.** These requests used to succeed
 and are now refused:
@@ -114,12 +105,8 @@ and are now refused:
   top-level key other than the ones listed under "Decisions" below (400).
 - A body to `POST /v1/policies/{id}/versions/{version}/ratify` with a key other
   than `expected_revision`, `approval_authority` and `ratifier_role` (400).
-- A ratify of a version whose active rules changed since its latest sealed
-  submission was sealed, when the newest review record on that submission is an
-  ACCEPT (409).
-- A ratify, when no seal of the version or of a draft it supersedes was made
-  under an authoring capability, of a version whose newest review record on its
-  latest sealed submission is `CORRECT_AND_RESUBMIT` or `STOP` (409).
+- A ratify whose reviewed active rules are stale, or whose latest applicable
+  review is adverse (409).
 
 Separately, a client that treats the list of audit actions as closed, for
 example by validating `action` against the values the reference listed before,
@@ -157,46 +144,19 @@ will reject an event that carries the new value.
   authenticated by an API key is still refused 403 `HUMAN_PRINCIPAL_REQUIRED`
   before the body is checked, and a key without `policies:write` still gets
   403 `FORBIDDEN` first.
-- **A version whose reviewed rules changed is refused.** When the newest review
-  record on the version's latest sealed submission is an ACCEPT, the version's
-  current active rules must still hash to the `active_rules_hash` that
-  submission sealed. A change to the active rules since the submission was
-  sealed is refused, including reordering them: the hash is taken over the
-  active rules in stored order. The answer is
-  **409 `REVIEWED_SUBJECT_STALE`**, with `details.submission_id`,
-  `details.review_record_id`, `details.sealed_active_rules_hash`,
-  `details.current_active_rules_hash`, `details.candidate_revision` and
-  `details.draft_revision`. Nothing is ratified. Seal the current rules and
-  have them reviewed again, or restore the rules that were accepted. Before, a
-  change to the active rules after the seal did not stop the ratify. This
-  applies whether or not an authoring capability sealed the version.
-- **A version whose latest review is adverse is refused.** When no seal of the
-  version or of a draft it supersedes was made under an authoring capability,
-  and the newest review record on its latest sealed submission is
-  `CORRECT_AND_RESUBMIT` or `STOP`, the answer is
-  **409 `RATIFY_REVIEW_ADVERSE`**, with `details.reason` set to that
-  disposition and `details.submission_id` and `details.review_record_id`.
-  Nothing is ratified. Before, it was ratified. When a seal was made under an
-  authoring capability, the same records are still refused
-  409 `RATIFY_NO_ACCEPT_RECORD`, as before.
-- **What these checks do not cover.**
-  - Only the hashed fields of the active rules (`code`, `condition`,
-    `severity`, `when`) are compared. A change to a rule's name, description,
-    `source_ref`, `replaces_rule_code` or `rule_type`, or to the content of a
-    rule that is inactive before and after, is not refused. Making a rule
-    active or inactive does change what is compared.
-  - Neither refusal applies to a version with no sealed submission, or whose
-    latest sealed submission has no review record. Where an authoring
-    capability sealed the version or a draft it supersedes, such a version is
-    still refused 409 `RATIFY_NO_ACCEPT_RECORD`, as before.
-  - A version that can no longer be ratified, such as one already ratified, is
-    still refused 409 `INVALID_TRANSITION`.
-  - A request whose `expected_revision` is stale is still refused
-    409 `STALE_DRAFT_REVISION` first.
-- **The `policy_ratified` audit entry cites the ACCEPT.** When a ratification
-  relied on an ACCEPT, the entry's `changes` carries `review_record_id` and
-  `review_submission_id`, whether or not an authoring capability was involved.
-  Before, only a ratification under the review gate carried them.
+- **Reviewed rules must still match.** When ratification relies on an accepted
+  review, a change to the active evaluated rules is refused with
+  **409 `REVIEWED_SUBJECT_STALE`**. Nothing is ratified; review the current rules
+  again or restore the accepted rules. This check covers the active evaluation
+  fields, not descriptive metadata or inactive rules.
+- **An adverse review blocks ratification.** A latest applicable review of
+  `CORRECT_AND_RESUBMIT` or `STOP` is refused with
+  **409 `RATIFY_REVIEW_ADVERSE`** or, where the review gate requires an
+  acceptance, **409 `RATIFY_NO_ACCEPT_RECORD`**. Nothing is ratified.
+- A stale `expected_revision` remains **409 `STALE_DRAFT_REVISION`**, and a
+  version that cannot transition remains **409 `INVALID_TRANSITION`**.
+- When an accepted review supports ratification, the `policy_ratified` audit
+  entry includes the review record and submission identifiers.
 
 **Audit actions**
 
@@ -209,39 +169,15 @@ will reject an event that carries the new value.
   parameter. Before, it was refused like any other value that is not a listed
   audit action: 400 `FST_ERR_VALIDATION`.
 
-**Reference descriptions**
-
-These change what the reference says, not what the API does.
-
-- **`DELETE /v1/policies/{id}/versions/{version}`.** The description now states
-  the 1.26.0 behaviour: only a verified human session may discard, an API key is
-  refused 403 `HUMAN_PRINCIPAL_REQUIRED` (after the `policies:write` scope
-  check), and a tenant admin may discard a draft that is not theirs in three
-  cases, each with a `reason`. Before, it said an API key never takes the admin
-  path and that a draft whose author key is still live is refused.
-- **`POST /v1/api-keys` and `POST /v1/admin/api-keys`.** The `scopes` and `role`
-  descriptions now state the refusals 1.26.0 introduced
-  (`API_KEY_SCOPE_ESCALATION` and `API_KEY_ROLE_ESCALATION`), the default
-  scopes and the default role, and that a human session caller is not bounded.
-  The default role depends on a deployment setting. Before, `scopes` said only
-  that it defaulted to "read + evaluate", and `role` had no description.
-- **Still described only in the v1.26.0 entry.** The reference does not yet
-  describe the refusal of a ratify for an archived policy's version,
-  `permissions.canDiscard` on `GET /v1/policies/{id}`, `INVALID_PARENT` on
-  `POST /v1/admin/tenants`, or the duplicate `unit_id` refusal on the
-  `codification` block.
-
 ---
 
 ## v1.26.0
 
-**Clearer refusals across key, licence, capability, discard, ratify, tenant and
+**Clearer refusals across key, licence, discard, ratify and
 codification writes.** Most changes below replace a status a caller already
 got on the same input, whether a success, a bare 500 or a misleading 404, with
 a named refusal. One widens who may discard a draft. The set of routes and
 their request schemas are unchanged.
-
-**1.25.0 was not released.** This release follows 1.24.0 directly.
 
 **Callers that relied on the old behaviour.** Six requests that used to
 succeed are now refused: revoking a key that is already revoked (409),
@@ -251,15 +187,6 @@ policy (409), issuing a licence with a future start while the key's governing
 licence is in force (409), and a `codification` block that repeats a `unit_id`
 (422).
 
-**This entry is the current statement of some of these behaviours.** The
-OpenAPI reference is regenerated for this release. It carries the revoke-key
-409 and the licence and capability changes below, apart from UUID letter case.
-The reference descriptions of the other routes named here (key creation,
-draft discard, `GET /v1/policies/{id}`, ratify, tenant provisioning and the
-`codification` block) are unchanged in this release, so they do not yet
-describe the changes below. Key creation and draft discard are described in the
-reference from v1.29.0.
-
 **API keys**
 
 - **Revoking a key that is already revoked is refused.**
@@ -268,8 +195,7 @@ reference from v1.29.0.
   revocation that stands. Nothing is written: the original revocation time and
   actor are kept and no second audit entry is appended. Before, the second
   call answered 200 or 204 and overwrote the revocation time and actor. An
-  unknown key is still 404 `NOT_FOUND`. The reference now declares the 409 on
-  both routes.
+  unknown key is still 404 `NOT_FOUND`.
 - **Creating a key: an API key cannot ask for more than it holds.**
   `POST /v1/api-keys` and `POST /v1/admin/api-keys`, when the caller is an API
   key:
@@ -288,11 +214,10 @@ reference from v1.29.0.
     calling key's. And the check applies to these two routes only: it does not
     change what any other route lets the holder of a key grant.
 
-**Licences and capabilities**
+**Agent licences**
 
-These changes are on `POST /v1/agent-licences`,
-`POST /v1/agent-licences/{id}/revoke`, `POST /v1/authoring-capabilities` and
-`POST /v1/authoring-capabilities/{id}/revoke`.
+These changes are on `POST /v1/agent-licences` and
+`POST /v1/agent-licences/{id}/revoke`.
 
 - **`POST /v1/agent-licences`: a version that is not in force.** When the
   named version exists, matches `policy_id` and `policy_version_number`, and is
@@ -309,25 +234,14 @@ These changes are on `POST /v1/agent-licences`,
   issued. The governing licence is the most recently issued one for the key. A licence
   that starts now is not refused for this reason, and neither is a future start
   for a key whose governing licence is not in force.
-- **The four routes: a committed write whose read-back failed.** When the
-  read after the commit returns nothing, or itself fails, the answer is
-  **500 `AUTHORING_CAPABILITY_READBACK_FAILED`** or
-  **500 `AGENT_LICENCE_READBACK_FAILED`**, with `details.committed` set to
-  `true`. The record exists: `details.licence_id` or `details.capability_id` is
-  its id. On the revoke routes that id is the revocation record, and
-  `details.revokes_licence_id` or `details.revokes_capability_id` names the
-  grant being revoked. Do not repeat the request: a second licence issue would
-  govern in place of the first, and a repeated revoke is refused 409. Before,
-  these answered a 404 `*_NOT_FOUND` or a bare 500. A 404 on these routes means
-  nothing was written.
-- **The four routes: UUID letter case.** The UUIDs these routes take, that
-  is `key_id`, `policy_id` and the version id (`policy_version_id` or
-  `source_policy_version_id`) in the body, and the grant id in the revoke path,
-  are lower-cased before use, so an upper-case spelling names the same record
-  as the lower-case one. Before, an upper-case `policy_id` on
-  `POST /v1/authoring-capabilities` was refused as not found for a version that
-  exists, and a licence issued with upper-case ids was accepted but then failed
-  integrity verification when read.
+- **A committed write whose read-back failed.** If the read after an issue or
+  revoke commits but fails, the response is **500
+  `AGENT_LICENCE_READBACK_FAILED`** with `details.committed: true` and an
+  identifier for the committed record. Check that record before retrying;
+  repeating an issue could replace the governing licence. A 404 means nothing
+  was written.
+- **UUID letter case.** Licence issue and revoke now treat upper-case UUIDs as
+  the same identifiers as their lower-case spellings.
 
 **Policies**
 
@@ -339,17 +253,11 @@ These changes are on `POST /v1/agent-licences`,
   without `policies:write` still gets 403 `FORBIDDEN`. A verified human session
   reaches the route as before. `HUMAN_PRINCIPAL_REQUIRED` is the refusal
   ratify, reject and activation already give an API key.
-- **A tenant admin may discard an unbound draft that an API key created.**
-  With discard closed to keys, a tenant admin's human session may discard a
-  draft that is bound to no authoring capability and whose creation record in
-  the audit chain names one of the tenant's API keys as the actor, whether or
-  not that key can still act. Before, this needed a key that could no longer
-  act (revoked, inactive, or failing capability verification), and a draft
-  whose author key was still live was refused. The body must carry
-  `{ "reason": string }` (400 `DISCARD_REASON_REQUIRED` without it), and the
-  reason is recorded in the audit chain. Nothing is exhausted, because nothing
-  is bound. A draft whose creation record names a person, names no key of the
-  tenant, or cannot be resolved to a single record is still refused this way.
+- **A tenant admin may discard an API-key-created draft.** A verified tenant
+  admin may discard an eligible draft created by one of the tenant's API keys,
+  even if that key remains active. The request must include a `reason`, or it
+  is refused with **400 `DISCARD_REASON_REQUIRED`**. The reason is recorded in
+  the audit trail.
 - **`GET /v1/policies/{id}` no longer offers a key a discard it would be
   refused.** For a request authenticated by an API key, `permissions.canDiscard`
   is `false` and `actions` does not include `discard`.
@@ -362,89 +270,26 @@ These changes are on `POST /v1/agent-licences`,
 - **A `codification` block that declares one `unit_id` on two clauses is
   refused.** On `POST /v1/policies`, `POST /v1/policies/{id}/versions`,
   `POST /v1/policies/{id}/versions/{version}/supersede` and
-  `POST /v1/policies/{id}/versions/{version}/supersede-assigned`, a
-  `codification.clauses` list with the same `unit_id` on more than one clause
+  a `codification.clauses` list with the same `unit_id` on more than one clause
   answers **422 `CODIFICATION_REFUSED`** with `details.code`
   `DUPLICATE_UNIT_ID`. Nothing is stored. Before, the later clause silently
   replaced the earlier in the lookup, so one outcome accounted for both. `unit_id`
   values are compared exactly, so `u-1` and `U-1` are two clauses. A version
   already stored with a duplicate is not rewritten.
 
-**Tenants**
-
-- **`POST /v1/admin/tenants`: a `parent_tenant_id` that names no tenant.** A
-  well-formed `parent_tenant_id` that matches no tenant answers
-  **422 `INVALID_PARENT`**. It used to be a 500. The existing cycle and depth
-  refusal is unchanged.
-
----
-
-## v1.24.0
-
-**A seal precondition against a late or duplicated request.** The review-submission
-seal route now accepts an optional-but-often-required field that lets a caller
-tell the server what it already knew, so a stale or repeated seal attempt is
-refused instead of creating a second sealed submission.
-
-- **`expected_latest_submission_id` on `POST /v1/policies/{id}/versions/{version}/review-submissions`.**
-  Send the `id` of the latest sealed submission of this policy version that
-  you read before deciding to seal (the first item returned by
-  `GET /v1/policies/{id}/versions/{version}/review-submissions`), or `null`
-  when that list was empty. The server compares it, inside the seal's own
-  locks, with its own record of the version's latest submission.
-- **A mismatch is refused, and nothing is written.** A disagreement is
-  **409 `STALE_LATEST_SUBMISSION`**, with `expected_latest_submission_id` in
-  `details`. No submission is created. `details.latest_is_this_package` is
-  also included: it tells you whether the latest sealed submission — the one
-  that won — holds the same package this request would have sealed, so you
-  can tell an intended-but-overtaken seal from a genuinely different one. A
-  legitimate further seal (after a return, or a deliberate second package)
-  simply names whichever submission is latest at that point and seals as
-  usual.
-- **A safe re-send.** Because the field is compared under the same locks the
-  seal itself takes, two requests carrying the same value can never both
-  succeed — the first to commit moves the latest, and the second is refused.
-  So re-sending the exact same request after a timeout or a dropped response,
-  without re-reading anything first, cannot seal the same package twice.
-- **Required for capability-admitted requests.** When the request was admitted
-  by an authoring capability, the field is required: omitting it is refused
-  **400 `EXPECTED_LATEST_SUBMISSION_REQUIRED`**. For every other caller it is
-  optional — checked when sent, and the route behaves exactly as before when
-  it is not.
-- **What this does not cover.** This precondition is about the *latest
-  submission*, not the draft's rule content — that is what the existing
-  optional `expected_draft_revision` field, and its own `409 STALE_DRAFT_REVISION`
-  refusal, continues to guard. Sending both narrows what a seal can silently
-  overtake; sending neither leaves the route's pre-1.24.0 behavior unchanged.
-
 ---
 
 ## v1.23.0
 
-**A server-side bound on authoring writes.** Four write routes now run under a
-server-side time bound, and a write that cannot finish inside it is rolled
-back and reported, rather than left to run indefinitely behind a lock.
+**A server-side bound on policy draft writes.**
 
-- **Affected routes:** `PATCH /v1/policies/{id}/versions/{version}`,
-  `POST /v1/policies/{id}/versions/{version}/review-submissions`,
-  `POST /v1/policies/{id}/versions/{version}/supersede-assigned`, and
-  `POST /v1/review-submissions/{submissionId}/withdrawal-requests`.
-- **The bound.** Each of these routes now waits at most 2 seconds for any
-  database lock it needs, and the server abandons the write if it is not
-  ready to commit within 4 seconds of the server beginning to handle the
-  request. A write that hits either limit is rolled back — nothing is
+- **Affected public route:** `PATCH /v1/policies/{id}/versions/{version}`.
+- **The response.** A write that exceeds the bound is rolled back — nothing is
   written — and the request fails with **503 `AUTHORING_WRITE_CONTENDED`**,
   including `details.committed: false`, a reason, and a `Retry-After` header.
   This response is a definite non-commit and is safe to retry.
-- **What this does not mean.** A 503 `AUTHORING_WRITE_CONTENDED` is the only
-  response that tells a caller its write did not commit. A client-side
-  timeout on any of these routes does not: the bound above is measured from
-  when the server began handling the request, which a client cannot observe,
-  and nothing bounds how long a request takes to reach the server. If a
-  request to one of these routes times out on the client, the client cannot
-  conclude — from the timeout alone — that the write did or did not commit.
-- **Scope.** Only these four write routes carry the bound. Other write routes
-  are unaffected by this change.
+- **Client timeouts remain ambiguous.** A client-side timeout alone does not
+  tell the caller whether the write committed; read the draft before retrying.
 
 ---
 
@@ -457,8 +302,7 @@ current active rules.
 - **`active_rules_hash`** is added to `GET /v1/policies/{id}/versions/{version}`,
   the versions list, and every other response that embeds a policy version
   (create, patch, reopen, set-aside, supersede, submit, reject, recall and
-  ratify). It is computed the same way the review-submission seal computes its
-  own `active_rules_hash`, so the two values can be compared directly.
+  ratify). It identifies the version's active evaluated rules.
 - **What it covers.** The hash is derived from each active rule's code,
   condition, severity and when-clause, in stored order. Editing a rule's name,
   description or other non-evaluated metadata does not change it, and adding a
@@ -471,159 +315,23 @@ current active rules.
 
 ---
 
-## v1.21.0
-
-**The capability-scoped pending-work read.** A read release: an
-authoring-capability key can now read its own pending work directly, without a
-human session or a broader key.
-
-- **New: `GET /v1/authoring-capabilities/current/pending-work`.** For an API
-  key holding only the `authoring:capability` scope, whose capability grants
-  both `policy.read` and `review.retrieve`, this returns:
-  - `items`: the `GET /v1/work/pending` items (the same item schema) for the
-    governing grant's policy version, plus — only when a grant of the same
-    capability chain, on the same policy, names it — the items of at most one
-    earlier draft: the lineage-previous version the head's next seal is bound
-    to.
-  - `next_seal_answers` (optional): the one return the next seal of this
-    version must name as `answers_record_id`. Present only while the version
-    is draft or submitted.
-  - `returns_not_answerable`: unanswered returns in view that no seal can
-    currently answer, each with a `reason` of `not_lineage_previous` or
-    `head_not_sealable`. Informational, not a task list.
-  - `capability_id`, `root_capability_id`, `policy_id`, `policy_version_id`,
-    `policy_version_number`, and `observed_at` (server time at the start of
-    the read — the response is not a snapshot).
-  - Optional flags `lineage_unresolved` (same meaning as on the
-    review-submission list read) and `lineage_not_backed_by_grant` (new: the
-    lineage-previous version is not named by any grant of the chain, so its
-    items are not listed; a seal is not refused for this reason). Both flags
-    can be present together.
-  - Returns carry identifiers only: `returned_by` is the stable
-    `user:<uuid>`, never the returner's display name.
-  - The request takes no path, body or query parameters — the scope comes
-    only from the key's signed grant chain.
-  - Refusals reuse existing gate codes: 403 `FORBIDDEN` for a broad key or a
-    human session; the gate's 403 `AUTHORING_CAPABILITY_*` codes (missing,
-    revoked or exhausted anywhere in the chain, expired, not yet valid,
-    integrity); `AUTHORING_CAPABILITY_OUT_OF_SCOPE` when either action is
-    missing; `AUTHORING_CAPABILITY_OBJECT_MISMATCH` for a key holding
-    `policies:*` beside the carrier scope, or when the capability was carried
-    while the read ran.
-  - Not in the agent-openapi (ChatGPT Actions) subset.
-- **Known limit, unchanged:** no capability read joins the agent licence — it
-  is joined only at issuance and at carry — so a revoked licence under
-  `enforce` still admits all five capability reads, with one verdict.
-
----
-
 ## v1.20.0
 
-**Capability-bound draft supersession; the capability carry.** A writer
-release: correcting a capability-bound draft now mints a new authoring
-capability grant for the correction, and a chain of such grants can be
-followed and ended.
-
-- **New: `POST /v1/policies/{id}/versions/{version}/supersede-assigned`.** An
-  API key holding only the `authoring:capability` scope, whose capability
-  grants `draft.edit` and is bound to exactly this draft, corrects the draft
-  by superseding it. In one transaction: the draft is closed `replaced`,
-  byte-identical; the corrected rules become a new draft (`codification` is
-  required on this route); and a new authoring capability grant is minted for
-  the new draft, naming the admitting grant in `succeeds_capability_id`. Every
-  other field on the new grant (key, policy, `granted_by`, `grant_authority`,
-  actions, source items, window, agent declaration) is copied from the
-  admitting grant.
-  - Body: `expected_revision`, `rules`, `codification`, `change_reason?`,
-    `authoring_capability_id` (must match the admitting capability),
-    `additionalProperties: false`.
-  - Response `200 { replaced, draft, authoring_capability }`, where
-    `authoring_capability` is the new grant plus its derived
-    `root_capability_id`. Callers should name the new grant in
-    `authoring_capability_id` from then on.
-  - Refusals: 400 validation; 403 `AUTHORING_CAPABILITY_ID_MISMATCH`; the
-    existing `AUTHORING_CAPABILITY_*` gate codes (re-checked under the row
-    lock), including `AUTHORING_CAPABILITY_SUBJECT_NOT_LICENSED`,
-    `_SUBJECT_REVOKED` and `_SUBJECT_EXPIRED`; 404; 409 `INVALID_TRANSITION`,
-    `STALE_DRAFT_REVISION`, `DRAFT_CONFLICT`, and new 409
-    `AUTHORING_CAPABILITY_CHAIN_LIMIT` — a capability a human issued may be
-    carried at most 20 times; 422; 500. Nothing is written on any refusal.
-  - Not in the agent-openapi (ChatGPT Actions) subset.
-- **New: `GET /v1/authoring-capabilities/current`.** Carrier scope only,
-  action `policy.read`. Returns the grant that currently governs the calling
-  key, without its signature, plus `root_capability_id` — so a caller whose
-  supersession response was lost can learn which grant to name next.
-- **Revoke: new 409 `AUTHORING_CAPABILITY_CHAIN_ENDED`.** Revoking any grant
-  in a chain ends that grant and every grant carried from it, so a grant that
-  was itself carried on may still be revoked. A grant whose own ending
-  already exists still gets `AUTHORING_CAPABILITY_ALREADY_REVOKED`; a grant
-  with no ending of its own but an ended ancestor now gets `CHAIN_ENDED`,
-  with `details.ending_record_id`, `ending_record_type` and
-  `ended_grant_id`.
-- **PATCH and the withdrawal request re-check the capability under locks.** A
-  capability-admitted `PATCH /v1/policies/{id}/versions/{version}` and
-  `POST /v1/review-submissions/{submissionId}/withdrawal-requests` now lock
-  the policy row, then the version row, and re-resolve the admitting
-  capability in their own transaction. If it was revoked or exhausted
-  anywhere in its chain (including a revocation still in flight when the
-  request arrived), expired, or no longer governs because a supersession
-  carried it, the write is refused with the same gate 403 code and nothing is
-  written. Before this release, a write admitted a moment before a
-  revocation could still land after it. Human and broad-key PATCHes are
-  unchanged.
-- **Seals take the policy row lock before the version row lock.** A seal
-  racing a supersession of the same draft no longer risks a 500 from a
-  deadlock — it waits and then answers normally. A capability seal also
-  waits for an in-flight revocation of its root, and is refused
-  `AUTHORING_CAPABILITY_REVOKED` rather than succeeding after it.
-- **BREAKING — the audit action enum widens.** New action
-  `authoring_capability_carried` is a closed-enum widening on
-  `GET /v1/audit-log`, `GET /v1/audit-log/entity/{type}/{id}` and
-  `GET /v1/admin/audit-log`. An exhaustive client that switches over the
-  audit action enum must be updated to handle it.
-- `policy_versions.closed_by` may now hold a key's display identity (the key
-  that superseded the draft), not only a human's.
-
+**Audit and policy response compatibility.** Audit log responses may contain
+the new `authoring_capability_carried` action. Clients that treat audit action
+values as a closed enum should handle unknown values. Policy version responses
+may return a key's display identity in `closed_by` when that key superseded a
+draft.
 
 ---
 
 ## v1.19.0
 
-**Review loop across draft supersession; capability chain reader.** A reader
-release: it mints no successor capability and adds no route, and changes these
-existing behaviours instead.
-
-- **BREAKING — `GET /v1/work/pending`: `status` gains `replaced`.** The closed
-  union widens, and an exhaustive client must handle the new value. A replaced
-  version's pending review is listed while a successor links to it, the
-  lineage head (at most 64 corrections ahead) is draft or submitted, and no
-  later version in its lineage has a seal. Such items carry the new
-  `superseded_by_version` (the head's number).
-- **The review gate is once on, always on.** Once any seal in a version's
-  lineage was made under an authoring capability, ratify needs an ACCEPT on
-  the head's own latest seal, whoever made it — a human or broad-key re-seal
-  no longer lifts the gate. `RATIFY_NO_ACCEPT_RECORD` gains `details.reason`
-  (`NO_SEAL_ON_HEAD`, `NO_ACCEPT_RECORD` or `LINEAGE_UNRESOLVED`) and
-  `details.gate_submission_id` / `gate_policy_version_id`.
-- **Every seal is refused on a version that is not draft or submitted.** New
-  409 `INVALID_TRANSITION` with `details.reason: VERSION_NOT_SEALABLE`,
-  checked under the version row lock. Before, the seal route never read the
-  status.
-- **`GET /v1/review-submissions/{submissionId}` gains two optional,
-  never-blocking observations**, each omitted when empty:
-  - `newer_draft_observed` compares the sealed codes and `active_rules_hash`
-    with the lineage head.
-  - `unanswered_lineage_returns` lists returns on an earlier draft that no
-    later seal has answered. The same field (derived for the version) is added
-    to `GET /v1/policies/{id}/versions/{version}/review-submissions`.
-- **Not previously changelogged (#1188):**
-  `POST /v1/review-submissions/{submissionId}/withdrawal-requests` refuses a
-  key that holds `policies:read` or `policies:write` beside the carrier scope,
-  with 403 `AUTHORING_CAPABILITY_OBJECT_MISMATCH`.
-
-*Operation names, codes and fields above are taken from the regenerated
-`api/openapi.json` for this release and from the API's own changelog
-(`apps/meshqu-api/CHANGELOG.md`, MCP-020 R1) in `tradequ`.*
+**Ratification review gate.** Where a policy version is subject to the review
+gate, ratification requires an accepted review of the current draft. A request
+without one is refused with **409 `RATIFY_NO_ACCEPT_RECORD`**. Clients should
+use `details.reason` to distinguish an absent seal, absent acceptance, or
+unresolved lineage.
 
 ---
 
@@ -643,29 +351,14 @@ existing behaviours instead.
 - Closed versions carry `closed_at`, `closed_by` and `closed_reason`.
 - New audit actions: `policy_version_reopened`, `policy_version_set_aside`, `policy_version_replaced`.
 
-*Operation names, codes and fields above are taken from the regenerated `api/openapi.json` for this release (`postV1PoliciesByIdVersionsByVersionReopen`, `postV1PoliciesByIdVersionsByVersionSetAside`, `postV1PoliciesByIdVersionsByVersionSupersede`).*
-
----
-
-## v1.17.0
-
-**Pending work for a tenant**
-- New `GET /v1/work/pending` (scope `policies:read`). Lists the tenant's pending governance work, oldest waiting first. It performs no act; people and API keys holding the scope can read it, and a key holding only an authoring capability cannot.
-- `review` items: versions whose latest sealed review submission has no review record yet (requested act `review`) or whose newest record is an acceptance (requested act `ratify`), plus versions submitted for maker-checker approval with no sealed submission (requested act `ratify`). Returned, correct-and-resubmit and stop outcomes are not listed.
-- `activation` items: ratified versions that are not in force and are newer than the version in force, or where nothing is in force (requested act `activate`). Archived policies are not listed.
-- Each item names the policy and version, the version's status, the requested act, and when it entered that state together with the stored field that time came from (`entered_state_source`). There is no field for who acts next: nothing in the data names one.
-- Paged with `limit` (1–100, default 50) and `offset`.
-
-*Field names and values above are taken from the regenerated `api/openapi.json` for this release (operation `getV1WorkPending`, `GET /v1/work/pending`).*
-
 ---
 
 ## v1.16.0
 
 **The codification lint's findings, on the wire**
-- Policy version responses carry an optional `codification_record.lint`. Present only on a version whose write ran the codification lint (an internal, model-assisted check comparing a declared clause's text against the codifier's stored rule); **absent** — not null — on every other version, including one written before the lint existed and one written with the lint disabled.
+- Policy version responses carry an optional `codification_record.lint`. Present only on a version whose write ran the model-assisted codification lint; **absent** — not null — on every other version, including one written before the lint existed and one written with the lint disabled.
 - Each linted clause carries its `findings` (a code, a message, and diagnostic evidence) and a `needs_context` flag. `status: "ran"` with an empty `findings` array for a clause is a real statement — the lint ran and found nothing — distinct from an absent `lint`, which means the lint never ran at all.
-- This is a **projection**, not a mirror, of what is stored internally: it does not include the model's raw per-question answers (only the derived findings), and it does not include token-usage accounting. A finding's `evidence` is likewise limited to the one diagnostic value a reader needs, not the full internal diagnostic bag.
+- The response contains derived findings and the diagnostic evidence listed in the API schema.
 
 **What it is not**
 - It is **advisory**, produced by an automated, model-assisted check. It is **unsigned and unhashed** — not covered by `policy_rules_hash` or `policy_snapshot_digest`, and it enters no receipt, digest, snapshot, export or evidence manifest.
@@ -684,8 +377,6 @@ existing behaviours instead.
 **Ratification no longer puts a version in force**
 - `POST /v1/policies/{id}/versions/{version}/ratify`'s description is corrected: ratification records that a human approved the exact draft version, and returns a signed `PolicyApprovalReceipt` when a ratifier key is configured, but it does not put the version in force. The version currently in force keeps governing evaluations until the ratified version is activated with the new endpoint above.
 
-*Field names, error codes and descriptions above are taken directly from the regenerated `api/openapi.json` for this release (operations `postV1PoliciesByIdVersionsByVersionActivate` and `postV1PoliciesByIdVersionsByVersionRatify`). This entry does not change `concepts/receipt-reference.mdx` or any guide — see PAL-007.*
-
 ---
 
 ## v1.14.0
@@ -698,8 +389,7 @@ existing behaviours instead.
 
 **What it is not**
 - It is **unsigned and unhashed**. It is not covered by `policy_rules_hash` or `policy_snapshot_digest`, and it enters no receipt, snapshot, export or evidence manifest.
-- It is **not a sealed review package**. A review package proves byte equality under `meshqu-review-package/v1` and binds source custody; this proves neither. Where a version has both, the review package is the stronger artefact.
-- As in 1.13.0, it does **not** establish that the declared clauses are the whole document. Nothing server-side reads the document.
+- It does **not** establish that the declared clauses are the complete source document or that each rule expresses its cited clause correctly.
 
 ---
 
@@ -725,7 +415,9 @@ existing behaviours instead.
 - What it is evidence of, stated precisely: `source_ref` is author-supplied and is **excluded** from `policy_rules_hash`, so ratification does not attest to it. It **is** covered by `policy_snapshot_digest`, which hashes the snapshot rules verbatim — so a v2 receipt binds that this snapshot carried this reference. That is a narrower claim than "the rule faithfully encodes that clause", which no digest can make.
 
 **Corrections to the published contract**
-- `components.schemas` now defines `def-0`, the recursive `when` gate union. The spec had referenced it 32 times without defining it, affecting nine operations including `POST /v1/policies` and `POST /v1/policies/validate`. Anything that resolves references — an OpenAPI validator, a client generator, an agent importing the schema — previously had nothing to resolve it to. The generator now hoists recursive definitions and refuses to emit a document containing an unresolvable reference.
+- The OpenAPI specification now defines the recursive `when` gate union. Earlier
+  published versions had an unresolved schema reference that could break
+  validators and generated clients for policy operations.
 
 ---
 
@@ -739,8 +431,10 @@ existing behaviours instead.
 - Note `POST /v1/decisions/evaluate` continues to answer `404 NO_ACTIVE_RULES` when a decision type resolves to no active rules at all; it refuses the evaluation rather than returning an advisory. The advisory's reachable case is active rules that are all excluded by their `when` gates.
 
 **Malformed rule conditions are refused rather than silently passing**
-- A rule whose condition the evaluator cannot execute — an unrecognised operator key, no subject field, or no executable constraint — is now rejected at the write boundary with `VALIDATION_ERROR` on draft update and on ratify, and produces `UNKNOWN_CONDITION_SHAPE` (`400`) at evaluation time.
-- Previously such a condition was skipped and counted as a rule that had passed. A threshold rule written `{ field, operator: "gt", value: 150 }` — not the canonical `{ field, min | max | greater_than | less_than }` — permitted any amount while reporting `rules_evaluated: 1, violations: 0, decision: "ALLOW"`.
+- A rule whose condition the evaluator cannot execute is now rejected with
+  `VALIDATION_ERROR` on draft update and ratify, and with
+  `UNKNOWN_CONDITION_SHAPE` (`400`) at evaluation time. Previously, an invalid
+  condition could be skipped and reported as a passing rule.
 - A boolean temporal operator set to `false` (`not_expired`, `not_future`, `must_be_before`, `must_be_after`) and `min_length: 0` are likewise refused: the evaluator reads none of them, so they asked nothing. Numeric bounds of `0` are unaffected and remain executable — `{ field, max: 0 }` still refuses any positive value.
 - Rules already stored are unaffected until they are next edited or ratified.
 
@@ -759,7 +453,9 @@ existing behaviours instead.
 - Note the default is deliberately the opposite of the list-*condition* `case_sensitive` (which defaults to `false`): gates match ratified domains, list conditions match free text.
 
 **OpenAPI spec refresh**
-- The published spec now also reflects earlier shipped work it had lagged behind: the signed `/v1/.well-known/trust-registry` endpoint and the matching `signing-keys` deprecation notice, boolean members in `when.in` lists, and admin member invitations by email with `actor_email` in audit views.
+- The published spec now also reflects earlier shipped work it had lagged behind:
+  boolean members in `when.in` lists and admin member invitations by email
+  with `actor_email` in audit views.
 
 ---
 
@@ -849,7 +545,6 @@ existing behaviours instead.
 - New `recordOutcome()` method in the TypeScript SDK.
 
 **Violation Analytics & Identifier Stability**
-- Violations denormalized into queryable table at write time (analytics projection, not source of truth).
 - `GET /v1/decisions` now accepts `correlation_id` query parameter.
 - Policy rules accept optional `replaces_rule_code` for advisory lineage tracking.
 

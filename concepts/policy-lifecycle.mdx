@@ -3,18 +3,22 @@ title: "Policy Lifecycle"
 description: "How policies are versioned, reviewed, and ratified"
 ---
 
-Every policy in MeshQu has a **version history**. Only one version is ever live at a time, and changes flow through an explicit lifecycle with optional maker-checker review. This page describes the states a version can be in, the actions each one allows, and how the API surfaces both to clients.
+Every policy in MeshQu has a **version history**. At most one version governs
+ordinary evaluations at a time. Drafting, review, ratification, and activation
+are separate steps, with optional maker-checker enforcement.
 
 ## Version states
 
-At any moment, the version you are looking at is in exactly one of four states.
+Each stored version has a lifecycle status. The main statuses are:
 
 | State | Meaning |
 | --- | --- |
-| `active` | The version currently used to evaluate incoming decisions. |
-| `draft` | A working copy being authored. Not yet used for evaluation. At most one draft exists per policy. |
-| `submitted` | A draft that has been handed off for approval. Editing is paused; only the approver can act. |
-| `historical` | A previously active version. Read-only. Retained for audit and diff. |
+| `draft` | A working version. It does not govern ordinary evaluations. |
+| `submitted` | A draft handed off for review. |
+| `ratified` | Approved but not yet activated; it does not govern ordinary evaluations. |
+| `active` | The version currently governing ordinary evaluations. |
+| `superseded` | A formerly active version, retained for history. |
+| `discarded`, `reopened`, `set_aside`, `replaced` | Closed versions retained for history, with different reasons for closure. |
 
 Clients select the state they want to look at through a URL parameter on the policy detail endpoint:
 
@@ -29,9 +33,13 @@ The response always resolves `selectedVersion` to the numeric version and report
 <Note>
 **Viewing** a draft or a historical version never changes what MeshQu decides — reading a version has no effect on evaluation.
 
-**Which version governs is a separate question, and the answer is not always "the active one".** Ordinary evaluation resolves the active version. A **frozen form**, however, evaluates against the exact `policy_version` pinned on it, which is looked up by `(policy, version)` with no status filter — that is the point of freezing a form. A `superseded` version that carries ratification provenance can therefore govern live traffic, deliberately and indefinitely, while a newer version is active.
+**Which version governs is a separate question, and the answer is not always
+"the active one".** Ordinary evaluation resolves the active version. A
+**frozen form** evaluates against the eligible, ratified `policy_version`
+pinned to that form, which can be a formerly active version.
 
-A **draft** cannot: a draft's ratification columns are forced null by a database constraint, and a pin is refused at both form-write time and every submission unless the pinned version was ratified by a non-system actor. A refused pin returns `FROZEN_PIN_NOT_ELIGIBLE`.
+A draft cannot be used as a frozen-form pin. An ineligible pin returns
+`FROZEN_PIN_NOT_ELIGIBLE`.
 </Note>
 
 ## Maker-checker
@@ -48,20 +56,17 @@ When maker-checker is disabled, the author can ratify their own draft.
 
 ## Lifecycle transitions
 
-```
-Active ──Start editing──▶ Draft ──Submit──▶ Submitted ──Approve──▶ Active (new v{n+1})
-                            │                   │
-                            │ Discard           │ Reject + reason
-                            ▼                   ▼
-                        (removed)            Draft (with reason attached)
-```
-
-- **Start editing** — creates a new draft from the active version. Only one draft per policy at a time.
-- **Submit** — moves a draft into the `submitted` state for a checker. _Available in a future release._
-- **Approve** (ratify) — ratifies the submitted draft. It becomes the new active version; the previous active becomes historical.
-- **Reject** — returns a submitted draft to `draft` with a rejection reason attached. _Available in a future release._
-- **Discard** — deletes the draft. Does not affect the active version.
-- **Create draft from v{n}** — copies a historical version into a new draft. Useful for reverting.
+- **Start editing** — creates a draft from the current version. Only one
+  pending version is allowed per policy.
+- **Submit** — moves a draft to `submitted` for review. The author may recall
+  it; an eligible checker may reject it with a reason, returning it to `draft`.
+- **Ratify** — records approval of a draft or submitted version and moves it to
+  `ratified`. Ratification does **not** put the version in force.
+- **Activate version** — puts a ratified version in force. The previously
+  active version becomes `superseded`.
+- **Discard, reopen, set aside, or replace** — close a pending version under
+  different conditions while retaining its history. See the
+  [API Reference](/api/reference) for each operation's requirements.
 
 ## How permissions are returned
 
@@ -97,7 +102,8 @@ Flags reflect the authenticated actor's effective rights against the selected ve
 }
 ```
 
-This array is the single source of truth for which buttons to render. Unavailable actions are **omitted**, not disabled. Clients must not invent extra actions from the permissions record — if an action is absent from `actions`, the server does not authorise it.
+Clients can use this array to render the available controls. The API omits
+unavailable actions, and each write endpoint enforces its own requirements.
 
 ### Action kinds
 
@@ -106,34 +112,17 @@ This array is the single source of truth for which buttons to render. Unavailabl
 | `start_editing` | Create a new draft from the active version. |
 | `continue_editing` | Resume editing an existing draft you authored. |
 | `continue_reviewing` | Read a draft authored by someone else. |
-| `submit` | Hand the draft off for approval. _Gated — see below._ |
-| `recall` | Withdraw your own submitted draft back to draft state. _Gated._ |
-| `approve` | Ratify a submitted draft authored by someone else. _Gated._ |
-| `reject` | Return a submitted draft to draft with a reason. _Gated._ |
+| `submit` | Hand a draft off for review. |
+| `recall` | Withdraw your own submitted draft back to draft state. |
+| `approve` | Ratify an eligible draft or submitted version. Activation is separate. |
+| `reject` | Return a submitted draft to draft with a reason. |
 | `discard` | Delete the current draft. Human session only: for a request authenticated by an API key it is omitted, and `permissions.canDiscard` is `false`. |
 | `restore` | Create a new draft from a historical version. Label: `"Create draft from v{n}"`. |
 | `compare` | Open the diff view against another version. |
 
-<Note>
-`submit`, `recall`, `approve`, and `reject` are part of the type contract but are **not emitted by the current API**. They become available once the submit/reject endpoints ship. Clients built today against `actions[]` will render them automatically when the server starts returning them — no code change needed.
-</Note>
-
-## Action matrix
-
-For a given version state, authored-by relationship, and role, the server emits a specific ordered set of actions. The table lists what is emitted **today**; entries in italics will be added in a future release.
-
-| Version state | Actor role | Actions emitted today |
-| --- | --- | --- |
-| `active` | write-capable | `start_editing`, `compare` |
-| `active` | read-only | `compare` |
-| `draft` — author | write-capable | `continue_editing`, `discard` (human session only), `compare` (_+ submit_) |
-| `draft` — non-author | write-capable | `continue_reviewing`, `compare` |
-| `submitted` — author | write-capable | `compare` (_+ recall_) |
-| `submitted` — non-author | write-capable | `compare` (_+ approve, reject_) |
-| `historical` | write-capable | `compare`, `restore` |
-| `historical` | read-only | `compare` |
-
-When maker-checker is disabled, the "non-author vs author" distinction stops mattering for `approve` — the author can ratify their own draft.
+Action availability depends on the version's state, the caller's permissions,
+whether the caller authored the version, and maker-checker settings. The
+`actions` and `permissions` fields on the response show the current result.
 
 ## Errors
 
@@ -146,6 +135,6 @@ Policy governance is a compliance surface. Emitting `permissions` and `actions[]
 
 1. The UI cannot accidentally show a button whose action the server would refuse.
 2. Clients do not need to re-implement role resolution, tenant-settings lookup, or the action matrix.
-3. New action kinds (like `submit` or `reject`) can roll out server-side and become visible in existing clients without a coordinated release.
+3. Clients can respond to the actions returned for the selected version.
 
 See the [API Reference](../api/reference) for the full policy detail response shape.

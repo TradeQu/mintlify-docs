@@ -51,7 +51,12 @@ Every signed receipt carries an Ed25519 signature and a `signature_kid` (key ide
 </Warning>
 
 <Warning>
-**Trust roots must come from a channel MeshQu does not control.** The verifier authenticates signatures against keys it pins out-of-band — never against any key list carried inside the receipt or bundle. If a verifier ever authenticated a receipt using keys the receipt itself supplied, an operator could self-sign anything and have it "pass." Pin the public key fingerprints through a channel your policy accepts and treat that pinned copy as the root. Do **not** use `GET /v1/.well-known/signing-keys` as a trust root: it is deprecated and self-asserted — the producer vouching for itself — so authenticating against it proves only that the producer signed what the producer published.
+**Trust roots must be authenticated independently of the receipt being
+verified.** The verifier checks signatures against keys it pins out of band,
+never against a key list carried inside the receipt or bundle. Pin public keys
+or fingerprints through a channel your verification policy accepts. The
+issuer-provided `GET /v1/.well-known/signing-keys` document can help discover
+keys, but it does not independently establish that they are trusted.
 </Warning>
 
 ### 3. Transparency anchor (when present)
@@ -95,7 +100,11 @@ The web verifier has a dedicated bundle mode for this. For the full sub-claim co
 Independent verification narrows what you must take on faith, but it does not eliminate it. A fully green receipt still rests on:
 
 - **MeshQu's custody of its signing private key.** A valid signature proves the key signed it; it cannot prove the key was never misused.
-- **The authenticity of the public-key channel.** You are trusting that the public keys you pinned (via the JWKS endpoint or bundled defaults) genuinely belong to MeshQu.
+- **The authenticity of the public-key channel.** You must obtain and pin the
+  public keys or fingerprints through a channel your verification policy
+  accepts. The issuer's JWKS endpoint and keys included in a bundle do not
+  independently establish that trust. A signed key registry is not currently
+  published, so key standing remains a separate, unchecked question.
 - **The truthfulness of the submitted inputs.** MeshQu hashes the context and evidence references it is given. It does not independently authenticate that `actor.id`, evidence digests, or `source_artifact` hashes reflect reality.
 
 The [Trust Model](/security/trust-model) lays out the assurance ladder (L1–L5) that progressively reduces these dependencies. The top rung — independently governed trust — is a property of how a deployment distributes and governs its trust roots, not a receipt feature still being built.

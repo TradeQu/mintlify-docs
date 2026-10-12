@@ -3,7 +3,12 @@ title: "Integrity & Hashing"
 description: "How MeshQu makes a decision tamper-evident — canonical JSON, the SHA-256 integrity hash, and Ed25519 signing."
 ---
 
-Every decision MeshQu evaluates is bound to a **SHA-256 integrity hash**: a single 64-character hex string computed over the verdict, the context, the policy snapshot, and the timestamp. Change any of those inputs and the hash changes. That is what makes a recorded decision tamper-**evident** — not impossible to alter, but impossible to alter *undetectably*.
+Every decision MeshQu evaluates has a **SHA-256 integrity hash**: a
+64-character hex string computed over the verdict, context, policy snapshot,
+and timestamp. A changed input changes the hash. For a signed, recorded
+decision, recomputing this hash and verifying the signature together make
+changes to bound content detectable. A hash alone does not establish who issued
+the result.
 
 > **Mental model:** the integrity hash is a fingerprint of the whole decision. The Ed25519 signature is MeshQu attesting "this fingerprint is mine." Verification recomputes the fingerprint and checks the signature — no trust in MeshQu's database required.
 
@@ -151,7 +156,11 @@ Event 2: previous_hash = H(e1),   integrity_hash = H(event2 ‖ H(e1))
 Event 3: previous_hash = H(e2),   integrity_hash = H(event3 ‖ H(e2))
 ```
 
-Modify, delete, or insert any event and every subsequent hash no longer reconstructs — the break is detectable and locatable. At the database layer, audit rows, recorded decisions, and policy snapshots are protected by immutability triggers that reject `UPDATE` and `DELETE` (the one permitted post-write mutation is stamping the asynchronous transparency anchor).
+Modify, delete, or insert an event and subsequent hashes no longer
+reconstruct — the break is detectable and locatable. Database controls block
+ordinary application callers from changing or deleting recorded decisions,
+audit rows, and policy snapshots. Privileged database access requires separate
+operational controls; see [Storage-layer immutability](/concepts/decision-assurance#storage-layer-immutability).
 
 ## What MeshQu does and does not claim
 

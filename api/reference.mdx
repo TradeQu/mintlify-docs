@@ -7,17 +7,14 @@ description: "How to read the generated endpoint reference, plus the guarantees 
 MeshQu is currently available for research, evaluation and design-partner deployments. Production availability and support commitments are agreed per engagement. The contract described below is the one those deployments serve.
 </Info>
 
-The endpoint pages in this section are **generated from the live OpenAPI
-specification** (`api/openapi.json`), which the API builds from the same
-TypeBox schemas it validates requests and responses against. Paths, methods,
-parameters, request bodies, and response shapes therefore cannot drift from the
-running service — when a route changes, the spec (and these pages) change with
-it.
+The endpoint pages in this section are generated from the committed public
+OpenAPI snapshot (`api/openapi.json`). It selects customer-facing operations
+from the API's validated schemas. Consult the current release notes alongside
+this reference when integrating with a deployment.
 
 <Info>
-The machine-readable spec is published at `GET /openapi.json` on the API, and
-an interactive Swagger UI is served at `/docs` when enabled. The pages here are
-rendered from a committed snapshot of that spec.
+The machine-readable public snapshot is `api/openapi.json` in this docs
+repository. This reference covers the operations documented for customer use.
 </Info>
 
 Base path: `/v1`. See [Base URLs](../index#base-urls) for environment hosts.
@@ -59,9 +56,9 @@ Determinism applies strictly to MeshQu's policy evaluation logic and snapshot
 resolution. Client-supplied data and external evidence are outside this
 guarantee.
 
-Evaluations are designed for synchronous use at decision boundaries. Typical
-policy-evaluation time is single-digit milliseconds, excluding network latency.
-Clients should still set timeouts and fallback strategies.
+Evaluations are designed for synchronous use at decision boundaries. Measure
+latency in your own deployment and set timeouts and fallback strategies for
+your application.
 
 ## Evaluate vs record
 
@@ -78,14 +75,14 @@ Two endpoints sit at the core of the API, and the difference matters for audit:
   the tenant's append-only `policy_snapshots` table, returned as
   `policy_snapshot_id`; when an existing snapshot matches, nothing is appended.
 - **`POST /v1/decisions/record`** — evaluates *and* persists the result.
-  Requires an `idempotency_key` for safe retries.
+  Supply an `idempotency_key` for safe retries.
 
 Both are documented in full under **Decisions** in the generated pages, with the
 exact request and response schemas.
 
 ## Errors
 
-Every response carries a `correlation_id`. Error bodies follow a consistent
+Every response carries an `x-correlation-id` header. Error bodies follow a consistent
 `{ error: { code, message, details }, correlation_id }` shape. See
 [Errors & Status Codes](/api/errors) for the full code catalogue and retry guidance.
 
@@ -93,8 +90,11 @@ Every response carries a `correlation_id`. Error bodies follow a consistent
 
 The unauthenticated receipt, chain, and bundle endpoints are intended for
 offline verifiers and counterparties holding a receipt or chain ID. Verifiers
-should fetch the JWKS at `GET /v1/.well-known/signing-keys` **out-of-band**, pin
-the key fingerprints, and use them as trust roots. The `trusted_keys.json` file
-inside an exported bundle is informational only and must **not** be used as a
-trust root. See [Verifying offline](../guides/verifying-offline) and
-[Verification Bundle](../concepts/verification-bundle).
+must use public keys or fingerprints authenticated through an independent
+channel and pinned according to their own policy. The API's
+`GET /v1/.well-known/signing-keys` document and a bundle's `trusted_keys.json`
+are issuer-provided discovery material, not independent trust roots. Key
+standing also requires a verified signed trust registry, which is not currently
+published. See [Verifying offline](../guides/verifying-offline),
+[Verification Bundle](../concepts/verification-bundle), and the
+[Receipt Reference](../concepts/receipt-reference#13-key-management).

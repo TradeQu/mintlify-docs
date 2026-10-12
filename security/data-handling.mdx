@@ -5,7 +5,9 @@ description: "Transport security, webhooks, and audit trail"
 
 ## Transport security
 
-All production traffic must use HTTPS (TLS 1.2+). The API rejects plain HTTP in production environments.
+Use HTTPS for all production client traffic. TLS is enforced by the deployment
+ingress; the API application can receive HTTP on the private side of TLS
+termination.
 
 ## Authentication
 
@@ -16,7 +18,11 @@ All production traffic must use HTTPS (TLS 1.2+). The API rejects plain HTTP in 
 
 ## Multi-tenant isolation
 
-Every API request is tenant-scoped via the `X-MeshQu-Tenant-Id` header. Tenant boundaries are enforced on every request. If the API key and tenant do not match, the request is rejected.
+Authenticated tenant-scoped API calls require `X-MeshQu-Tenant-Id`, and an API
+key cannot access a tenant for which it is not authorised. Public receipt,
+chain, and form endpoints use resource identifiers instead of an API key and
+tenant header; treat those identifiers as access capabilities. See
+[Authentication](/getting-started/authentication#public-paths).
 
 ## Scoped access
 
@@ -31,46 +37,20 @@ API keys carry explicit scopes that limit what operations they can perform. Foll
 
 ## Decision receipt integrity
 
-Every evaluation returns a cryptographic receipt that binds the verdict to the exact policy snapshot. The `integrity_hash` (SHA-256 over canonical JSON) covers the context, decision, and snapshot.
+`POST /v1/decisions/evaluate` returns an **unsigned, unrecorded preview**. Its
+`integrity_hash` can be recomputed, but the response is not a Decision Receipt
+and does not attest that MeshQu recorded the decision.
 
-When signing is enabled, MeshQu signs the integrity hash with **Ed25519**. Auditors verify receipts with the public key alone — no shared secret exchange is required. Key IDs (`msk_v1` format) identify which key signed a receipt, and key rotation is supported.
+`POST /v1/decisions/record` persists the decision and returns a Decision
+Receipt. In production, receipts are signed with Ed25519. Verification checks
+both the recomputed integrity hash and the signature against a trusted public
+key. The bytes signed depend on the receipt schema version: v1 signs the hash
+string; v2 signs a canonical envelope. See the
+[Receipt Reference](/concepts/receipt-reference) for the exact payloads and
+[Verifying offline](/guides/verifying-offline) for a supported workflow.
 
-### Verifying a receipt signature
-
-Receipts include three signature fields when signing is enabled:
-
-| Field | Description |
-| --- | --- |
-| `signature` | Base64url-encoded Ed25519 signature over the `integrity_hash`. |
-| `signature_kid` | Key ID (e.g. `msk_v1`) identifying which key signed. |
-| `signature_algorithm` | Always `ed25519`. |
-
-To verify:
-
-1. Obtain the Ed25519 public key corresponding to `signature_kid` (provided during onboarding).
-2. Base64url-decode the `signature` field.
-3. Verify the signature over the hex-encoded `integrity_hash` using the public key.
-
-```typescript
-import { verify, createPublicKey } from 'node:crypto';
-
-function verifyReceipt(
-  integrityHash: string,
-  signatureBase64url: string,
-  publicKeyBase64: string,
-): boolean {
-  const publicKey = createPublicKey({
-    key: Buffer.from(publicKeyBase64, 'base64'),
-    format: 'der',
-    type: 'spki',
-  });
-  const data = Buffer.from(integrityHash, 'hex');
-  const sig = Buffer.from(signatureBase64url, 'base64url');
-  return verify(null, data, publicKey, sig);
-}
-```
-
-Unsigned receipts (`signature: null`) remain valid — the `integrity_hash` can still be verified by recomputing it from the context, decision, and snapshot.
+An unsigned receipt produced outside production can be checked for internal
+hash consistency, but that check does not establish who issued it.
 
 ## Audit trail
 
@@ -85,12 +65,14 @@ Two-tier rate limiting protects against abuse:
 
 ## Correlation IDs
 
-Every request is assigned a `correlation_id`, returned in the response body and as the `x-correlation-id` header. Use this for tracing and support requests.
+Every response carries an `x-correlation-id` header. Error bodies and some
+successful JSON responses also include `correlation_id`. Use the header for
+tracing and support requests.
 
 ## Trust model
 
 - MeshQu assumes the caller controls the decision context payload.
-- MeshQu guarantees deterministic evaluation against an immutable policy snapshot.
+- MeshQu evaluates deterministically against a recorded policy snapshot.
 - MeshQu does not attest to the correctness of upstream data — only that evaluation followed policy as defined.
 
 This separation allows independent verification without access to application code or models.
@@ -104,7 +86,12 @@ Decision contexts (`fields`, `metadata`, `evidence`) are sent by your applicatio
 - **Evaluate** (`/v1/decisions/evaluate`): No decision is recorded — the decision context, decision and violations are not stored, no decision id is returned, and nothing is retrievable as a decision afterwards. Resolving the active policies may, however, append one row to the tenant's append-only `policy_snapshots` table, and the response returns its id as `policy_snapshot_id`. That row holds the frozen policy rules and their version attribution — never any part of the decision context you sent. When the resolved policies match an existing snapshot, no row is appended.
 - **Record** (`/v1/decisions/record`): The decision context, decision, violations, and metadata are stored for audit.
 
-Retention periods are tenant-configurable and can be aligned with regulatory requirements.
+Retention depends on the data type and the deployment arrangement. A configured
+source-byte retention window records how long a tenant asks MeshQu to keep
+uploaded source bytes; the current release does not automatically delete those
+objects when the window elapses. Do not treat that setting as a deletion
+guarantee. Contact MeshQu to establish the applicable retention and erasure
+arrangements for decision records, audit logs, and uploaded material.
 
 ## Data usage
 

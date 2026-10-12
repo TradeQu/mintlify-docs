@@ -3,24 +3,19 @@ title: "Receipt Reference"
 description: "Source-grounded reference for the Decision Receipt — every field, what it binds, and which features are implemented today."
 ---
 
-This is the authoritative reference for the Decision Receipt and every feature
-attached to it. It is intended as a working spec when writing or reviewing
-public surfaces (homepage, /spec, /verify, sales/regulatory copy) so that what
-is presented externally aligns with what the technology actually does.
+This is the current wire-format and verification reference for the Decision
+Receipt and related features.
 
-If a property is **not** listed here as Implemented, do not claim it. Statuses
-use: **Implemented**, **Partial** (real but limited), **Stub** (wired but
-currently no-op), **Planned**.
+Statuses use **Implemented**, **Partial** (real but limited), **Stub** (wired
+but currently inactive), and **Planned** (not available). The capability table
+in §15 states the current limits.
 
 This page describes the receipt as it appears on the wire — the shapes the API
-returns and what each field binds. It is a working spec for public surfaces,
-not an implementation guide.
+returns and what each field binds.
 
-For the design-level view of the same object — envelope, verification
-semantics, replay rules and trust boundaries, without the field-by-field
-contract — see the [public Decision Receipt
-specification](https://www.meshqu.com/spec). Where the two disagree, this page
-is correct and that one is wrong.
+For a design-level view of the same object — envelope, verification semantics,
+replay rules, and trust boundaries — see the [Decision Receipt
+specification](https://www.meshqu.com/spec).
 
 ## 1. The Receipt Envelope
 
@@ -311,10 +306,8 @@ check the verdict matches. The bundle verifier sub-claim is `snapshot_replay`.
 
 ## 4. Approval Receipts (lineage)
 
-Status: **Implemented** end-to-end (APR-008 / APR-009 / APR-010, May 2026).
-Issuance, storage, bundle export, Node verifier and browser verifier all
-verify approval lineage. Pinned by golden fixtures, an 18-row mutation
-matrix and Node ↔ browser parity tests.
+Status: **Implemented**. Issuance, storage, bundle export, and both the Node
+and browser verifiers support approval lineage.
 
 - Policy approval receipts are a first-class artifact. Each receipt holds a
   `ratifier_signature` (Ed25519, kid + algorithm), `policy_rules_hash` (via
@@ -329,27 +322,20 @@ matrix and Node ↔ browser parity tests.
   2. `computeApprovalReceiptDigest(receipt)` equals the snapshot entry's
      `approval_receipt_digest`.
   3. `receipt.policy_rules_hash` equals `entry.policy_rules_hash` by
-     **string equality** (do not re-hash `snapshot.rules` — APR-006
-     precomputed per-version hashes that cover only that version's rules,
+     **string equality** (do not re-hash `snapshot.rules` — the
+     precomputed per-version hashes cover only that version's rules,
      and the snapshot entry is itself bound by `policy_snapshot_digest`).
   4. `receipt.ratifier_signature.kid` resolves in the caller-supplied
      `ratifierTrustedRoots`.
   5. The ratifier Ed25519 signature verifies.
 - Reports `not_applicable` for v1 receipts and v2 receipts whose snapshot
   has no non-null `approval_receipt_digest` entries.
-- The same approval-lineage checks run in both the Node verifier and the
-  browser verifier, kept at parity (APR-009).
-- **CCR-309.** Step 1 ("the receipt is present in the bundled file") used to
-  share `approval_lineage.digest_mismatch` with step 2 ("the digest matches")
-  — so a bundle that never shipped `policy_approval_receipts.json` at all (an
-  original research-corpus export, for example) was told its approval receipt
-  "was tampered or substituted", which is false: nothing was compared. The
-  verifier now reports `approval_lineage.receipt_absent` when step 1 fails to
-  find a receipt, `approval_lineage.receipt_malformed` when the file or
-  receipt cannot be read at all, and reserves `approval_lineage.digest_mismatch`
-  for a receipt that was found, could be read, and genuinely disagreed with
-  the signed snapshot binding. All three remain hard failures — `invalid`,
-  exit 5 — this changes which code names the failure, not whether it fails.
+- The same approval-lineage checks run in both the Node and browser verifiers.
+- A missing receipt reports `approval_lineage.receipt_absent`; an unreadable
+  file or receipt reports `approval_lineage.receipt_malformed`; and a readable
+  receipt whose digest disagrees with the signed snapshot binding reports
+  `approval_lineage.digest_mismatch`. All three are hard failures (`invalid`,
+  exit 5), but only the last establishes that a digest was compared.
 
 ## 5. Evidence Manifest (v2 only)
 
@@ -463,15 +449,12 @@ The branches are tested in this order, so the more specific case wins:
 | **C.** No anchor at all — `transparency_anchor` absent or `null` | `not_applicable` | none | none; exit 0 |
 | **D.** Anchor present and `transparency_proof.json` shipped | the checks in §6 above | as listed in §10.4 | per §10.5 |
 
-Verdicts and exit codes are §10.5. A pre-PR-5b/5f anchor (no `dsse_envelope` /
+Verdicts and exit codes are §10.5. An older anchor (no `dsse_envelope` /
 `entry_body`) falls in **B**: the exporter deliberately ships no proof for it,
 so the verifier has nothing to check the claim against.
 
-**B changed on 2026-08-28 (CCR-302c).** It previously reported
-`not_applicable` with no failure code, verdict `valid`, exit 0.
-`not_applicable` asserts that no check was required; `not_checked` states that
-one was not performed. When the verifier lacks the inputs to determine
-anything, the second is true and the first is a claim that cannot be supported.
+`not_applicable` means no check was required; `not_checked` means one was not
+performed. An anchor without a bundled proof belongs in the latter category.
 
 Note the shape of **D** in the default configuration: with no Rekor trust roots
 supplied, a correctly anchored bundle reports `transparency: invalid` carrying
@@ -560,8 +543,8 @@ Append-only, hash-chained. Each event carries:
 - per-event `integrity_hash` = sha256 over
   `{ action, entity_type, entity_id, actor_id, tenant_id, changes, timestamp, previous_hash }`
 
-UPDATE / DELETE on audit rows are denied at the row level by DB triggers. A
-`decision_recorded` audit event is written on every record.
+Ordinary application callers cannot update or delete audit rows. A
+`decision_recorded` audit event is written when a decision is recorded.
 
 ## 10. Verification Bundle
 
@@ -628,7 +611,7 @@ carries verification debt.
 | `chain_seal` | Seal hash + signature; receipt binding | Implemented |
 | `canonicalization` | Profile match + canonical-form vector tests | Implemented |
 | `evidence` | v2: `evidence_manifest_digest` matches bundled `evidence_manifest.json`; `not_applicable` for v1 or null | Implemented |
-| `approval_lineage` | Per-version approval-receipt digest + ratifier signature + `policy_rules_hash` (string equality) | Implemented (APR-008 / APR-009) |
+| `approval_lineage` | Per-version approval-receipt digest + ratifier signature + `policy_rules_hash` (string equality) | Implemented |
 
 **Shadow-mode fields and the two hash-comparing sub-claims.** `integrity` and
 `snapshot_replay` both recompute a hash, so both have to account for the
@@ -643,26 +626,17 @@ a receipt whose shadow fields were stripped or added after signing fails
 
 ### 10.4 Failure codes
 
-These are the codes this page describes. **It is not the complete set.** The
-gap is stated here rather than left to be discovered:
+These are the codes this page describes. **It is not the complete set.**
 
 - `@meshqu/types` declares **57** `BundleFailureCode` members. **42** are listed
   below. The other **15** are emitted by the shipped verifier and are not yet
-  described on any public surface; they belong to legs that have not reached
-  step 4 of §18.
+  described here.
 - `@meshqu/verify-lib` — the browser verifier, a deliberately independent
-  re-implementation — declares its **own** union carrying **17 further** codes.
-  One of them, `snapshot_replay.skipped_in_browser`, is an advisory recording
-  that the browser has no evaluator and skipped that sub-claim there. The other
-  16 belong to a separate verifier leg (CCR-403) whose capability §15 does not
-  list; until §15 lists it, no public surface may claim it.
+  implementation — declares its **own** union carrying **17 further** codes.
+  Some are advisory or apply to browser-specific checks; interpret each code
+  together with its verification status.
 - Across both packages the union is **74** codes, of which **32** are not listed
   below.
-
-These five numbers are no longer prose. `docs-parity.invariant.test.ts` in the
-`tradequ` repository parses them out of this section and compares them with the
-declared unions, so a code added to either package and not reflected here turns
-that check red. Its limits are stated in the test itself.
 
 A code's absence from this list is a documentation gap, not evidence that the
 verifier cannot emit it. Do not treat the list as an exhaustive contract, and do
@@ -714,8 +688,8 @@ evidence.custodian_unknown_kid
 evidence.custodian_signature_invalid
 evidence.custodian_signature_malformed
 
-approval_lineage.receipt_absent      (CCR-309: snapshot names a digest, bundle has no matching receipt — nothing was compared)
-approval_lineage.receipt_malformed   (CCR-309: the receipts file/receipt could not be read at all — parse failure, wrong shape, or digest computation threw)
+approval_lineage.receipt_absent      (snapshot names a digest, bundle has no matching receipt — nothing was compared)
+approval_lineage.receipt_malformed   (the receipts file/receipt could not be read at all — parse failure, wrong shape, or digest computation threw)
 approval_lineage.digest_mismatch     (a present, well-formed receipt's recomputed digest disagrees with the signed snapshot binding — the only one of the three meaning tampering or substitution)
 approval_lineage.signature_invalid
 approval_lineage.unknown_ratifier
@@ -760,16 +734,17 @@ implementations. The exit codes are the mapping the command-line verifier
 applies to it; that verifier is not published yet — see
 [Trust Model](/security/trust-model) for its status.
 
-## 11. Public API Surface
+## 11. Selected API endpoints
 
-The endpoints exposed by the MeshQu API:
+Selected receipt and decision endpoints are listed below. The
+[API Reference](/api/reference) has the full customer-facing endpoint set.
 
 | Endpoint | Auth | Rate limit | Status |
 | --- | --- | --- | --- |
 | `POST /v1/decisions/evaluate` | API key + tenant | tenant-tier | Implemented |
 | `POST /v1/decisions/record` | API key + tenant | tenant-tier; `idempotency_key` required | Implemented |
-| `POST /v1/decisions/replay` | API key + tenant | tenant-tier | Implemented |
-| `GET /v1/receipts/:decisionId` | **Public, unauth** | 300 req/min per IP | Implemented. Also resolves approval-receipt and agent-licence ids (§19) |
+| `POST /v1/decisions/:id/replay` | API key + tenant | tenant-tier | Implemented |
+| `GET /v1/receipts/:decisionId` | **Public, unauth** | 300 req/min per IP | Implemented. Also resolves approval-receipt and agent-licence ids (§18) |
 | `GET /v1/receipts/:decisionId/bundle?format=json\|tar` | Public, unauth | 60 req/min per IP | Implemented; may be disabled by the operator |
 | `POST /v1/agent-licences` (issue) · `POST /v1/agent-licences/:id/revoke` | **Human session only** (`humanGovernanceAct` — an API key receives 403) | tenant-tier | Implemented |
 | `GET /v1/agent-licences` (list) · `GET /v1/agent-licences/:id` | API key + tenant | tenant-tier | Implemented |
@@ -781,14 +756,11 @@ The endpoints exposed by the MeshQu API:
 | `GET /v1/forms/:formId/receipts/:decisionId` | Public, unauth | 300 req/min | Implemented |
 | `POST /v1/forms/:formId/submit` | **Public, unauth — and a write** | 100 req/min per (form, IP) | Implemented. Evaluates and **mints a signed receipt** with no API key presented |
 
-**Fourteen** path patterns are reachable with no API key and no tenant header —
-eighteen when the operator enables the OpenAPI document and docs UI. **Nine of
-them reach tenant data**: the eight reads in the table above plus one write, the
-form submit. The remaining five are infrastructure, with one caveat worth
-stating — `/metrics` exposes per-tenant time series and is guarded by a bearer
-token rather than by the API key. All of them are listed, with what
-"unauthenticated" does and does not mean, under
-[Authentication → Public paths](/getting-started/authentication#public-paths).
+These public receipt, chain, and form paths do not require an API key or tenant
+header. Possession of a receipt, chain, or form identifier may permit access to
+the corresponding resource or submission to the form. See
+[Authentication → Public paths](/getting-started/authentication#public-paths)
+for their access model.
 
 Public receipt response shape: `{ context, result, chain_id, chain_step }`.
 The API normalises legacy `policy_snapshot_hash` → `evaluated_rules_hash` on
@@ -808,25 +780,16 @@ REST API and verification bundles:
 - **Policy approval receipts** — ratifier-signed approval records.
 - **Audit events** — an append-only, hash-chained audit log.
 
-Tenant isolation is enforced in four layers — the request's tenant header,
-an application-level tenant predicate on every query, a per-transaction
-`SET LOCAL` of the tenant id, and Postgres row-level security with `FORCE` — so
-a request carrying a tenant header can only ever reach that tenant's data.
+Authenticated tenant-scoped API calls require a tenant header and are subject
+to tenant access controls. A caller should use a key issued for the intended
+tenant and should not treat a tenant header alone as an authorisation grant.
 
-**What that does not say.** Of the fourteen path patterns reachable with **no**
-tenant header and no API key (§11), nine reach tenant data — and they read and
-write it, addressed by an unguessable identifier rather than by an
-authenticated principal. A
-receipt id, chain id or form id is therefore a **capability**: whoever holds one
-can read what it names, and in the case of `POST /v1/forms/:formId/submit`
-cause a signed receipt to be minted under that form's tenant.
-
-On those paths the four layers are not what separates one tenant from another,
-because they are not in the request at all — `GET /v1/receipts/:decisionId`
-resolves through a `SECURITY DEFINER` lookup that takes a receipt id and no
-tenant predicate. What keeps one tenant's receipts out of another's reach there
-is the unguessability of the identifier, and nothing else. Publish an id and you
-have published what it names.
+Some public receipt, chain, and form routes require no API key or tenant header
+(§11). They address a resource by identifier and enforce endpoint-specific
+limits. Treat receipt, chain, and form identifiers as access capabilities:
+someone holding an identifier may be able to read the resource it names, and a
+form identifier can permit submissions under that form's tenant. Share those
+identifiers only with intended recipients.
 
 ## 13. Key Management
 
@@ -904,126 +867,72 @@ the structured `actor` row, decision outcomes.
 `policy_versions[i].approval_receipt_digest` entries (when present), all
 `policy_versions[i].policy_rules_hash` entries — therefore approval lineage.
 
-## 15. Status Matrix
+## 15. Capability status
 
-| Capability | Status | Public-claim guidance |
+| Capability | Status | Current limit |
 | --- | --- | --- |
-| Ed25519 signing of receipts | Implemented | "Signed against published keys" — safe |
-| Offline integrity + signature verification | Implemented | "Verifiable offline / no MeshQu API" — safe |
-| Signing-key standing (revocation, retirement, validity window) against a signed key registry | Implemented in the verifier; **no signed registry published** | "Signature verified" is the accurate public phrasing for a receipt checked today; don't call it "fully verified" or claim revocation checking. |
-| Snapshot replay (deterministic re-evaluation) | Implemented | "Replayable: same inputs and snapshot → same result" — safe |
-| Self-contained verification bundle | Implemented | "Portable" / "self-contained proof" — safe |
-| Chain linkage + chain integrity hash | Implemented | "Chainable" — safe |
-| Chain seal | Implemented | "Sealed chain" / "completeness proof" — safe |
-| Evidence manifest (digest + custodian sigs) | Implemented (v2) | "Evidence digest / evidence references" — safe. **Never imply MeshQu stores evidence content.** |
-| Source artifact hash binding | Implemented | "Document binding" — safe |
-| Rekor anchoring | Implemented | "Anchored to a public transparency log" — safe with footnote |
-| Offline SET verification | Implemented | "Verifiable without contacting the log" — safe |
-| Online Rekor entry-existence lookup | Implemented (primitive; inert in the bundle verifier) | "We can check the log still has the entry" — safe. Not an inclusion proof |
-| Online inclusion-proof verification against a co-signed witness | **Planned** | Don't claim live witness verification |
-| Approval lineage verified by bundle (per-version digest + ratifier signature + rules-hash) | Implemented (APR-008 / APR-009 / APR-010) | "Approval lineage verified" — safe. Requires `ratifierTrustedRoots` supplied out-of-band. |
-| Agent licence record — signed grant + superseding revocation (§19) | Implemented (AGD-003) | "A named person granted this credential a scoped, expiring, revocable licence" — safe. **Never** "discharges/transfers accountability", **never** "proves which model acted". |
-| Licence admissibility on receipt-minting calls (`off` / `record_only` / `enforce`) | Implemented (AGD-003) | Claims must name the mode. `record_only` deployments claim issue/display/verify only — the enforcement claim is per-deployment, not a product property. |
-| Licence page in the public verifier (`/l/:id`) | Implemented, behind a release flag | Do not claim or link until the flag is flipped (AGD-007 release gate). |
-| Recursive governance (`governance_source.level > 0`) | **Planned** (`level` always 0) | Don't market hierarchical / tiered governance |
-| RFC 8785 canonical JSON | **Planned** (`v1` profile) | Today the spec is `meshqu-canonical/v0` |
-| Decision outcome tracking | Implemented | Safe on detail UIs; not part of the signed receipt |
-| Audit trail (hash-chained, immutable) | Implemented | Safe |
+| Ed25519 signing of receipts | Implemented | Verify against a trusted public key. |
+| Offline integrity + signature verification | Implemented | Works without a live MeshQu API call when the verifier has the required bundle and trust roots. |
+| Signing-key standing (revocation, retirement, validity window) against a signed key registry | Implemented in the verifier; **no signed registry published** | A valid signature does not establish current key standing. |
+| Snapshot replay (deterministic re-evaluation) | Implemented | Uses the original context and policy snapshot. |
+| Self-contained verification bundle | Implemented | Includes the material needed for offline checks, subject to out-of-band trust roots. |
+| Chain linkage + chain integrity hash | Implemented | Checks the receipt's place in a chain. |
+| Chain seal | Implemented | Checks chain completeness. |
+| Evidence manifest (digest + custodian signatures) | Implemented (v2) | Binds evidence references and digests; MeshQu does not store evidence content. |
+| Source artifact hash binding | Implemented | Binds the source hash, not the document bytes or its descriptive metadata. |
+| Rekor anchoring | Implemented | Anchoring happens after signing and may be absent. |
+| Offline SET verification | Implemented | Checks the proof against a pinned log key without contacting the log. |
+| Online inclusion-proof verification against a co-signed witness | **Planned** | No live witness verification today. |
+| Approval lineage verified by bundle | Implemented | Requires ratifier trust roots supplied out of band. |
+| Agent licence record — signed grant + superseding revocation (§18) | Implemented | Identifies the credential and human grantor; it does not identify a model or transfer accountability. |
+| Licence admissibility on receipt-minting calls (`off` / `record_only` / `enforce`) | Implemented | Only `enforce` mode rejects inadmissible credentials; `record_only` records status without refusing the call. |
+| Recursive governance (`governance_source.level > 0`) | **Planned** (`level` is currently 0) | Hierarchical governance is unavailable. |
+| RFC 8785 canonical JSON | **Planned** | The current receipt profile is `meshqu-canonical/v0`. |
+| Decision outcome tracking | Implemented | Outcome details are not part of the signed receipt. |
+| Audit trail (hash-chained, immutable to application callers) | Implemented | See the [storage-layer limit](/concepts/decision-assurance#storage-layer-immutability). |
 
-## 16. Glossary — safe public terms (and what to avoid)
+## 16. Terminology
 
-| Use | Avoid | Why |
-| --- | --- | --- |
-| **Decision Receipt** | "Decision token" | Receipt is the canonical product noun |
-| **Signed** | "Tamper-proof" | We claim *tamper-evident* (any change is detected), not impossible-to-tamper |
-| **Verifiable offline** | "Trustless" | We still trust the bundled public keys |
-| **Replayable** | "Reversible" | Replay reproduces the verdict; nothing is undone |
-| **Portable** | "Decentralised" | Self-contained bundle ≠ decentralisation |
-| **Independently verifiable** | "Permissionless" | We provide a verifier and a bundle format; no permission, but not permissionless infra |
-| **Chainable / Sealed chain** | "Workflow ledger" | Chain is hash-linked; "ledger" implies more than we ship |
-| **Evidence references / Evidence digest** | "Evidence stored" | We do not store evidence content |
-| **Anchored to a public transparency log** | "Notarised on-chain" | Rekor ≠ blockchain |
-| **Snapshot of policy** | "Frozen ledger" | Snapshot is the right primitive |
-| **Actor** (human / automated) | "Approver" | Receipt records *who acted*, not necessarily who approved |
-| **Ratifier** (in approval receipts) | "Auditor" | Auditor is the wrong role |
-| **Custodian** (in evidence manifests) | "Issuer" | Custodian = external system attesting to evidence |
-| **`receipt_schema_version` v1 / v2** | "Receipt protocol v2" | Not a protocol; just envelope schema |
-| **`integrity_hash`** | "Fingerprint" | OK casually but not in /spec |
-| **Verification bundle** | "Proof package" | Use the canonical product noun |
-| **Approval lineage verified** | "Policy provenance proven" | Lineage *is* verified per-version, but "provenance proven" overstates the claim |
-| **Governance** | "Tiered governance" | Recursive governance is planned |
-
-## 17. The two highest-risk public-copy traps
-
-1. **Implying evidence content custody.** The product is reference-based. Any
-   public surface that says "MeshQu stores the policy, context, evidence and
-   outcome" overshoots. Use *evidence references* / *evidence digests*. The
-   single artefact on the receipt that binds content (`source_artifact.hash`)
-   binds **only the hash** — type, filename and size are not bound.
-
-2. **Implying live transparency-log verification.** Anchoring to Rekor and
-   offline SET verification are real. **Online inclusion-proof lookup
-   against a live witness is not implemented yet.** Don't say "checked
-   against the live transparency log" or "live witness verification".
-   "Anchored to a public transparency log; verifiable offline against a
-   pinned log key" is accurate.
-
-## 18. Publication order for wire-format changes
-
-When the receipt wire format changes, the surfaces that describe it must be
-updated in a fixed order. **Each step gates the next** — nothing at a given step
-may describe a change until every step above it is complete.
-
-| Step | Surface |
+| Term | Meaning |
 | --- | --- |
-| 1 | Implementation and tests |
-| 2 | Migration and compatibility tests |
-| 3 | Signed public fixture |
-| 4 | **Receipt Reference — this page** |
-| 5 | Developer guides |
-| 6 | Website summaries and visuals |
-| 7 | Sales and conference assets |
+| **Decision Receipt** | The stored, retrievable artifact produced when a decision is recorded. |
+| **Tamper-evident** | The combined integrity and signature checks reveal changes to bound content; they do not prevent changes from being attempted. |
+| **Verifiable offline** | A verifier can check a bundle without calling MeshQu when it has independently trusted public keys. |
+| **Replayable** | The original context and policy snapshot can be evaluated again; replay does not undo the original decision. |
+| **Verification Bundle** | A portable archive containing the receipt and material needed for offline checks. |
+| **Decision Chain** | Receipts linked by hashes, with an optional seal that checks completeness. |
+| **Evidence references and digests** | Pointers and hashes supplied with a decision; MeshQu does not store the referenced evidence content. |
+| **Transparency anchor** | A record in the Rekor public transparency log, checked offline against a pinned log key when proof is available. |
+| **Actor** | The human or automated party attributed to the decision; it is not necessarily the approver. |
+| **Ratifier** | The party that signs a policy approval receipt. |
+| **Custodian** | An external party that signs an evidence-manifest item. |
+| **`receipt_schema_version`** | The receipt envelope schema version, currently v1 or v2. |
 
-This page is **step 4**, which cuts both ways:
+## 17. Interpretation limits
 
-- **Nothing downstream of it may run ahead.** Developer guides, website copy and
-  visuals, decks, event pages and sales collateral must not describe a
-  wire-format change before this page describes it.
-- **This page may not run ahead either.** It may not describe a wire-format
-  change before the signed public fixture (step 3) exists. Receipt-shaped
-  examples are generated from, or explicitly checked against, a valid fixture;
-  hand-authored ones are not permitted on any public surface.
+- MeshQu binds evidence references and digests, not the underlying evidence
+  content. For a `source_artifact`, only `source_artifact.hash` is bound into
+  the receipt's integrity hash; type, filename, and size are descriptive data.
+- Rekor anchoring and offline Signed Entry Timestamp verification are
+  implemented. Independent online inclusion-proof verification against a
+  co-signed live witness is not currently available.
 
-**Standing embargo — receipt v3.** No public surface may describe receipt v3
-fields, semantics or timelines until steps 1–4 are complete. That includes this
-page. Until then, v3 is not a public roadmap item and no date may be given for
-it. Today's wire format is `receipt_schema_version` v1 and v2 only (§1.1).
-
-The same order is recorded as a standing rule alongside the implementation, so
-that engineering and documentation cannot drift apart; this section is its
-docs-side statement, and this page remains the authority for what public
-surfaces may claim.
-
-## 19. Agent Licences
+## 18. Agent Licences
 
 A first-class signed record answering: *which named person authorised this API
 credential to act, under which ratified policy version, for which decision
 types, until when — and has that authorisation been withdrawn?*
 
-Everything in this section is validated against the committed public fixture —
-a real grant issued 2026-08-25 in a purpose-made demo tenant, captured from the
-public lookup and verified with the open verifier:
-`packages/meshqu-core/test-vectors/public-agent-licence-fixture/` in the
-platform repository. The field contract is
-`docs/architecture/0004-agent-licence-digest-contract.md` (ADR 0004).
+This section describes the current signed record format and its verification
+behaviour.
 
-### 19.1 The record
+### 18.1 The record
 
 Two record types share one shape and one table: a **grant**, and a
 **revocation** that supersedes it. Revocation is a new signed record naming the
 grant — never an edit or a deletion. The store is append-only.
 
-The signed preimage is exactly 14 fields (ADR 0004 §3): `id`, `tenant_id`,
+The signed preimage is exactly 14 fields: `id`, `tenant_id`,
 `record_type`, `key_id` (the subject — an API key, not a person and not a
 model), `revokes_licence_id`, `granted_by` (the authenticated user id captured
 at issue), `grant_authority` (free text, stored verbatim), `policy_id`,
@@ -1037,7 +946,7 @@ construction. Verification recomputes the digest **before** checking the
 signature: a genuine signature over a stale digest proves nothing about an
 edited record.
 
-### 19.2 Lifecycle and admissibility
+### 18.2 Lifecycle and admissibility
 
 Issue and revoke are human governance acts: the routes reject any API-key
 principal before the handler runs. A deployment resolves licence admissibility
@@ -1050,7 +959,7 @@ fails closed with a distinct error code and **no receipt is minted**. The mode
 itself is stamped into the hashed context, so a record-only receipt is
 distinguishable from an enforced one from the receipt alone.
 
-### 19.3 Verification and the public lookup
+### 18.3 Verification and the public lookup
 
 `GET /v1/receipts/:id` (public, unauthenticated) resolves a licence id and
 returns the grant **with its superseding revocation inline** (or `null`), so a
@@ -1062,7 +971,7 @@ grant, and reports cryptographic verdict and lifecycle as **two separate
 axes** — a revoked licence is normally cryptographically perfect, and one
 badge would have to lie about one of the two.
 
-### 19.4 What a licence does and does not establish
+### 18.4 What a licence does and does not establish
 
 - It **evidences governed delegation** by a named accountable person. It does
   not discharge, transfer or dilute that person's accountability, and it is

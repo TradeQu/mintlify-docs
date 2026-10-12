@@ -27,9 +27,12 @@ MeshQu's trust model is a five-rung ladder. Each rung answers a stronger verific
 
 ## L1 — Recorded
 
-Every decision is recorded with its context, the frozen policy snapshot it was evaluated against, and the verdict. The dashboard surfaces it. This is the baseline an auditor would expect from any governance system.
+When a decision is recorded, MeshQu stores its context, the frozen policy
+snapshot it was evaluated against, and the verdict. This is the baseline an
+auditor would expect from a decision record.
 
-**What this proves:** the event happened inside MeshQu, in a structured form, and is queryable.
+**What this proves:** MeshQu recorded the submitted decision in a structured,
+queryable form. It does not prove an external action took place.
 
 ---
 
@@ -39,11 +42,19 @@ Every decision receipt includes a SHA-256 integrity hash computed over canonical
 
 The same inputs always produce the same hash regardless of property order or serialisation quirks. You can replay any decision via `POST /v1/decisions/{id}/replay` and check the hash matches. If someone changes the verdict, adds a violation, or swaps the policy version, the hash won't match.
 
-Hashing alone still assumes trust in the system that produced the hash, so every receipt is also signed with an Ed25519 private key. Verification only requires the public key — no API call, no shared secret, and no network dependency.
+Hashing alone does not establish who issued the record. Production receipts are
+signed with an Ed25519 private key. An unsigned receipt from a nonproduction
+deployment can be checked for hash consistency but does not establish issuer
+identity. Signature verification requires an independently trusted public key;
+the cryptographic check itself needs no API call or shared secret.
 
 Under `receipt_schema_version: 2` the signature covers a canonical envelope rather than the bare hash, binding `signature_kid`, `signature_algorithm`, `receipt_schema_version` and `timestamp` into the signed bytes. Tampering with any of those fields fails the signature check. v1 receipts continue to verify under the v1 path, indefinitely.
 
-Keys are versioned. Each receipt includes a `signature_kid` (for example, `msk_v1`) identifying the signing key. During rotation, both current and previous keys remain valid for verification. Public signing keys are served as a JWKS document at `GET /v1/.well-known/signing-keys`.
+Keys are versioned. Each signed receipt includes a `signature_kid` (for example,
+`msk_v1`) identifying the signing key. The JWKS document at
+`GET /v1/.well-known/signing-keys` provides issuer-supplied key information;
+independent verification requires trust roots obtained and pinned through a
+channel the verifier accepts.
 
 **What this proves:** the signed record has not changed since it was issued, and any alteration is detectable without contacting MeshQu.
 
@@ -109,7 +120,7 @@ The bundle binds **ten sub-claims** under one manifest:
 **Trust roots are out-of-band.** `trusted_keys.json` inside the bundle is informational — useful for fingerprint UIs — but never used to authenticate a signature. Otherwise a self-signed bundle (operator-controlled keys listed as "trusted" in the bundle) would pass verification. Verifiers must pin trust roots from a channel the operator does not control.
 </Warning>
 
-**Transparency anchoring.** When enabled, signed receipts are anchored to [Sigstore Rekor](https://rekor.sigstore.dev), a public append-only transparency log. Once anchored, anyone can query Rekor by entry UUID and verify the inclusion proof. Anchoring happens after signing and is not part of the integrity hash — if Rekor is unreachable, the receipt is still signed and valid, just without a transparency anchor. Signing is never blocked by log availability.
+**Transparency anchoring.** When enabled, signed receipts are anchored to [Sigstore Rekor](https://rekor.sigstore.dev), a public append-only transparency log. A verifier can check the bundled Signed Entry Timestamp offline against a trusted Rekor key. Independent online inclusion-proof verification against a co-signed witness is not currently available. Anchoring happens after signing and is not part of the integrity hash — if Rekor is unreachable, the receipt is still signed and valid, just without a transparency anchor. Signing is never blocked by log availability.
 
 <Note>
 **Why DSSE envelopes?** Ed25519 is incompatible with Rekor's `hashedrekord` entry type ([sigstore/rekor#851](https://github.com/sigstore/rekor/issues/851)). MeshQu uses DSSE envelopes wrapping in-toto attestation statements instead.
@@ -193,7 +204,9 @@ The authenticated API key (`api_key_id`) identifies the **calling system**. The 
 ## What still requires trusting MeshQu
 
 - MeshQu's signing-private-key custody.
-- The authenticity of the out-of-band public-key distribution channel (JWKS endpoint and bundled defaults; fingerprints can be pinned).
+- The authenticity of the independently obtained public-key fingerprints used
+  as trust roots. Issuer-provided JWKS and bundled key lists alone do not
+  establish this.
 - That `DecisionContext.evidence` references and `source_artifact` hashes the caller submits are truthful — MeshQu hashes what it is given.
 
 Independently governed trust (L5) is what narrows the first two: roots distributed and rotated outside the operator's control, and custody arrangements a verifier can inspect.
@@ -206,7 +219,9 @@ The organisational side of that trust — tenant isolation, the append-only audi
 
 <CardGroup cols={2}>
   <Card title="Web Verifier" icon="shield-check" href="https://verify.meshqu.com">
-    Paste any decision receipt JSON. Integrity hash, signature, and (when present) transparency anchor are validated in your browser — no API call, no authentication.
+    Paste a decision receipt JSON to check its integrity hash, signature, and
+    (when present) transparency anchor in your browser. Independent signature
+    verification still depends on a separately trusted public key.
   </Card>
   <Card title="Verification CLI" icon="terminal">
     Open-source command-line verifier. **Publishing planned.**
@@ -215,20 +230,25 @@ The organisational side of that trust — tenant isolation, the append-only audi
 
 ## Key Management
 
-Every receipt includes a `signature_kid` identifying which key signed it. MeshQu publishes versioned public signing keys via the JWKS endpoint so receipts remain verifiable across key rotation.
+Every receipt includes a `signature_kid` identifying which key signed it. MeshQu
+publishes a JWKS document for key discovery. A verifier must use independently
+authenticated trust roots to establish who signed a receipt.
 
 **Rotation:**
 
-- During rotation, both current and previous keys remain valid for verification.
-- Old public keys are retained indefinitely — receipts never become unverifiable due to rotation.
+- Historical receipts remain mathematically verifiable when the verifier keeps
+  the trusted public key that signed them.
 
 **Compromise response:**
 
-If a signing key is compromised, MeshQu revokes that key and publishes updated verification material. Existing receipts can be re-verified via the [replay endpoint](/api/reference).
+Signature validity and key standing are separate checks. A valid signature does
+not establish that its key has not been compromised or revoked. No signed key
+registry is currently published for independent standing checks; see
+[Receipt Reference](/concepts/receipt-reference#13-key-management).
 
 | Property | Value |
 | --- | --- |
 | Algorithm | Ed25519 (RFC 8032) |
 | Key format | SPKI DER, base64-encoded |
 | Key ID scheme | `msk_v<N>` (e.g. `msk_v1`) |
-| Distribution | JWKS at `/v1/.well-known/signing-keys` |
+| Discovery | JWKS at `/v1/.well-known/signing-keys`; independent verification requires out-of-band trust roots |

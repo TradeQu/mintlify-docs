@@ -292,8 +292,8 @@ Global IP-based and tenant-based rate limits also apply as defense-in-depth.
 ## Security summary
 
 - **Tenant isolation**: Forms are tenant-scoped and isolated from other tenants
-- **Password hashing**: SHA-256, validated with constant-time comparison
-- **Token validation**: Constant-time comparison, configurable expiry and max uses
+- **Password protection**: Optional form passwords restrict access to intended users
+- **Token controls**: Configurable expiry and maximum uses
 - **Console auth**: Console-only forms require authenticated console access
 - **No document storage**: Only the document hash is included in the receipt (if provided)
 
