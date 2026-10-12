@@ -55,7 +55,7 @@ Each key has:
 - **Name** — a human-readable label for audit trails.
 - **Scopes** — the set of permissions the key grants (see below).
 - **Expiry** (optional) — an `expires_at` timestamp after which the key is rejected.
-- **Prefix/suffix** — a safe fragment (e.g. `mqu_...c123`) shown in dashboards for identification.
+- **Key preview** — a safe prefix-and-suffix fragment (e.g. `mqu_...c123`) returned as `key_preview` in key metadata for identification.
 
 <Note>
   Keys are `mqu_` followed by a base64url-encoded random token (e.g.

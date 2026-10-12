@@ -71,9 +71,9 @@ Two endpoints sit at the core of the API, and the difference matters for audit:
   null. It is a preview, not a receipt: `integrity_hash` is reproducible, so you
   can recompute it yourself, but nothing attests to it. **No decision is
   recorded** — no decision id is returned and nothing is retrievable as a
-  decision afterwards. Resolving the active policies may still append one row to
-  the tenant's append-only `policy_snapshots` table, returned as
-  `policy_snapshot_id`; when an existing snapshot matches, nothing is appended.
+  decision afterwards. Resolving the active policies may still persist a
+  reusable policy snapshot and return its `policy_snapshot_id`; when an existing
+  snapshot matches, no new snapshot is created.
 - **`POST /v1/decisions/record`** — evaluates *and* persists the result.
   Supply an `idempotency_key` for safe retries.
 
