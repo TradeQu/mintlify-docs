@@ -208,10 +208,10 @@ No access to application code or models is required.
 ## Decision lifecycle
 
 1. **Build context** — your application assembles a decision context (type, fields, metadata, evidence).
-2. **Evaluate** — MeshQu evaluates the context against active policies at the decision boundary.
-3. **Receive verdict** — MeshQu returns `ALLOW`, `REVIEW`, `DENY`, or `ALERT` with a cryptographic receipt.
-4. **Act** — your application enforces the verdict (proceed, queue, or block).
-5. **Record** (optional) — persist the evaluation for audit by calling `/v1/decisions/record`.
+2. **Evaluate or record** — call `/v1/decisions/evaluate` for an unsigned preview, or `/v1/decisions/record` to evaluate and persist a signed Decision Receipt.
+3. **Receive verdict** — both endpoints return `ALLOW`, `REVIEW`, `DENY`, or `ALERT`; only `record` returns a signed receipt.
+4. **Act** — your application decides whether to proceed, queue, or block.
+5. **Verify later** — replay a recorded decision or verify its receipt independently.
 
 ## Evaluate vs Record
 
@@ -219,8 +219,8 @@ No access to application code or models is required.
 | --- | --- | --- |
 | **Decision recorded** | No — no decision is stored, no decision id is returned, and nothing is retrievable as a decision afterwards | Yes — context, verdict, and metadata stored |
 | **Result signed** | No — the result carries `dry_run: true` and no signature fields at all. `integrity_hash` is reproducible, not attested | Yes — a signed Decision Receipt |
-| **Other writes** | Resolving the active policies may append one row to the tenant's append-only `policy_snapshots` table, whose id is returned as `policy_snapshot_id`. When an existing snapshot matches, nothing is appended | Same snapshot resolution, plus the decision itself |
-| **Idempotency key** | Not required | Required |
+| **Other writes** | Resolving the active policies may create or reuse an immutable policy snapshot, identified in the response by `policy_snapshot_id` | Same snapshot resolution, plus the decision record |
+| **Idempotency key** | Not required | Recommended for safe retries; required by the TypeScript client |
 | **Typical use** | Real-time gating, dry-run testing | Audit trail, compliance evidence |
 
 ## Example: blocking a trade and proving it later

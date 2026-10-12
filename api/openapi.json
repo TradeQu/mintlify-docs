@@ -24,7 +24,7 @@
         "type": "apiKey",
         "name": "X-MeshQu-Tenant-Id",
         "in": "header",
-        "description": "Tenant UUID for multi-tenant isolation. Required on all authenticated routes — validated before authentication (middleware/tenant.ts), so a missing or non-UUID header returns 400 (MISSING_TENANT_ID / INVALID_TENANT_ID) before the API key is checked."
+        "description": "Tenant UUID for multi-tenant isolation. Required on authenticated routes. A missing or non-UUID value returns 400 `MISSING_TENANT_ID` or `INVALID_TENANT_ID` before API-key authentication."
       }
     },
     "schemas": {
@@ -1552,7 +1552,7 @@
                           "actions": {
                             "type": "array",
                             "items": {
-                              "description": "Header action. actions[] is server-computed; the client renders one button per entry in order. Unavailable actions are OMITTED, not disabled.",
+                              "description": "Available action for this policy. The response lists available actions in order and omits unavailable actions.",
                               "type": "object",
                               "required": [
                                 "kind"
@@ -2196,7 +2196,7 @@
                   },
                   "codification": {
                     "additionalProperties": false,
-                    "description": "Optional. When present, the stored rules are the ones `codify()` returns — including `source_ref`, which `codify()` derives from the declared clause and does not take from the caller — not the ones submitted. See `packages/meshqu-core/src/codification.ts`.",
+                    "description": "Optional. When provided, MeshQu stores the rules produced from the codification input. Their `source_ref` is derived from the declared clause rather than taken from the caller.",
                     "type": "object",
                     "required": [
                       "source",
@@ -3501,7 +3501,7 @@
                     "actions": {
                       "type": "array",
                       "items": {
-                        "description": "Header action. actions[] is server-computed; the client renders one button per entry in order. Unavailable actions are OMITTED, not disabled.",
+                        "description": "Available action for this policy. The response lists available actions in order and omits unavailable actions.",
                         "type": "object",
                         "required": [
                           "kind"
@@ -4259,7 +4259,7 @@
         "tags": [
           "Policies"
         ],
-        "description": "Returns a policy with its current version plus PV2 editor context (versionState, selectedVersion, permissions, actions).",
+        "description": "Returns a policy with its selected version, version state, permissions and available actions.",
         "parameters": [
           {
             "schema": {
@@ -4269,7 +4269,7 @@
             "in": "query",
             "name": "version",
             "required": false,
-            "description": "Which version to surface. **Default since 2026-05-17: \"latest\"** — the version the editor should open: draft if one exists (in-flight work), else the active ratified, else the highest version number. Only 404 if the policy has no versions at all. \"active\" — the ratified+active version, 404 if none exists (use this for compliance/audit consumers that must distinguish \"ratified\" from \"merely exists\"). \"draft\" — the first draft, 404 if none exists. Numeric — that exact version, 404 if missing."
+            "description": "Version to return. Defaults to `latest`: a draft if one exists, otherwise the active ratified version, otherwise the highest version number. `active` selects the active ratified version; `draft` selects the first draft; a number selects that exact version. Returns 404 if the selected version does not exist."
           },
           {
             "schema": {
@@ -5468,7 +5468,7 @@
                     "actions": {
                       "type": "array",
                       "items": {
-                        "description": "Header action. actions[] is server-computed; the client renders one button per entry in order. Unavailable actions are OMITTED, not disabled.",
+                        "description": "Available action for this policy. The response lists available actions in order and omits unavailable actions.",
                         "type": "object",
                         "required": [
                           "kind"
@@ -6854,7 +6854,7 @@
                     "actions": {
                       "type": "array",
                       "items": {
-                        "description": "Header action. actions[] is server-computed; the client renders one button per entry in order. Unavailable actions are OMITTED, not disabled.",
+                        "description": "Available action for this policy. The response lists available actions in order and omits unavailable actions.",
                         "type": "object",
                         "required": [
                           "kind"
@@ -7128,7 +7128,7 @@
         "tags": [
           "Policies"
         ],
-        "description": "Transitions an active ratified policy from shadow to enforcing and emits a signed immutable activation receipt. Receipt fields and digest contract are validated by ADR 0003, Decision §5.",
+        "description": "Transitions an active ratified policy from shadow to enforcing and emits a signed immutable activation receipt.",
         "parameters": [
           {
             "schema": {
@@ -7886,7 +7886,7 @@
                   },
                   "codification": {
                     "additionalProperties": false,
-                    "description": "Optional. When present, the stored rules are the ones `codify()` returns — including `source_ref`, which `codify()` derives from the declared clause and does not take from the caller — not the ones submitted. See `packages/meshqu-core/src/codification.ts`.",
+                    "description": "Optional. When provided, MeshQu stores the rules produced from the codification input. Their `source_ref` is derived from the declared clause rather than taken from the caller.",
                     "type": "object",
                     "required": [
                       "source",
@@ -14751,7 +14751,7 @@
         "tags": [
           "Policies"
         ],
-        "description": "Corrects a pending DRAFT without overwriting it. The draft is closed with status \"replaced\" — kept as history exactly as it was, codification record and lint findings included — and the corrected rules become a NEW draft, created through the same path as version creation (an optional `codification` block is codified and linted afresh). `expected_revision` is the old draft's `draft_revision`; a concurrent autosave either lands first (this is refused STALE_DRAFT_REVISION) or finds the draft replaced (it is refused). Ordinary autosave edits stay in place (PATCH). Human-only. Refusals: 404 NOT_FOUND (policy or version not in this tenant); 409 INVALID_TRANSITION with details.reason — VERSION_NOT_DRAFT, VERSION_BOUND_TO_CAPABILITY (set it aside instead); 409 STALE_DRAFT_REVISION with the current candidate; 422 VALIDATION_ERROR / UNSUPPORTED_RULE_TYPE / CODIFICATION_REFUSED.",
+        "description": "Corrects a pending draft without overwriting it. The draft closes with status `replaced` and remains available as history, including its codification record and lint findings. The corrected rules become a new draft; an optional `codification` block is processed again. `expected_revision` must match the current `draft_revision`, or the request returns 409 `STALE_DRAFT_REVISION`. A draft that is no longer pending cannot be superseded. Only a verified human session may call this operation. Other refusals include 404 `NOT_FOUND`; 409 `INVALID_TRANSITION` with `VERSION_NOT_DRAFT` or `VERSION_BOUND_TO_CAPABILITY`; and 422 `VALIDATION_ERROR`, `UNSUPPORTED_RULE_TYPE` or `CODIFICATION_REFUSED`.",
         "requestBody": {
           "required": true,
           "content": {
@@ -15219,7 +15219,7 @@
                   },
                   "codification": {
                     "additionalProperties": false,
-                    "description": "Optional. When present, the stored rules are the ones `codify()` returns — including `source_ref`, which `codify()` derives from the declared clause and does not take from the caller — not the ones submitted. See `packages/meshqu-core/src/codification.ts`.",
+                    "description": "Optional. When provided, MeshQu stores the rules produced from the codification input. Their `source_ref` is derived from the declared clause rather than taken from the caller.",
                     "type": "object",
                     "required": [
                       "source",
@@ -17068,7 +17068,7 @@
         "tags": [
           "Policies"
         ],
-        "description": "Transitions a draft policy version to \"submitted\" state. Requires the actor to be the draft author. Blocks if another draft or submitted version exists for the same policy. The request body is intentionally omitted from the schema so callers may invoke this endpoint with no body (Fastify rejects `undefined` bodies when a body schema is attached).",
+        "description": "Transitions a draft policy version to `submitted`. The caller must be the draft author, and no other draft or submitted version may exist for the policy. Send the request without a body.",
         "parameters": [
           {
             "schema": {
@@ -20575,7 +20575,7 @@
           "Policies",
           "Decisions"
         ],
-        "description": "Cursor-paginated decision log for a single policy. Supports rule / type / date / version filters. If ?version is omitted, defaults to the active version — matching the \"this version\" default in the console Evidence tab.",
+        "description": "Returns a cursor-paginated decision log for one policy, with rule, outcome, date and version filters. If `version` is omitted, results default to the active version.",
         "parameters": [
           {
             "schema": {
@@ -20649,7 +20649,7 @@
             "in": "query",
             "name": "version",
             "required": false,
-            "description": "Filter to decisions recorded under this policy version (defaults to the active version when omitted — matches the \"this version\" UI default)"
+            "description": "Filter to decisions recorded under this policy version. Defaults to the active version when omitted."
           },
           {
             "schema": {
@@ -21455,7 +21455,7 @@
                             ]
                           },
                           "chain_integrity_hash": {
-                            "description": "SHA-256 chain integrity hash (Phase 2 cryptographic chain proof)",
+                            "description": "SHA-256 chain integrity hash.",
                             "anyOf": [
                               {
                                 "type": "string"
@@ -21705,7 +21705,7 @@
                               },
                               "display_name": {
                                 "maxLength": 255,
-                                "description": "Human-readable name for UI/reports",
+                                "description": "Human-readable actor name.",
                                 "type": "string"
                               }
                             }
@@ -26566,7 +26566,7 @@
                           "type": "number"
                         },
                         "source": {
-                          "description": "Source of the policy snapshot: cache hit or database lookup",
+                          "description": "How policy state was resolved: `cache` for reused state or `db` for a fresh lookup.",
                           "anyOf": [
                             {
                               "type": "string",
@@ -26873,7 +26873,7 @@
         "tags": [
           "Decisions"
         ],
-        "description": "Evaluates policies AND persists the result with full audit trail.\n\nSupports idempotency. Replaying an idempotency_key returns the decision already\nrecorded under it, without re-evaluating — but only when the request content is\nunchanged. Reusing a key with DIFFERENT content is refused with\n409 `IDEMPOTENCY_KEY_REUSED`: nothing is recorded, and the previously recorded\ndecision is not returned. The 409 body names the decision holding the key, the\ntwo fingerprints that differed, which parts of the request were compared, and\nthe two ways to proceed.\n\nContent is compared over the decision context — decision_type, fields, evidence,\nsource_artifact and metadata. Server-written metadata (correlation_id, the\nagent-licence keys) is excluded so an honest network retry cannot conflict.\nInputs outside the context — evidence_manifest, evidence_manifest_digest, action\nand options.chain — are not compared; see `fingerprint_ignores` in the 409 body.\n\nReturns:\n- **decision**: The recorded decision with full context\n- **is_new**: False when the key already held an identical request and the\n  stored decision was returned instead of a new one being recorded\n- **duration_ms**: Total request duration\n- **links.verify**: Verification page URL for this decision id. Response-envelope\n  metadata derived from deployment config — it is not part of the receipt and\n  is omitted entirely when no verify base URL is configured.",
+        "description": "Evaluates policies AND persists the result with full audit trail.\n\nSupports idempotency. Replaying an idempotency_key returns the decision already\nrecorded under it, without re-evaluating — but only when the request content is\nunchanged. Reusing a key with DIFFERENT content is refused with\n409 `IDEMPOTENCY_KEY_REUSED`: nothing is recorded, and the previously recorded\ndecision is not returned. The 409 body names the decision holding the key, the\ntwo fingerprints that differed, which parts of the request were compared, and\nthe two ways to proceed.\n\nContent is compared over the decision context — decision_type, fields, evidence,\nsource_artifact and metadata. Metadata added by MeshQu (`correlation_id` and agent-licence keys) is excluded so a retry with the same request does not conflict.\nInputs outside the context — evidence_manifest, evidence_manifest_digest, action\nand options.chain — are not compared; see `fingerprint_ignores` in the 409 body.\n\nReturns:\n- **decision**: The recorded decision with full context\n- **is_new**: False when the key already held an identical request and the\n  stored decision was returned instead of a new one being recorded\n- **duration_ms**: Total request duration\n- **links.verify**: Verification page URL for this decision id. Response-envelope\n  metadata, not part of the receipt; it is omitted when no verification URL is available.",
         "requestBody": {
           "required": true,
           "content": {
@@ -27142,7 +27142,7 @@
                       },
                       "display_name": {
                         "maxLength": 255,
-                        "description": "Human-readable name for UI/reports",
+                        "description": "Human-readable actor name.",
                         "type": "string"
                       }
                     }
@@ -27161,7 +27161,7 @@
                     ]
                   },
                   "evidence_manifest": {
-                    "description": "Full evidence manifest object — server stores and indexes it",
+                    "description": "Full evidence manifest supplied with the recorded decision.",
                     "anyOf": [
                       {
                         "description": "Multi-item evidence manifest bound to a governed decision",
@@ -27197,7 +27197,7 @@
                               "properties": {
                                 "kind": {
                                   "minLength": 1,
-                                  "description": "Category of this evidence item (e.g. kyc_record, sanctions_screening_result). Named EvidenceItemKind values have UI labels; unknown strings are displayed verbatim.",
+                                  "description": "Category of this evidence item (for example, `kyc_record` or `sanctions_screening_result`).",
                                   "type": "string"
                                 },
                                 "mime_type": {
@@ -28123,7 +28123,7 @@
                           ]
                         },
                         "chain_integrity_hash": {
-                          "description": "SHA-256 chain integrity hash (Phase 2 cryptographic chain proof)",
+                          "description": "SHA-256 chain integrity hash.",
                           "anyOf": [
                             {
                               "type": "string"
@@ -28373,7 +28373,7 @@
                             },
                             "display_name": {
                               "maxLength": 255,
-                              "description": "Human-readable name for UI/reports",
+                              "description": "Human-readable actor name.",
                               "type": "string"
                             }
                           }
@@ -28411,7 +28411,7 @@
                           "type": "number"
                         },
                         "source": {
-                          "description": "Source of the policy snapshot: cache hit or database lookup",
+                          "description": "How policy state was resolved: `cache` for reused state or `db` for a fresh lookup.",
                           "anyOf": [
                             {
                               "type": "string",
@@ -28526,13 +28526,13 @@
                         },
                         "display_name": {
                           "maxLength": 255,
-                          "description": "Human-readable name for UI/reports",
+                          "description": "Human-readable actor name.",
                           "type": "string"
                         }
                       }
                     },
                     "links": {
-                      "description": "Links derived from server configuration. Not part of the receipt.",
+                      "description": "Optional verification links. Not part of the receipt.",
                       "type": "object",
                       "required": [
                         "verify"
@@ -28540,7 +28540,7 @@
                       "properties": {
                         "verify": {
                           "format": "uri",
-                          "description": "Public verification page for this decision id. Built from the deployment verify base URL; the receipt itself is unchanged by its presence.",
+                          "description": "Public verification page for this decision when available. It is not part of the receipt.",
                           "type": "string"
                         }
                       }
@@ -29386,7 +29386,7 @@
                           ]
                         },
                         "chain_integrity_hash": {
-                          "description": "SHA-256 chain integrity hash (Phase 2 cryptographic chain proof)",
+                          "description": "SHA-256 chain integrity hash.",
                           "anyOf": [
                             {
                               "type": "string"
@@ -29636,7 +29636,7 @@
                             },
                             "display_name": {
                               "maxLength": 255,
-                              "description": "Human-readable name for UI/reports",
+                              "description": "Human-readable actor name.",
                               "type": "string"
                             }
                           }
@@ -29674,7 +29674,7 @@
                           "type": "number"
                         },
                         "source": {
-                          "description": "Source of the policy snapshot: cache hit or database lookup",
+                          "description": "How policy state was resolved: `cache` for reused state or `db` for a fresh lookup.",
                           "anyOf": [
                             {
                               "type": "string",
@@ -29789,13 +29789,13 @@
                         },
                         "display_name": {
                           "maxLength": 255,
-                          "description": "Human-readable name for UI/reports",
+                          "description": "Human-readable actor name.",
                           "type": "string"
                         }
                       }
                     },
                     "links": {
-                      "description": "Links derived from server configuration. Not part of the receipt.",
+                      "description": "Optional verification links. Not part of the receipt.",
                       "type": "object",
                       "required": [
                         "verify"
@@ -29803,7 +29803,7 @@
                       "properties": {
                         "verify": {
                           "format": "uri",
-                          "description": "Public verification page for this decision id. Built from the deployment verify base URL; the receipt itself is unchanged by its presence.",
+                          "description": "Public verification page for this decision when available. It is not part of the receipt.",
                           "type": "string"
                         }
                       }
@@ -31022,7 +31022,7 @@
                             ]
                           },
                           "chain_integrity_hash": {
-                            "description": "SHA-256 chain integrity hash (Phase 2 cryptographic chain proof)",
+                            "description": "SHA-256 chain integrity hash.",
                             "anyOf": [
                               {
                                 "type": "string"
@@ -31272,7 +31272,7 @@
                               },
                               "display_name": {
                                 "maxLength": 255,
-                                "description": "Human-readable name for UI/reports",
+                                "description": "Human-readable actor name.",
                                 "type": "string"
                               }
                             }
@@ -32083,7 +32083,7 @@
                           ]
                         },
                         "chain_integrity_hash": {
-                          "description": "SHA-256 chain integrity hash (Phase 2 cryptographic chain proof)",
+                          "description": "SHA-256 chain integrity hash.",
                           "anyOf": [
                             {
                               "type": "string"
@@ -32333,7 +32333,7 @@
                             },
                             "display_name": {
                               "maxLength": 255,
-                              "description": "Human-readable name for UI/reports",
+                              "description": "Human-readable actor name.",
                               "type": "string"
                             }
                           }
@@ -33774,7 +33774,7 @@
                           ]
                         },
                         "chain_integrity_hash": {
-                          "description": "SHA-256 chain integrity hash (Phase 2 cryptographic chain proof)",
+                          "description": "SHA-256 chain integrity hash.",
                           "anyOf": [
                             {
                               "type": "string"
@@ -34024,7 +34024,7 @@
                             },
                             "display_name": {
                               "maxLength": 255,
-                              "description": "Human-readable name for UI/reports",
+                              "description": "Human-readable actor name.",
                               "type": "string"
                             }
                           }
@@ -35382,7 +35382,7 @@
         "tags": [
           "Decisions"
         ],
-        "description": "Server-Sent Events stream for real-time decision updates.\n\n**v1 contract**: live push stream. Missed events during disconnect are NOT\nreplayed — clients needing completeness after reconnect should re-query\n`GET /v1/decisions` and reconcile locally.\n\nEvents:\n- **connected**: Sent once, after the server's LISTEN subscription is active\n- **decision**: New decision recorded (pushed via Postgres LISTEN/NOTIFY)\n- **heartbeat**: Keep-alive ping (every 15s)\n- **error**: Stream-level error (connection will close)\n\nExample:\n```javascript\nconst es = new EventSource('/v1/decisions/stream', {\n  headers: { 'Authorization': 'Bearer <api-key>' }\n});\nes.addEventListener('decision', (e) => console.log(JSON.parse(e.data)));\n```",
+        "description": "Server-Sent Events stream for live decision updates. Events missed during a disconnect are not replayed; after reconnecting, query `GET /v1/decisions` to reconcile.\n\nEvents:\n- **connected**: Sent once when the stream is ready\n- **decision**: New decision recorded\n- **heartbeat**: Keep-alive ping every 15 seconds\n- **error**: Stream-level error; the connection closes\n\nConnect with an SSE client that supports the `Authorization` and `X-MeshQu-Tenant-Id` headers.",
         "responses": {
           "200": {
             "description": "SSE stream",
@@ -37910,7 +37910,7 @@
                 "properties": {
                   "key_id": {
                     "format": "uuid",
-                    "description": "The API key this record refers to (meshqu.api_keys.id).",
+                    "description": "ID of the API key this record refers to.",
                     "type": "string"
                   },
                   "policy_id": {
@@ -41357,7 +41357,7 @@
         "tags": [
           "Fields"
         ],
-        "description": "Edits the label, meaning, owner or choice domain of a declared input and appends one revision. Human-principal only for now — see FIELD_DECLARATION_HUMAN_ONLY.\n\nA CHOICE DOMAIN is business metadata about what a fact can mean. **It never edits a rule's allowed values.** A native list rule's allowed/forbidden values are chosen explicitly and stored in the rule, and are the only values the evaluator reads; adding, relabelling or removing a choice changes no rule, no active_rules_hash and no receipt, and a rule value that is not in the domain stays legal and is shown as unlisted rather than removed.\n\n`expected_revision` is required and is a compare-and-set: a disagreement is refused 409 `STALE_DEFINITION_REVISION` with both numbers and nothing is written. A type or unit change is refused 422 `DEFINITION_TYPE_CHANGE_UNSUPPORTED` — that is a redeclaration, not a revision. A choice domain repeating a code is refused 422 `DUPLICATE_CHOICE_CODE`, and one carrying a malformed entry 422 `INVALID_CHOICE_SHAPE` naming the offending index — two different faults, two different codes. A label change never renames the canonical key, and the key cannot be renamed by any request.",
+        "description": "Edits the label, meaning, owner or choice domain of a declared input and appends one revision. Only a verified human principal may edit a definition.\n\nA CHOICE DOMAIN is business metadata about what a fact can mean. **It never edits a rule's allowed values.** A native list rule's allowed/forbidden values are chosen explicitly and stored in the rule, and are the only values the evaluator reads; adding, relabelling or removing a choice changes no rule, no active_rules_hash and no receipt, and a rule value that is not in the domain stays legal and is shown as unlisted rather than removed.\n\n`expected_revision` is required and is a compare-and-set: a disagreement is refused 409 `STALE_DEFINITION_REVISION` with both numbers and nothing is written. A type or unit change is refused 422 `DEFINITION_TYPE_CHANGE_UNSUPPORTED` — that is a redeclaration, not a revision. A choice domain repeating a code is refused 422 `DUPLICATE_CHOICE_CODE`, and one carrying a malformed entry 422 `INVALID_CHOICE_SHAPE` naming the offending index — two different faults, two different codes. A label change never renames the canonical key, and the key cannot be renamed by any request.",
         "requestBody": {
           "required": true,
           "content": {
@@ -41371,7 +41371,7 @@
                 "properties": {
                   "expected_revision": {
                     "minimum": 1,
-                    "description": "The declaration_revision the caller believes is current. REQUIRED: the write applies only if it still matches, and is refused 409 STALE_DEFINITION_REVISION with expected_revision and current_revision otherwise. Two authors editing the same definition concurrently is exactly what this is for — the second is refused and the console reloads and re-offers.",
+                    "description": "Current `declaration_revision` expected by the caller. Required. A mismatched revision returns 409 `STALE_DEFINITION_REVISION` with `expected_revision` and `current_revision`; reload the current definition before retrying.",
                     "type": "integer"
                   },
                   "label": {
@@ -41574,7 +41574,7 @@
                       ]
                     },
                     "changed": {
-                      "description": "false when the request supplied the stored values back: no revision row was appended and the counter did not move. Appending a revision identical to its predecessor would put an event in the history that did not happen.",
+                      "description": "False when submitted values match the current definition; the revision does not change.",
                       "type": "boolean"
                     }
                   }
@@ -41787,7 +41787,7 @@
         "tags": [
           "Fields"
         ],
-        "description": "Returns every recorded revision of one definition, OLDEST FIRST, each carrying the full snapshot that write left in place rather than a diff.\n\nEach entry RECORDS what the definition meant, who wrote it and when. It PROVES nothing — no entry is signed or hashed, none enters a digest or a receipt, and a recorded `owner` is a name rather than an authority. A `choices` domain in an entry is business metadata that never edited any rule's allowed values.\n\nAn EMPTY list is a normal answer, not an error, and means one of two things this endpoint cannot tell apart: the key has no declared definition, or it was declared before revision history existed and has had no definition write since. No backfill was run, so a point-in-time read before a definition's first recorded revision reports \"not defined at the time\" rather than showing today's meaning as if it had applied then.",
+        "description": "Returns recorded definition revisions oldest first, each with the full definition snapshot, author and time. These entries record changes but are unsigned and are not included in a digest or receipt. A `choices` domain is business metadata and does not change the allowed values of existing rules. An empty list can mean the key has no declared definition or no revision has been recorded. A point-in-time read before the first recorded revision reports \"not defined at the time\".",
         "parameters": [
           {
             "schema": {
@@ -41815,7 +41815,7 @@
                       "type": "string"
                     },
                     "items": {
-                      "description": "The full history, OLDEST FIRST. One entry per definition write, each carrying the whole snapshot that write left in place rather than a diff. RECORDS what the definition meant, who wrote it and when; PROVES nothing — no entry is signed or hashed and none enters a digest or a receipt. EMPTY is a legitimate answer for a definition declared before revision history existed: no backfill ran , so such a row has no history until its first recorded write, and a point-in-time read before that instant reports \"not defined at the time\" rather than showing today's meaning as if it had applied.",
+                      "description": "Recorded definition revisions, oldest first. Each entry contains the full definition snapshot rather than a diff. Entries are unsigned and are not included in a digest or receipt. An empty list means no revision is available; a point-in-time read before the first recorded revision reports \"not defined at the time\".",
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -44022,7 +44022,7 @@
                       },
                       "display_name": {
                         "maxLength": 255,
-                        "description": "Human-readable name for UI/reports",
+                        "description": "Human-readable actor name.",
                         "type": "string"
                       }
                     }
@@ -44255,7 +44255,7 @@
                         },
                         "display_name": {
                           "maxLength": 255,
-                          "description": "Human-readable name for UI/reports",
+                          "description": "Human-readable actor name.",
                           "type": "string"
                         }
                       }

@@ -45,7 +45,7 @@ The agent never reaches `EXEC` without passing through `MeshQu evaluates`. Your 
 
 ## Gate a low-risk action with `evaluate`
 
-For the hot path — gating thousands of routine tool calls — use **`evaluate`**. It records no decision, so it is cheap to call on every action and leaves no decision to page through later. It is not a pure read: resolving the active policies may append one row to the tenant's append-only `policy_snapshots` table, returned as `policy_snapshot_id`. On a hot path that append is rare — a repeat call resolving to the same policies reuses the existing snapshot and appends nothing, so a steady policy set costs one row, not one per call. Persist only the consequential decisions with `record` (next section).
+For the hot path — gating thousands of routine tool calls — use **`evaluate`**. It records no decision, so it is cheap to call on every action and leaves no decision to page through later. It is not a pure read: resolving the active policies may create or reuse an immutable policy snapshot, identified in the response by `policy_snapshot_id`. Repeated calls resolving to the same policies reuse that snapshot. Persist only the consequential decisions with `record` (next section).
 
 <CodeGroup>
 

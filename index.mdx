@@ -21,7 +21,7 @@ It records the policy in force, relevant decision context, the outcome and the i
 
 See the [Receipt Reference](/concepts/receipt-reference) for the field-level contract, and [Verifying Offline](/guides/verifying-offline) to check one yourself. New to MeshQu? [Start with what a Decision Receipt is](https://www.meshqu.com/receipts) — the public overview, written for a reader who has not yet decided to integrate.
 
-> **Mental model:** MeshQu sits at the decision boundary. You send context, it returns a governed verdict and a verifiable receipt. You own enforcement.
+> **Mental model:** MeshQu sits at the decision boundary. You send context and receive a governed verdict; call `record` when you need a verifiable receipt. You own enforcement.
 
 ## Why MeshQu exists
 
@@ -43,7 +43,7 @@ Your application decides what to do with the decision. MeshQu does not block or 
 flowchart LR
   A[Intent Created] --> B[Decision Boundary]
   B -->|Evaluate| MQ[MeshQu]
-  MQ --> C[Verdict + Receipt]
+  MQ --> C[Verdict]
   C --> D[Enforcement]
 ```
 
@@ -79,12 +79,12 @@ curl -X POST https://api.meshqu.com/v1/decisions/evaluate \
 </Warning>
 
 <Info>
-  **Evaluate vs Record** — `evaluate` is fast and records no decision; resolving the active policies may still append one row to the tenant's append-only `policy_snapshots` table, and a repeat call resolving to the same policies appends nothing. `record` persists the decision itself for audit. Most production systems use `evaluate` on the hot path and `record` for compliance-critical actions. See [Evaluate vs Record](/concepts/overview#evaluate-vs-record).
+  **Evaluate vs Record** — `evaluate` is fast and records no decision; resolving the active policies may create or reuse an immutable policy snapshot, identified in the response by `policy_snapshot_id`. `record` persists the decision itself for audit. Most production systems use `evaluate` on the hot path and `record` for compliance-critical actions. See [Evaluate vs Record](/concepts/overview#evaluate-vs-record).
 </Info>
 
 ## What happens after you integrate
 
-1. Your system calls MeshQu before or after the **decision boundary** — the moment an outcome becomes irreversible.
+1. Your system calls `evaluate` before acting on a decision, or `record` when it needs a durable receipt.
 2. MeshQu evaluates the context against your active policies and returns a verdict — and, when you call `record`, a signed Decision Receipt.
 3. Your code decides how to act — proceed, queue for review, or block.
 4. Auditors can independently replay and verify any recorded decision later.
