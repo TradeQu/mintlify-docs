@@ -224,7 +224,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/chain/CHAIN_ID/verify \
 ## Operational notes
 
 - **Idempotency** — every `record` carries an `idempotency_key`. A retried screening call returns the original receipt with `is_new: false` rather than recording a duplicate step. See [Idempotency](/guides/idempotency).
-- **Rolling out a tightened screening rule** — put the new policy in `shadow_mode` first so its `DENY` is reported as `ALERT` and never blocks a real transaction while you tune it. See [Shadow Mode](/guides/shadow-mode).
+- **Rolling out a tightened screening rule** — shadow violations can change the returned verdict, including to `DENY` when an enforcing policy also has a violation. Until the fix ships, treat shadow violations as live: they can change the verdict your application receives. See [Shadow Mode](/guides/shadow-mode).
 - **Real-time SAR triggers** — subscribe a [webhook](/guides/webhooks) filtered to `aml_screening` / `aml_disposition` at `severity_min: critical` to page your on-call when a critical violation fires.
 
 ## Concept references

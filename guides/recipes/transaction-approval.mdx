@@ -164,7 +164,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/DECISION_ID/replay \
 ## Operational notes
 
 - **Idempotency is mandatory on settlement** — a retried `record` with the same `idempotency_key` returns the original receipt (`is_new: false`), never a duplicate approval. Key it on the transaction reference. See [Idempotency](/guides/idempotency).
-- **Tighten a limit safely** — lowering a threshold or adding a jurisdiction can wrongly block real payments on day one. Introduce it in `shadow_mode` so its `DENY` is surfaced as `ALERT` while you watch real traffic, then promote. See [Shadow Mode](/guides/shadow-mode).
+- **Tighten a limit** — lowering a threshold or adding a jurisdiction can wrongly block real payments. Shadow violations can also change the returned verdict. Until the fix ships, treat shadow violations as live: they can change the verdict your application receives. See [Shadow Mode](/guides/shadow-mode).
 - **Page on blocked transactions** — subscribe a [webhook](/guides/webhooks) filtered to `transaction_approval` at `severity_min: critical` so compliance is notified the moment a sanctioned-jurisdiction or over-limit transfer is denied.
 - **Fail-closed** — for settlement, default to blocking when MeshQu is unreachable. See [fail-open vs fail-closed](/guides/integration-patterns#fail-open-vs-fail-closed).
 

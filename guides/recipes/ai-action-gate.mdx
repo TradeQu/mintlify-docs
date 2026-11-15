@@ -158,7 +158,7 @@ curl -X POST https://api.meshqu.com/v1/decisions/DECISION_ID/outcome \
 
 ## Operational notes
 
-- **Roll out a new agent rule safely** — start it in `shadow_mode`. The engine evaluates it and surfaces what it *would* have denied as `ALERT`, but the verdict your runtime reads stays unaffected until you promote it. Essential when you cannot afford to wrongly block an agent mid-run. See [Shadow Mode](/guides/shadow-mode).
+- **Observe a new agent rule** — `shadow_mode` reports its violations, but they can change the verdict your runtime reads. Until the fix ships, treat shadow violations as live: they can change the verdict your application receives. See [Shadow Mode](/guides/shadow-mode).
 - **Fail-closed for production actions** — if MeshQu is unreachable, a high-stakes agent action should default to refuse, not run. See the fail-open vs fail-closed guidance in [Integration Patterns](/guides/integration-patterns#fail-open-vs-fail-closed).
 - **Page on critical denials** — subscribe a [webhook](/guides/webhooks) filtered to `ai_action_gate` at `severity_min: critical` to alert when an agent attempts a critical-risk or PII-export action.
 
