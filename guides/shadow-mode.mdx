@@ -1,27 +1,33 @@
 ---
 title: "Shadow Mode"
-description: "Roll out new policies safely by downgrading their blocks to alerts"
+description: "Observe shadow policies and understand their effect on decisions"
 ---
 
-**Audience:** engineers and risk owners introducing or changing a policy in a live system who need to see what it *would* do before letting it affect outcomes.
+**Audience:** engineers and risk owners introducing or changing a policy in a live system who need to review its results before enforcing it.
 
-Shadow mode lets a policy run against real traffic without ever escalating to a hard block. While a policy is in shadow mode, any `DENY` it produces is **downgraded to `ALERT`** — the violation is recorded and surfaced, but the verdict your application receives never tells you to block. You watch the alerts, build confidence, then promote the policy to enforcing.
+Shadow mode runs a policy against real traffic and reports its violations. Today, those violations also feed the decision's severity ramp. A shadow policy can therefore escalate the live verdict, including to `DENY` when an enforcing policy also has a violation. Only a `DENY` whose violations are all from shadow policies is returned as `ALERT`.
+
+<Warning>
+  Until the fix ships, treat shadow violations as live: they can change the verdict your application receives.
+</Warning>
+
+We are changing this so shadow results never affect a live outcome. This page will be updated when the change ships.
 
 <Info>
   **Console terminology** — In the MeshQu console UI this setting is labelled **"Advisory mode."** It is the same feature as the `shadow_mode` field described here; the API and SDK use `shadow_mode`. There is no `advisory_mode` field.
 </Info>
 
-> **Mental model:** shadow mode changes how *one policy's* verdict is reported, not how your application behaves. MeshQu is [advisory by design](/) — it never blocks anything itself — so shadow mode is specifically about keeping a new policy's `DENY` out of the verdict your enforcement code reads.
+> **Mental model:** MeshQu returns a verdict; your application decides what to do with it. Shadow violations currently contribute to that verdict. MeshQu does not block operations itself. See [Integration Patterns](/guides/integration-patterns).
 
 ## Why use it
 
-- **Risk-free introduction** — a new or tightened policy can't start blocking real operations on day one.
+- **Observe real violations** — review a new or tightened policy's results before promoting it. Its violations can still change the returned verdict.
 - **Real traffic** — you observe how the policy behaves against production data, not synthetic cases.
-- **Evidence before promotion** — alerts accumulate so you can review false positives and tune thresholds before enforcing.
+- **Review before promotion** — use alerts to find false positives and tune thresholds before enforcing.
 
 ## The `shadow_mode` flag
 
-`shadow_mode` is a boolean on the policy. When `true`, the engine still evaluates every rule and records every violation, but a verdict that would have been `DENY` is returned as `ALERT` instead.
+`shadow_mode` is a boolean on the policy. When `true`, the engine still evaluates its rules and includes their violations in the decision. If every violation is from a shadow policy and the severity ramp returns `DENY`, the returned decision is `ALERT`. If any violation is from an enforcing policy, that conversion does not happen.
 
 ### Create a policy in shadow mode
 
@@ -71,7 +77,7 @@ const policy = await meshqu.createPolicy({
 
 ### Promote to enforcing
 
-When the alerts look right, flip the flag. Existing logic stays untouched — only the policy's verdict reporting changes.
+When you are ready to enforce the policy, turn off shadow mode. Check the combined decision against your application logic before doing so.
 
 <CodeGroup>
 
@@ -91,34 +97,15 @@ await meshqu.updatePolicy(policyId, { shadow_mode: false });
 
 ## Reading shadow state from a verdict
 
-Both `evaluate` and `record` report shadow state on the response. The top-level `shadow_mode` object tells you whether the *evaluation as a whole* was affected by a shadowed policy, and what the verdict would have been without the downgrade:
-
-```json
-{
-  "result": {
-    "decision": "ALERT",
-    "violations": [
-      { "rule_code": "MAX-AMOUNT", "severity": "high", "reason": "amount exceeds 100000" }
-    ]
-  },
-  "shadow_mode": {
-    "enabled": true,
-    "original_decision": "DENY"
-  }
-}
-```
-
-Here the returned `decision` is `ALERT` — safe for your enforcement code — while `shadow_mode.original_decision` shows it *would* have been `DENY` once the policy is promoted. That delta is exactly what you monitor during the shadow period.
-
-Each evaluated policy also carries its own `shadow_mode` flag in the per-policy breakdown of the result, so you can see which policy caused the downgrade when several are evaluated together.
+Both `evaluate` and `record` return a `result` with a `decision` and `violations`. The `evaluate` response also has a top-level `shadow_mode` object whose `enabled` is true when the result reports that a shadow rule was evaluated, and whose `original_decision` is `DENY` when an all-shadow `DENY` was converted to `ALERT`. On a recorded decision, `result.is_shadow` indicates that a shadow rule was evaluated. Each shadow violation has `is_shadow: true`. If an all-shadow `DENY` was converted to `ALERT`, `result.shadow_converted` is `true` and `result.original_decision` is `DENY`. A shadow violation can also contribute to `REVIEW` or to a mixed-policy `DENY` without a conversion. See [Receipt Reference §1.1 and §1.6](/concepts/receipt-reference).
 
 <Warning>
-  Shadow mode protects against a new policy's `DENY`. It does **not** make MeshQu enforce anything in the first place — enforcement is always your application's job. A policy that is *not* in shadow mode still only returns a verdict; your code must act on it. See [Integration Patterns](/guides/integration-patterns).
+  An all-shadow `DENY` is returned as `ALERT`, but mixed shadow and enforcing violations can return `DENY`. Your application decides how to act on every returned verdict. See [Integration Patterns](/guides/integration-patterns).
 </Warning>
 
 ## Monitoring the shadow period
 
-The signal you care about is: **how often, and where, would this policy have blocked?** Use the recorded alerts and decisions.
+Review which shadow rules fire and how they affect returned decisions. On recorded decisions, each shadow violation creates an alert at the rule's severity. These alerts do not carry a shadow marker.
 
 ```bash
 # Alerts raised by the shadowed policy
@@ -127,7 +114,7 @@ curl "https://api.meshqu.com/v1/alerts?limit=50" \
   -H "X-MeshQu-Tenant-Id: YOUR_TENANT_ID"
 ```
 
-Review each alert as a candidate block. Ask:
+Review each alert against the policy and the returned decision. Ask:
 
 | Observation | Likely action |
 | --- | --- |
@@ -135,7 +122,7 @@ Review each alert as a candidate block. Ask:
 | Alerts that correctly catch bad operations | Good signal — builds confidence to promote. |
 | No alerts at all over real traffic | Rule may never fire — check field mapping and `decision_type`. |
 
-For real-time delivery of these alerts to your own monitoring, subscribe a [webhook](/guides/webhooks) and filter by `decision_type` and `severity_min`.
+Matching [webhook](/guides/webhooks) subscriptions receive these alerts too. Filter by `decision_type` and `severity_min` for your monitoring. Overview decision counts and compliance metrics also include recorded shadow decisions; they are not an enforcing-only view.
 
 ### Suggested shadow duration
 

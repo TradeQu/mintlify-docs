@@ -128,7 +128,7 @@ async function executeOrder(order: Order): Promise<OrderResult> {
 
 ## Pattern 4: Advisory mode rollout
 
-When introducing a new policy, start in **advisory** mode. Advisory policies are evaluated but their `DENY` decisions are downgraded to `ALERT`. This lets you observe what the policy _would_ do without affecting production.
+When introducing a new policy, you can use **advisory** mode to observe its violations. These violations currently affect the returned decision. Only an all-shadow `DENY` is returned as `ALERT`. Until the fix ships, treat shadow violations as live: they can change the verdict your application receives. See [Shadow Mode](/guides/shadow-mode).
 
 1. Create the policy with `shadow_mode: true`.
 2. Monitor decisions and alerts.
